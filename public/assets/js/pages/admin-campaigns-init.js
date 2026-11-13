@@ -262,7 +262,7 @@
     }
 
     sendBtn.disabled = true;
-    sendBtn.textContent = '📣 Sending…';
+    sendBtn.textContent = 'Sending…';
     clearStatus();
 
     try {
@@ -280,7 +280,7 @@
       setStatus(msg, 'error');
     } finally {
       sendBtn.disabled = false;
-      sendBtn.textContent = '📣 Send campaign';
+      sendBtn.textContent = 'Send campaign';
     }
   }
 

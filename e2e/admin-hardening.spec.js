@@ -21,7 +21,7 @@ const ADMIN_PAGES = [
   '/admin.html',
   '/admin-users.html',
   '/admin-suppliers.html',
-  '/admin-payments.html',
+  '/admin-analytics.html',
   '/admin-tickets.html',
 ];
 
@@ -253,7 +253,10 @@ test.describe('Admin Page Loading - Admin User', () => {
     await expect(navbar).toBeVisible({ timeout: 5000 });
   });
 
-  test('admin-payments page should load', async ({ page, browserName }) => {
+  test('admin-analytics page (with the Payments tab) should load', async ({
+    page,
+    browserName,
+  }) => {
     // Mock payments list
     await page.route('**/api/admin/payments*', route => {
       route.fulfill({
@@ -268,14 +271,14 @@ test.describe('Admin Page Loading - Admin User', () => {
       });
     });
 
-    await page.goto('/admin-payments.html');
+    await page.goto('/admin-analytics.html');
     await page.waitForLoadState('domcontentloaded');
 
     const waitTime = browserName === 'webkit' ? WEBKIT_WAIT : DEFAULT_WAIT;
     await page.waitForTimeout(waitTime);
 
-    // Should stay on admin-payments page
-    expect(page.url()).toContain('/admin-payments.html');
+    // Should stay on the admin-analytics page
+    expect(page.url()).toContain('/admin-analytics.html');
 
     // Should have admin navbar
     const navbar = page.locator('.admin-top-navbar, .admin-navbar');

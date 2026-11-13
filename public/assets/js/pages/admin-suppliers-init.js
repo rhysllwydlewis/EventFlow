@@ -1,5 +1,12 @@
 // Supplier Management Page Initialization
 (function () {
+  // Row action icons (drawn, not emoji, so they look the same on every device)
+  const ICON_ATTRS =
+    'width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  const ICON_VIEW = `<svg ${ICON_ATTRS}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  const ICON_EDIT = `<svg ${ICON_ATTRS}><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>`;
+  const ICON_DELETE = `<svg ${ICON_ATTRS}><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>`;
+
   let allSuppliers = [];
   let filteredSuppliers = [];
   const selectedSuppliers = new Set();
@@ -85,7 +92,7 @@
       const tbody = document.getElementById('suppliersTableBody');
       if (tbody) {
         tbody.innerHTML =
-          '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #dc2626;">⚠️ Error loading suppliers. Please refresh the page.</td></tr>';
+          '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #dc2626;">⚠︎ Error loading suppliers. Please refresh the page.</td></tr>';
       }
     }
   }
@@ -414,7 +421,7 @@
 
     if (pageSuppliers.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #5f6673;">No suppliers found</td></tr>';
+        '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #566176;">No suppliers found</td></tr>';
       updatePagination();
       return;
     }
@@ -436,12 +443,12 @@
         const approvalCell = supplier.approved
           ? '<span style="color: #047857;">✓ Approved</span>'
           : isPendingReview
-            ? '<span style="color: #b45309;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">🔍 Awaiting review</span>'
-            : '<span style="color: #5f6673;">Unapproved</span>';
+            ? '<span style="color: #b45309;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">Awaiting review</span>'
+            : '<span style="color: #566176;">Unapproved</span>';
 
         // Orphaned supplier — owner account has been deleted; flagged for admin attention
         const orphanBadge = supplier._ownerDeleted
-          ? ' <span title="Owner account deleted — hidden from all public pages. Delete it to clean up." style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:999px;padding:1px 6px;white-space:nowrap;cursor:help;">⚠️ Owner deleted</span>'
+          ? ' <span title="Owner account deleted — hidden from all public pages. Delete it to clean up." style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:999px;padding:1px 6px;white-space:nowrap;cursor:help;">⚠︎ Owner deleted</span>'
           : '';
 
         return `
@@ -453,12 +460,12 @@
           <td>${verificationBadge}</td>
           <td>${subscriptionBadge}</td>
           <td>${healthScoreBadge}</td>
-          <td><span style="font-size: 12px; color: #646b78;">${escapeHtml(supplier.tags?.join(', ') || 'None')}</span></td>
+          <td><span style="font-size: 12px; color: #566176;">${escapeHtml(supplier.tags?.join(', ') || 'None')}</span></td>
           <td>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; gap: 8px;">
-                <button data-action="view" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" title="View Profile">👁️</button>
-                <button data-action="edit" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" title="Edit">✏️</button>
+                <button data-action="view" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" title="View Profile" aria-label="View profile">${ICON_VIEW}</button>
+                <button data-action="edit" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" title="Edit" aria-label="Edit supplier">${ICON_EDIT}</button>
                 ${
                   !supplier.approved
                     ? [
@@ -467,7 +474,7 @@
                       ].join('')
                     : ''
                 }
-                <button data-action="delete" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
+                <button data-action="delete" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #566176; color: white;" title="Delete" aria-label="Delete supplier">${ICON_DELETE}</button>
               </div>
               <details class="row-more">
                 <summary>Subscription</summary>
@@ -483,7 +490,7 @@
                   <option value="365">1 year</option>
                 </select>
                 <button data-action="grantSubscription" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant subscription">Grant</button>
-                <button data-action="removeSubscription" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #6b7280; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
+                <button data-action="removeSubscription" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #566176; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
                 </div>
               </details>
             </div>
@@ -531,13 +538,13 @@
   // Get verification status badge HTML
   function getVerificationBadge(status) {
     const STYLES = {
-      unverified: 'background:#e5e7eb;color:#374151',
+      unverified: 'background:#e8e5de;color:#3d4955',
       pending_review: 'background:#fef3c7;color:#92400e',
       needs_changes: 'background:#fed7aa;color:#9a3412',
       approved: 'background:#d1fae5;color:#065f46',
       verified: 'background:#d1fae5;color:#065f46',
       rejected: 'background:#fee2e2;color:#991b1b',
-      suspended: 'background:#f3f4f6;color:#374151',
+      suspended: 'background:#f0eee9;color:#3d4955',
     };
     const LABELS = {
       unverified: 'Unverified',

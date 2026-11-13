@@ -696,21 +696,21 @@
     {
       key: 'photos',
       id: 'adhPendingPhotosCount',
-      href: '/admin-photos',
+      href: '/admin-moderation?tab=photos',
       action: 'Review photos',
       noun: ['photo to approve', 'photos to approve'],
     },
     {
       key: 'reviews',
       id: 'pendingReviewsCount',
-      href: '/admin-reviews',
+      href: '/admin-moderation?tab=reviews',
       action: 'Review reviews',
       noun: ['review to moderate', 'reviews to moderate'],
     },
     {
       key: 'reports',
       id: 'pendingReportsCount',
-      href: '/admin-reports',
+      href: '/admin-moderation?tab=reports',
       action: 'Review reports',
       noun: ['content report to action', 'content reports to action'],
     },
@@ -1875,7 +1875,7 @@
           `<span style="font-weight:600;">Featured</span>` +
           `</label>` +
           `</div>` +
-          `<div class="small" style="color:#52525b;margin-top:8px;padding:8px;background:#f9fafb;border-radius:4px;">` +
+          `<div class="small" style="color:#52525b;margin-top:8px;padding:8px;background:#f7f6f3;border-radius:4px;">` +
           `<strong>Gallery Management:</strong><br>` +
           `Photo gallery can be managed by the supplier through their dashboard.` +
           `</div>` +
@@ -2017,8 +2017,8 @@
       setupNavButton('packageManagementBtn', '/admin-packages');
       setupNavButton('homepageChangesBtn', '/admin-homepage');
       setupNavButton('supportTicketsBtn', '/admin-tickets');
-      setupNavButton('paymentsAnalyticsBtn', '/admin-payments');
-      setupNavButton('reportsQueueBtn', '/admin-reports');
+      setupNavButton('paymentsAnalyticsBtn', '/admin-analytics?tab=payments');
+      setupNavButton('reportsQueueBtn', '/admin-moderation?tab=reports');
       setupNavButton('eventsCalendarBtn', '/admin-public-calendar');
       setupNavButton('auditLogBtn', '/admin-audit');
       setupNavButton('adminSettingsBtn', '/admin-settings');
@@ -2029,9 +2029,9 @@
       setupNavButton('emailCentreBtn', '/admin-emails');
 
       // Moderation queue buttons
-      setupNavButton('reviewPhotosBtn', '/admin-photos');
-      setupNavButton('reviewReviewsBtn', '/admin-reviews');
-      setupNavButton('reviewReportsBtn', '/admin-reports');
+      setupNavButton('reviewPhotosBtn', '/admin-moderation?tab=photos');
+      setupNavButton('reviewReviewsBtn', '/admin-moderation?tab=reviews');
+      setupNavButton('reviewReportsBtn', '/admin-moderation?tab=reports');
       setupNavButton('verifySuppliersBtn', '/admin-suppliers');
 
       const logoutBtn = document.getElementById('adminLogoutBtn');

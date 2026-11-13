@@ -34,7 +34,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3 id="qnDialogTitle">⚡ Quick Notify</h3>
+        <h3 id="qnDialogTitle">Quick Notify</h3>
         <p class="small">Create an announcement and send it as an in-app notification in one step. The announcement will also appear as a site banner.</p>
         <form id="quickNotifyForm" action="#">
           <div class="form-row">
@@ -44,11 +44,11 @@
           <div class="form-row">
             <label>Type</label>
             <select id="qnType">
-              <option value="info">ℹ️ Info</option>
-              <option value="warning">⚠️ Warning</option>
-              <option value="success">✅ Success</option>
-              <option value="maintenance">🔧 Maintenance</option>
-              <option value="urgent">🚨 Urgent</option>
+              <option value="info">Info</option>
+              <option value="warning">⚠︎ Warning</option>
+              <option value="success">✓ Success</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="urgent">Urgent</option>
             </select>
           </div>
           <div class="form-row">
@@ -89,7 +89,7 @@
           type: modal.querySelector('#qnType').value,
           target: modal.querySelector('#qnTarget').value,
         });
-        AdminShared.showToast(`✅ Notification sent to ${result.notifiedCount} users`, 'success');
+        AdminShared.showToast(`✓ Notification sent to ${result.notifiedCount} users`, 'success');
         modal.remove();
         loadAnnouncements();
       } catch (err) {
@@ -118,11 +118,11 @@
           <div class="form-row">
             <label>Type</label>
             <select id="announcementType">
-              <option value="info" ${announcement && announcement.type === 'info' ? 'selected' : ''}>ℹ️ Info</option>
-              <option value="warning" ${announcement && announcement.type === 'warning' ? 'selected' : ''}>⚠️ Warning</option>
-              <option value="success" ${announcement && announcement.type === 'success' ? 'selected' : ''}>✅ Success</option>
-              <option value="maintenance" ${announcement && announcement.type === 'maintenance' ? 'selected' : ''}>🔧 Maintenance</option>
-              <option value="urgent" ${announcement && announcement.type === 'urgent' ? 'selected' : ''}>🚨 Urgent</option>
+              <option value="info" ${announcement && announcement.type === 'info' ? 'selected' : ''}>Info</option>
+              <option value="warning" ${announcement && announcement.type === 'warning' ? 'selected' : ''}>⚠︎ Warning</option>
+              <option value="success" ${announcement && announcement.type === 'success' ? 'selected' : ''}>✓ Success</option>
+              <option value="maintenance" ${announcement && announcement.type === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+              <option value="urgent" ${announcement && announcement.type === 'urgent' ? 'selected' : ''}>Urgent</option>
             </select>
           </div>
           
@@ -235,11 +235,11 @@
       }
 
       const typeEmoji = {
-        info: 'ℹ️',
-        warning: '⚠️',
-        success: '✅',
-        maintenance: '🔧',
-        urgent: '🚨',
+        info: '',
+        warning: '⚠︎',
+        success: '✓',
+        maintenance: '',
+        urgent: '',
       };
 
       container.innerHTML = announcements
@@ -253,9 +253,9 @@
             ? `Last sent: ${new Date(a.lastNotifiedAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })}`
             : '';
           const notifiedBadge = a.notifiedCount
-            ? `<span style="background:#ede9fe;color:#5b21b6;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">📢 ×${a.notifiedCount}</span>`
+            ? `<span style="background:#ede9fe;color:#5b21b6;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">×${a.notifiedCount}</span>`
             : '';
-          const emoji = typeEmoji[a.type] || 'ℹ️';
+          const emoji = typeEmoji[a.type] || '';
           return `
           <div class="announcement-item" data-id="${escapedId}" data-type="${escapedType}">
             <div class="flex-between-start">
@@ -265,11 +265,11 @@
                   ${
                     a.active
                       ? '<span style="background:#d1fae5;color:#065f46;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">● Active</span>'
-                      : '<span style="background:#f3f4f6;color:#646b78;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'
+                      : '<span style="background:#f0eee9;color:#566176;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'
                   }
                   ${notifiedBadge}
                 </div>
-                <div class="small" style="color:#646b78;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                <div class="small" style="color:#566176;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
                   <span><span class="ann-type-badge ${escapedType}">${emoji} ${escapedType}</span></span>
                   ${createdAt ? `<span>Created ${createdAt}${a.createdBy ? ` by ${AdminShared.escapeHtml(a.createdBy)}` : ''}</span>` : ''}
                   ${lastNotified ? `<span style="color:#4f46e5;">${AdminShared.escapeHtml(lastNotified)}</span>` : ''}
@@ -277,7 +277,7 @@
               </div>
               <div class="flex-gap" style="margin-left:0.75rem;flex-shrink:0;">
                 <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
-                <button class="ef-cta btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">📢 Notify</button>
+                <button class="ef-cta btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">Notify</button>
                 <button class="ef-cta btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
               </div>
             </div>
@@ -314,7 +314,7 @@
 
     modal.innerHTML = `
       <div class="modal modal-medium">
-        <h3 id="notifyDialogTitle">📢 Send as Notification</h3>
+        <h3 id="notifyDialogTitle">Send as Notification</h3>
         <p class="small">Send this announcement as an in-app notification to the selected audience.</p>
         <div class="form-row">
           <label>Target Audience</label>
@@ -469,7 +469,7 @@
               <div class="flex-1">
                 <strong>${AdminShared.escapeHtml(f.question)}</strong>
                 <p class="small" style="margin:0.5rem 0 0 0;">${AdminShared.escapeHtml(f.answer)}</p>
-                <div class="small" style="margin-top:0.5rem;color:#5f6673;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
+                <div class="small" style="margin-top:0.5rem;color:#566176;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
               </div>
               <div class="flex-gap">
                 <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
@@ -519,7 +519,7 @@
           const escapedId = AdminShared.escapeHtml(p.id);
           const priceDisplay = window.EFPackagePrice ? EFPackagePrice.label(p) : '';
           return `
-          <div style="padding:1rem;background:#f9fafb;border-radius:4px;margin-bottom:0.5rem;" data-id="${escapedId}">
+          <div style="padding:1rem;background:#f7f6f3;border-radius:4px;margin-bottom:0.5rem;" data-id="${escapedId}">
             <div class="flex-between">
               <div>
                 <strong>${AdminShared.escapeHtml(p.title)}</strong>
@@ -667,8 +667,8 @@
         }
 
         document.getElementById('cdScheduleInfo').innerHTML = data.status.scheduled
-          ? `✅ Automated checks scheduled for the 1st of each month at 2:00 AM.<br>Next run: ${new Date(data.status.nextRun).toLocaleString()}`
-          : '❌ Automated checks are not currently scheduled.';
+          ? `✓ Automated checks scheduled for the 1st of each month at 2:00 AM.<br>Next run: ${new Date(data.status.nextRun).toLocaleString()}`
+          : '✗ Automated checks are not currently scheduled.';
       } catch (err) {
         console.error('Failed to load content dates:', err);
         const el = document.getElementById('cdStatusContent');
@@ -797,7 +797,7 @@
           if (!res.ok || !data.success) {
             throw new Error(data.message || data.error || 'Check failed');
           }
-          AdminShared.showToast(`✅ ${data.message}`, 'success');
+          AdminShared.showToast(`✓ ${data.message}`, 'success');
           await loadContentDates();
         } catch (err) {
           AdminShared.showToast(`Failed: ${err.message}`, 'error');
@@ -823,7 +823,7 @@
           if (!res.ok || !data.success) {
             throw new Error(data.message || data.error || 'Toggle failed');
           }
-          AdminShared.showToast(`✅ Automation ${enabled ? 'enabled' : 'disabled'}`, 'success');
+          AdminShared.showToast(`✓ Automation ${enabled ? 'enabled' : 'disabled'}`, 'success');
           document.getElementById('cdAutoUpdateLabel').textContent = enabled
             ? 'Enabled'
             : 'Disabled';

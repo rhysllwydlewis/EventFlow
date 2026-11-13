@@ -2,7 +2,7 @@
 (function () {
   const SUMMARY_ENDPOINT = '/api/v1/analytics/behaviour/admin/summary';
   const STATUS_ENDPOINT = '/api/v1/analytics/behaviour/admin/status';
-  const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=3';
+  const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=18.7.0';
 
   const EVENT_LABELS = {
     page_view: 'Page views',
@@ -288,7 +288,11 @@
       return;
     }
     const section = buildSection();
-    if (header && header.nextSibling) {
+    // On the tabbed Analytics page the panels sit under the header; this belongs to the Overview tab
+    const overview = document.getElementById('panel-overview');
+    if (overview) {
+      overview.prepend(section);
+    } else if (header?.nextSibling) {
       main.insertBefore(section, header.nextSibling);
     } else {
       main.prepend(section);
@@ -607,7 +611,7 @@
     const subtitle = document.querySelector('.dashboard-subtitle');
     if (subtitle) {
       subtitle.textContent =
-        'Visitor behaviour, conversions, revenue, user growth and platform performance.';
+        'Visitor behaviour, conversions, revenue, user growth, platform performance and payments.';
     }
     document.getElementById('behaviourAnalyticsRange')?.addEventListener('change', load);
     document.getElementById('analyticsRefreshBtn')?.addEventListener('click', load);

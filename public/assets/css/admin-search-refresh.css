@@ -11,8 +11,8 @@ body.has-admin-navbar.admin .admin-search-status { color: #52656b; font-size: 12
 body.has-admin-navbar.admin .search-results-section { padding: 0; overflow: hidden; margin-bottom: 12px; }
 body.has-admin-navbar.admin .search-results-section h3 { color: #18363d; border-color: #e8eeee; padding: 14px 17px; font-size: 14px; margin: 0; }
 body.has-admin-navbar.admin .search-result-item { gap: 14px; padding: 13px 17px; }
-body.has-admin-navbar.admin .search-result-primary { color: #19343b; font-size: 13px; }
+body.has-admin-navbar.admin .search-result-primary { color: #17202f; font-size: 13px; }
 body.has-admin-navbar.admin .search-result-secondary { color: #52656b; overflow-wrap: anywhere; }
 body.has-admin-navbar.admin .search-result-meta { flex-wrap: wrap; justify-content: flex-end; }
-body.has-admin-navbar.admin .search-empty-state { background: #fff; border: 1px solid #e2e9e9; border-radius: 12px; color: #52656b; }
+body.has-admin-navbar.admin .search-empty-state { background: #fff; border: 1px solid #e8e5de; border-radius: 12px; color: #52656b; }
 @media (max-width: 620px) { body.has-admin-navbar.admin .search-result-item { align-items: flex-start; flex-direction: column; } body.has-admin-navbar.admin .search-result-meta { justify-content: flex-start; } }

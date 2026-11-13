@@ -66,16 +66,13 @@ const pages = [
   { slug: 'admin--users',                    path: '/admin-users.html',                       section: 'Admin' },
   { slug: 'admin--user-detail',              path: '/admin-user-detail.html',                 section: 'Admin' },
   { slug: 'admin--analytics',                path: '/admin-analytics.html',                   section: 'Admin' },
-  { slug: 'admin--reports',                  path: '/admin-reports.html',                     section: 'Admin' },
   { slug: 'admin--packages',                 path: '/admin-packages.html',                    section: 'Admin' },
   { slug: 'admin--marketplace',              path: '/admin-marketplace.html',                 section: 'Admin' },
-  { slug: 'admin--reviews',                  path: '/admin-reviews.html',                     section: 'Admin' },
+  { slug: 'admin--moderation',                  path: '/admin-moderation.html',                     section: 'Admin' },
   { slug: 'admin--media',                    path: '/admin-media.html',                       section: 'Admin' },
   { slug: 'admin--pexels',                   path: '/admin-pexels.html',                      section: 'Admin' },
-  { slug: 'admin--photos',                   path: '/admin-photos.html',                      section: 'Admin' },
   { slug: 'admin--content',                  path: '/admin-content.html',                     section: 'Admin' },
   { slug: 'admin--content-dates',            path: '/admin-content-dates.html',               section: 'Admin' },
-  { slug: 'admin--payments',                 path: '/admin-payments.html',                    section: 'Admin' },
   { slug: 'admin--tickets',                  path: '/admin-tickets.html',                     section: 'Admin' },
   { slug: 'admin--partners',                 path: '/admin-partners.html',                    section: 'Admin' },
   { slug: 'admin--search',                   path: '/admin-search.html',                      section: 'Admin' },
@@ -92,11 +89,11 @@ const pages = [
 ];
 
 async function screenshot(browser, p) {
-  const existing = path.join(OUT, p.slug + '.png');
+  const existing = path.join(OUT, `${p.slug}.png`);
   if (fs.existsSync(existing)) {
     const size = fs.statSync(existing).size;
     console.log('↩ skip (exists)', p.slug, `(${Math.round(size/1024)}KB)`);
-    return { ...p, file: p.slug + '.png', ok: true, bytes: size, skipped: true };
+    return { ...p, file: `${p.slug}.png`, ok: true, bytes: size, skipped: true };
   }
 
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -118,12 +115,12 @@ async function screenshot(browser, p) {
     await page.goto(BASE + p.path, { waitUntil: 'domcontentloaded', timeout: 20000 });
     // Give JS time to render
     await page.waitForTimeout(2500);
-    const file = path.join(OUT, p.slug + '.png');
+    const file = path.join(OUT, `${p.slug}.png`);
     await page.screenshot({ path: file, fullPage: true });
     const size = fs.statSync(file).size;
     await context.close();
     console.log('✓', p.slug, `(${Math.round(size/1024)}KB)`);
-    return { ...p, file: p.slug + '.png', ok: true, bytes: size };
+    return { ...p, file: `${p.slug}.png`, ok: true, bytes: size };
   } catch (e) {
     await context.close();
     console.log('✗', p.slug, e.message.slice(0, 80));

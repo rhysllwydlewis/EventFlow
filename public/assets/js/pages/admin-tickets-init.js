@@ -239,7 +239,6 @@
       container.innerHTML = `
         <div class="data-section">
           <div class="empty-state">
-            <div class="empty-state-icon">🎫</div>
             <h3>No tickets found</h3>
             <p class="small">
               ${allTickets.length === 0 ? 'Support tickets will appear here when users submit them.' : 'No tickets match your current filters.'}
@@ -351,7 +350,7 @@
         return `
           <div class="ticket-response ticket-response--${isAdmin ? 'admin' : 'user'}">
             <div class="ticket-response__header">
-              <strong>${escapeHtml(author)} ${isAdmin ? '<span class="badge badge-admin">🛡️ Admin</span>' : ''}</strong>
+              <strong>${escapeHtml(author)} ${isAdmin ? '<span class="badge badge-admin">Admin</span>' : ''}</strong>
               <span class="small">${formatDate(response.createdAt || response.timestamp)}</span>
             </div>
             <p class="ticket-response__body">${escapeHtml(response.message || '')}</p>
@@ -671,7 +670,7 @@
 
     if (items.length === 0) {
       container.innerHTML =
-        '<p class="small" style="color:#646b78;padding:1.5rem 0;">No contact enquiries found.</p>';
+        '<p class="small" style="color:#566176;padding:1.5rem 0;">No contact enquiries found.</p>';
       return;
     }
 
@@ -739,7 +738,7 @@
     const responses = Array.isArray(enquiry.responses) ? enquiry.responses : [];
     const responsesHtml =
       responses.length === 0
-        ? '<p class="small" style="color:#646b78;font-style:italic;">No replies yet.</p>'
+        ? '<p class="small" style="color:#566176;font-style:italic;">No replies yet.</p>'
         : responses
             .map(
               r => `

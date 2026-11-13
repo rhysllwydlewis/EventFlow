@@ -947,7 +947,7 @@ router.post(
                     type: 'review_report',
                     title: '🚩 Review Reported',
                     message: `A review has been reported (reason: ${reason}). Please review and take action.`,
-                    actionUrl: '/admin-reviews',
+                    actionUrl: '/admin-moderation?tab=reviews',
                     actionText: 'View Reports',
                     priority: 'high',
                     icon: '🚩',

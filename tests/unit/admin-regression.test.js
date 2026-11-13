@@ -201,12 +201,12 @@ describe('Admin Regression — Navigation Button URLs (clean, no .html)', () => 
     ['packageManagementBtn', '/admin-packages'],
     ['homepageChangesBtn', '/admin-homepage'],
     ['supportTicketsBtn', '/admin-tickets'],
-    ['paymentsAnalyticsBtn', '/admin-payments'],
-    ['reportsQueueBtn', '/admin-reports'],
+    ['paymentsAnalyticsBtn', '/admin-analytics?tab=payments'],
+    ['reportsQueueBtn', '/admin-moderation?tab=reports'],
     ['auditLogBtn', '/admin-audit'],
     ['adminSettingsBtn', '/admin-settings'],
-    ['reviewPhotosBtn', '/admin-photos'],
-    ['reviewReportsBtn', '/admin-reports'],
+    ['reviewPhotosBtn', '/admin-moderation?tab=photos'],
+    ['reviewReportsBtn', '/admin-moderation?tab=reports'],
     // verifySuppliersBtn previously pointed to /admin-users.html#suppliers which
     // (a) used the wrong page and (b) lost the hash in the server-side redirect
     ['verifySuppliersBtn', '/admin-suppliers'],
@@ -215,9 +215,8 @@ describe('Admin Regression — Navigation Button URLs (clean, no .html)', () => 
   expectedMappings.forEach(([btnId, expectedHref]) => {
     it(`setupNavButton('${btnId}', ...) targets '${expectedHref}' (no .html)`, () => {
       // Match the exact setupNavButton call in admin-init.js
-      const pattern = new RegExp(
-        `setupNavButton\\(['"]${btnId}['"],\\s*['"]${expectedHref}['"]\\)`
-      );
+      const escapedHref = expectedHref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`setupNavButton\\(['"]${btnId}['"],\\s*['"]${escapedHref}['"]\\)`);
       expect(adminInitContent).toMatch(pattern);
     });
 

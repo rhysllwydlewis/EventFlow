@@ -108,7 +108,7 @@ describe('no inline event handlers on the pages the policy blocked', () => {
 
 describe('the dialogs that were hidden are keyboard and screen-reader accessible', () => {
   it.each([
-    ['admin-reports.html', 'admin-reports-init.js', 1],
+    ['admin-moderation.html', 'admin-reports-init.js', 1],
     ['admin-content.html', 'admin-content-init.js', 4],
   ])('%s loads modal-a11y.js before %s and enhances %i dialog(s)', (page, script, count) => {
     const html = read(`public/${page}`);
@@ -126,7 +126,7 @@ describe('the dialogs that were hidden are keyboard and screen-reader accessible
   });
 
   it('the Reviewing status has a badge style', () => {
-    expect(read('public/admin-reports.html')).toMatch(/\.badge-reviewing\s*\{/);
+    expect(read('public/admin-moderation.html')).toMatch(/\.badge-reviewing\s*\{/);
   });
 });
 
@@ -151,7 +151,7 @@ describe('Reports list', () => {
   });
 
   it('offers the Reviewing status and Resolve/Dismiss on every unfinished report', () => {
-    expect(read('public/admin-reports.html')).toContain(
+    expect(read('public/admin-moderation.html')).toContain(
       '<option value="reviewing">Reviewing</option>'
     );
     expect(source).toMatch(/report\.status !== 'resolved' && report\.status !== 'dismissed'/);
@@ -223,9 +223,9 @@ describe('the shared keyboard-shortcuts help dialog is shown', () => {
 
 describe('script versions are bumped on every page that loads a changed script', () => {
   it.each([
-    ['admin-reports.html', 'admin-reports-init.js', '18.5.9'],
+    ['admin-moderation.html', 'admin-reports-init.js', '18.5.9'],
     ['admin-content.html', 'admin-content-init.js', '18.5.9'],
-    ['admin-photos.html', 'admin-photos-init.js', '18.5.9'],
+    ['admin-moderation.html', 'admin-photos-init.js', '18.5.9'],
     ['admin-marketplace.html', 'admin-marketplace-init.js', '18.5.9'],
     ['admin-partners.html', 'admin-partners-init.js', '18.5.12'],
   ])('%s loads %s as v=%s or later', (page, script, version) => {

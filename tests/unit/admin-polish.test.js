@@ -13,14 +13,14 @@ const read = file => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('form controls have names a screen reader can announce', () => {
   test('Payments filters', () => {
-    const html = read('public/admin-payments.html');
+    const html = read('public/admin-analytics.html');
     expect(html).toMatch(/<select id="statusFilter"[^>]*aria-label="Filter by payment status"/);
     expect(html).toMatch(/<select id="planFilter"[^>]*aria-label="Filter by plan"/);
     expect(html).toMatch(/<select id="dateFilter"[^>]*aria-label="Filter by date range"/);
   });
 
   test('Reports filters', () => {
-    const html = read('public/admin-reports.html');
+    const html = read('public/admin-moderation.html');
     expect(html).toMatch(/<select id="statusFilter"[^>]*aria-label="Filter by status"/);
     expect(html).toMatch(/<select id="typeFilter"[^>]*aria-label="Filter by type"/);
   });

@@ -7,20 +7,20 @@
 <title>System Settings — EventFlow Admin</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
-<link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
+<link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.7.0">
 <link rel='stylesheet' href='/assets/css/styles.css?v=18.5.2'>
 <link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
-  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.1">
-  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.2">
-  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.4.1">
-  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.1">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.7.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.7.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.7.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.7.0">
 <link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
 <link rel='stylesheet' href='/assets/css/components.css?v=18.4.5'>
-<link rel='stylesheet' href='/assets/css/animations.css?v=18.3.2'><script src="/assets/js/components.js?v=18.5.0" defer></script>
-<script src="/assets/js/admin-navbar.js?v=18.5.17" defer></script>
+<link rel='stylesheet' href='/assets/css/animations.css?v=18.3.2'><script src="/assets/js/components.js?v=18.7.0" defer></script>
+<script src="/assets/js/admin-navbar.js?v=18.7.0" defer></script>
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
-  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.4">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.7.0">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
@@ -30,7 +30,7 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="msapplication-config" content="/browserconfig.xml">
-    <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=4">
+    <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=18.7.0">
 </head>
 <body class="has-admin-navbar admin">
 <div id="adminNavbarMount"></div>
@@ -197,7 +197,7 @@
             <strong>Pexels Dynamic Collage</strong>
             <div class="small">Enable cycling Pexels photos on homepage hero collage</div>
             <div class="small" style="color: #b45309; margin-top: 4px;">
-              ⚠️ <strong>Legacy:</strong> Use <a href="/admin-homepage" style="color: #1d4ed8; text-decoration: underline;">Homepage Settings → Collage Widget</a> for full control over photos, videos, and uploads.
+              ⚠︎ <strong>Legacy:</strong> Use <a href="/admin-homepage" style="color: #1d4ed8; text-decoration: underline;">Homepage Settings → Collage Widget</a> for full control over photos, videos, and uploads.
             </div>
           </div>
           <label class="toggle-switch">
@@ -217,8 +217,8 @@
       <div id="pexelsTestSection" style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3b82f6; display: none;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
           <div>
-            <strong style="color: #1f2937;">🔌 Pexels API Connection</strong>
-            <div class="small" style="color: #646b78; margin-top: 0.25rem;">
+            <strong style="color: #17202f;">Pexels API Connection</strong>
+            <div class="small" style="color: #566176; margin-top: 0.25rem;">
               Test your Pexels API key configuration and check fallback availability
             </div>
           </div>
@@ -227,12 +227,12 @@
           </button>
         </div>
         
-        <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px; font-size: 0.85rem; color: #646b78;">
-          <strong style="color: #1f2937;">Status Indicators:</strong><br>
-          <span style="display: block; margin-top: 0.25rem;">✅ <strong>API Connected</strong> - Live Pexels API is working</span>
-          <span style="display: block; margin-top: 0.25rem;">⚠️ <strong>Using Fallback</strong> - API unavailable, using curated URLs</span>
-          <span style="display: block; margin-top: 0.25rem;">📷 <strong>Custom Collage</strong> - Pexels feature disabled (see checkbox above)</span>
-          <span style="display: block; margin-top: 0.25rem;">❌ <strong>Unavailable</strong> - Both API and fallback failed</span>
+        <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px; font-size: 0.85rem; color: #566176;">
+          <strong style="color: #17202f;">Status Indicators:</strong><br>
+          <span style="display: block; margin-top: 0.25rem;">✓ <strong>API Connected</strong> - Live Pexels API is working</span>
+          <span style="display: block; margin-top: 0.25rem;">⚠︎ <strong>Using Fallback</strong> - API unavailable, using curated URLs</span>
+          <span style="display: block; margin-top: 0.25rem;"><strong>Custom Collage</strong> - Pexels feature disabled (see checkbox above)</span>
+          <span style="display: block; margin-top: 0.25rem;">✗ <strong>Unavailable</strong> - Both API and fallback failed</span>
         </div>
         
         <div id="pexelsTestResult" style="display: none; padding: 0.75rem; border-radius: 6px; font-size: 0.9rem;">
@@ -329,7 +329,7 @@
         <div class="form-row" style="margin-top:0.5rem;">
           <label for="emailAutoCron" style="font-weight:600;font-size:0.9rem;">Cron Schedule</label>
           <input type="text" id="emailAutoCron" placeholder="0 9 * * *" style="font-family:monospace;max-width:220px;" aria-describedby="emailAutoCronHint">
-          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#646b78;">Default: <code>0 9 * * *</code> (9 am daily). Stored in the database and applied at runtime — the active job is rescheduled automatically within 5 minutes of saving, or instantly after clicking <em>Save Email Automation</em>. The <code>ACTION_PROMPTS_CRON</code> env var overrides this value if set.</p>
+          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#566176;">Default: <code>0 9 * * *</code> (9 am daily). Stored in the database and applied at runtime — the active job is rescheduled automatically within 5 minutes of saving, or instantly after clicking <em>Save Email Automation</em>. The <code>ACTION_PROMPTS_CRON</code> env var overrides this value if set.</p>
         </div>
       </div>
 
@@ -339,7 +339,7 @@
       </div>
 
       <!-- Last run status -->
-      <div id="emailAutoLastRun" style="margin-top:0.75rem;padding:0.75rem 1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:0.82rem;color:#374151;display:none;">
+      <div id="emailAutoLastRun" style="margin-top:0.75rem;padding:0.75rem 1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:0.82rem;color:#3d4955;display:none;">
         <strong>Last run:</strong>
         <span id="emailAutoLastRunTime">-</span> &mdash;
         scanned <strong id="emailAutoLastRunScanned">-</strong>,
@@ -358,8 +358,8 @@
       <!-- Confirmation modal for Send Now -->
       <div id="emailAutoConfirmModal" role="dialog" aria-modal="true" aria-labelledby="emailAutoConfirmTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:#fff;border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-          <h3 id="emailAutoConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#dc2626;">⚠ Send action-prompt emails now?</h3>
-          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;">This will immediately send reminder emails to every eligible supplier with outstanding actions &mdash; including suppliers who haven't been emailed before (their usual 24h first-send delay is skipped). This action cannot be undone, and Send Now can only be used once every 24 hours.</p>
+          <h3 id="emailAutoConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#dc2626;">Send action-prompt emails now?</h3>
+          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#3d4955;">This will immediately send reminder emails to every eligible supplier with outstanding actions &mdash; including suppliers who haven't been emailed before (their usual 24h first-send delay is skipped). This action cannot be undone, and Send Now can only be used once every 24 hours.</p>
           <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
             <button class="ef-cta btn" id="emailAutoConfirmCancel">Cancel</button>
             <button class="ef-cta btn btn-primary" id="emailAutoConfirmSend" style="background:#dc2626;border-color:#dc2626;">Yes, Send Now</button>
@@ -381,7 +381,7 @@
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;align-items:flex-end;">
         <div style="flex:1;min-width:220px;">
           <label for="emailPreviewSupplierInput" style="display:block;font-weight:600;font-size:0.875rem;margin-bottom:0.3rem;">Supplier user ID or email</label>
-          <input type="text" id="emailPreviewSupplierInput" placeholder="e.g. user_abc123 or supplier@example.com" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;">
+          <input type="text" id="emailPreviewSupplierInput" placeholder="e.g. user_abc123 or supplier@example.com" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d6d2c8;border-radius:6px;font-size:0.875rem;">
         </div>
         <button class="ef-cta btn btn-secondary" id="emailPreviewBtn" type="button">Preview</button>
         <button class="ef-cta btn btn-secondary" id="emailPreviewSendToAdminBtn" type="button" style="display:none;border-color:#7c3aed;color:#7c3aed;">Send Preview to Me</button>
@@ -390,11 +390,11 @@
       <div id="emailPreviewStatus" style="margin-bottom:0.5rem;display:none;"></div>
 
       <div id="emailPreviewResult" style="display:none;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-        <div style="background:#f8fafc;padding:0.625rem 0.875rem;border-bottom:1px solid #e2e8f0;font-size:0.82rem;color:#374151;">
+        <div style="background:#f8fafc;padding:0.625rem 0.875rem;border-bottom:1px solid #e2e8f0;font-size:0.82rem;color:#3d4955;">
           <strong>To:</strong> <span id="emailPreviewTo">—</span> &nbsp;|&nbsp;
           <strong>Subject:</strong> <span id="emailPreviewSubject">—</span>
         </div>
-        <div id="emailPreviewEligibility" style="padding:0.5rem 0.875rem;background:#f0fdf4;border-bottom:1px solid #e2e8f0;font-size:0.8rem;color:#374151;display:none;"></div>
+        <div id="emailPreviewEligibility" style="padding:0.5rem 0.875rem;background:#f0fdf4;border-bottom:1px solid #e2e8f0;font-size:0.8rem;color:#3d4955;display:none;"></div>
         <iframe id="emailPreviewIframe" title="Email preview" sandbox="allow-same-origin" style="width:100%;border:none;min-height:400px;display:block;"></iframe>
       </div>
 
@@ -402,7 +402,7 @@
       <div id="emailPreviewConfirmModal" role="dialog" aria-modal="true" aria-labelledby="emailPreviewConfirmTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:#fff;border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
           <h3 id="emailPreviewConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#7c3aed;">Send preview email to your admin address?</h3>
-          <p id="emailPreviewConfirmMsg" style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;"></p>
+          <p id="emailPreviewConfirmMsg" style="margin:0 0 1.25rem;font-size:0.9rem;color:#3d4955;"></p>
           <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
             <button class="ef-cta btn" id="emailPreviewConfirmCancel">Cancel</button>
             <button class="ef-cta btn btn-primary" id="emailPreviewConfirmSend" style="background:#7c3aed;border-color:#7c3aed;">Yes, Send Preview</button>
@@ -421,7 +421,7 @@
       </div>
       <p class="small">Shows the last 20 action-prompt email runs. Real sends only (dry-runs are not recorded).</p>
       <div id="emailAutoRunHistoryContainer">
-        <p style="color:#646b78;">History will appear here after the email automation settings are loaded.</p>
+        <p style="color:#566176;">History will appear here after the email automation settings are loaded.</p>
       </div>
     </div>
 
@@ -431,7 +431,7 @@
       <p class="small">Shows the last 20 settings-related changes</p>
       
       <div id="auditLogContainer" style="max-height: 400px; overflow-y: auto;" tabindex="0" role="region" aria-label="Recent audit log">
-        <div style="padding: 2rem; text-align: center; color: #5f6673;">
+        <div style="padding: 2rem; text-align: center; color: #566176;">
           Loading audit logs...
         </div>
       </div>
@@ -476,17 +476,17 @@
       
       <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
         <button class="ef-cta btn btn-secondary" id="exportSettings">
-          📥 Export Settings
+          Export Settings
         </button>
         <button class="ef-cta btn btn-secondary" id="importSettings">
-          📤 Import Settings
+          Import Settings
         </button>
       </div>
       
       <input type="file" id="importFileInput" accept=".json" style="display: none;">
       
       <div class="warning-banner" style="margin-top: 1rem;">
-        <strong>⚠️ Warning:</strong> Importing settings will overwrite current configuration. Make sure to export a backup first.
+        <strong>⚠︎ Warning:</strong> Importing settings will overwrite current configuration. Make sure to export a backup first.
       </div>
     </div>
     
@@ -496,8 +496,8 @@
       <p class="small">Create full database backups or restore from previous backups.</p>
       
       <div style="margin: 1.5rem 0;">
-        <button class="ef-cta btn btn-primary" id="createBackupBtn">💾 Create Backup</button>
-        <button class="ef-cta btn btn-secondary" id="listBackupsBtn" style="margin-left: 0.5rem;">📋 View Backups</button>
+        <button class="ef-cta btn btn-primary" id="createBackupBtn">Create Backup</button>
+        <button class="ef-cta btn btn-secondary" id="listBackupsBtn" style="margin-left: 0.5rem;">View Backups</button>
       </div>
       
       <div id="backupsListContainer" style="display: none; margin-top: 1rem;">
@@ -515,7 +515,7 @@
         </button>
       </div>
       <div class="warning-banner">
-        <strong>⚠️ Warning:</strong> Enabling maintenance mode will make the site inaccessible to all users except admins.
+        <strong>⚠︎ Warning:</strong> Enabling maintenance mode will make the site inaccessible to all users except admins.
       </div>
       
       <div class="feature-item">
@@ -707,7 +707,7 @@
       </div>
 
       <div class="warning-banner" style="margin-top:0.75rem;">
-        <strong>⚠️ Warning:</strong> Generating a new secret does not disable the old one automatically &mdash; the change only takes effect once you update the <code>EVENTFLOW_OPS_BOT_HMAC_SECRET</code> environment variable and redeploy. The secret is shown once and is never stored or displayed again.
+        <strong>⚠︎ Warning:</strong> Generating a new secret does not disable the old one automatically &mdash; the change only takes effect once you update the <code>EVENTFLOW_OPS_BOT_HMAC_SECRET</code> environment variable and redeploy. The secret is shown once and is never stored or displayed again.
       </div>
 
       <button class="ef-cta btn btn-primary mt-1" id="generateOpsAssistantSecret">Generate New Secret</button>
@@ -722,7 +722,7 @@
       <div id="opsAssistantConfirmModal" role="dialog" aria-modal="true" aria-labelledby="opsAssistantConfirmTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:#fff;border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
           <h3 id="opsAssistantConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#0a7569;">Generate a new Ops Assistant secret?</h3>
-          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;">The old secret will keep working until you replace it in your environment variables &mdash; this only creates a new one to copy in.</p>
+          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#3d4955;">The old secret will keep working until you replace it in your environment variables &mdash; this only creates a new one to copy in.</p>
           <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
             <button class="ef-cta btn" id="opsAssistantConfirmCancel">Cancel</button>
             <button class="ef-cta btn btn-primary" id="opsAssistantConfirmGenerate">Yes, Generate</button>
@@ -764,8 +764,8 @@
   </div>
   </footer>
 
-<script src="/assets/js/admin-shared.js?v=18.5.12"></script>
-<script src="/assets/js/pages/admin-settings-init.js?v=18.5.11" defer></script>
+<script src="/assets/js/admin-shared.js?v=18.7.0"></script>
+<script src="/assets/js/pages/admin-settings-init.js?v=18.7.0" defer></script>
 <script src="/assets/js/pages/admin-signup-popup-init.js?v=1.0.0" defer></script>
 <script src="/assets/js/pages/admin-seasonal-theme-init.js?v=1.0.0" defer></script>
 <script src="/assets/js/pages/admin-ops-assistant-init.js?v=1.0.0" defer></script>

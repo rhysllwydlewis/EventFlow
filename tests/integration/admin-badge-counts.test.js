@@ -149,18 +149,10 @@ describe('Admin Badge Counts Endpoint', () => {
       expect(adminNavbarContent).toContain('pending.packages');
     });
 
-    it('should handle pending photos badge', () => {
-      expect(adminNavbarContent).toContain('navBadgePhotos');
+    it('should add pending photos, reviews and reports into the one Moderation badge', () => {
+      expect(adminNavbarContent).toContain('navBadgeModeration');
       expect(adminNavbarContent).toContain('pending.photos');
-    });
-
-    it('should handle pending reviews badge', () => {
-      expect(adminNavbarContent).toContain('navBadgeReviews');
       expect(adminNavbarContent).toContain('pending.reviews');
-    });
-
-    it('should handle pending reports badge', () => {
-      expect(adminNavbarContent).toContain('navBadgeReports');
       expect(adminNavbarContent).toContain('pending.reports');
     });
 

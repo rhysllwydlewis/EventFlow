@@ -69,14 +69,11 @@ const pages = [
   { slug: 'admin--users',               path: '/admin-users.html',                section: 'Admin' },
   { slug: 'admin--user-detail',         path: '/admin-user-detail.html',          section: 'Admin' },
   { slug: 'admin--analytics',           path: '/admin-analytics.html',            section: 'Admin' },
-  { slug: 'admin--reports',             path: '/admin-reports.html',              section: 'Admin' },
   { slug: 'admin--packages',            path: '/admin-packages.html',             section: 'Admin' },
   { slug: 'admin--marketplace',         path: '/admin-marketplace.html',          section: 'Admin' },
-  { slug: 'admin--reviews',             path: '/admin-reviews.html',              section: 'Admin' },
+  { slug: 'admin--moderation',             path: '/admin-moderation.html',              section: 'Admin' },
   { slug: 'admin--media',               path: '/admin-media.html',                section: 'Admin' },
-  { slug: 'admin--photos',              path: '/admin-photos.html',               section: 'Admin' },
   { slug: 'admin--content',             path: '/admin-content.html',              section: 'Admin' },
-  { slug: 'admin--payments',            path: '/admin-payments.html',             section: 'Admin' },
   { slug: 'admin--tickets',             path: '/admin-tickets.html',              section: 'Admin' },
   { slug: 'admin--partners',            path: '/admin-partners.html',             section: 'Admin' },
   { slug: 'admin--search',              path: '/admin-search.html',               section: 'Admin' },
@@ -102,10 +99,10 @@ async function run() {
     try {
       await page.goto(BASE + p.path, { waitUntil: 'networkidle', timeout: 15000 });
       await page.waitForTimeout(1200);
-      const file = path.join(OUT, p.slug + '.png');
+      const file = path.join(OUT, `${p.slug}.png`);
       await page.screenshot({ path: file, fullPage: true });
       const size = fs.statSync(file).size;
-      results.push({ ...p, file: p.slug + '.png', ok: true, bytes: size });
+      results.push({ ...p, file: `${p.slug}.png`, ok: true, bytes: size });
       console.log('✓', p.slug, `(${Math.round(size/1024)}KB)`);
     } catch (e) {
       results.push({ ...p, ok: false, error: e.message.slice(0, 120) });

@@ -6,12 +6,12 @@
 (function () {
   const API_URL = '/api/admin/background-jobs?limit=6';
   const HEALTH_LABELS = {
-    healthy: ['Healthy', '✅'],
-    warning: ['Warning', '⚠️'],
-    failed: ['Failed', '❌'],
-    overdue: ['Overdue', '⏰'],
-    unknown: ['No run recorded', '❔'],
-    disabled: ['Disabled', '⏸️'],
+    healthy: ['Healthy', '✓'],
+    warning: ['Warning', '⚠︎'],
+    failed: ['Failed', '✗'],
+    overdue: ['Overdue', ''],
+    unknown: ['No run recorded', ''],
+    disabled: ['Disabled', ''],
   };
 
   const listEl = document.getElementById('bj-jobs-list');
@@ -136,8 +136,7 @@
     });
 
     if (!jobs.length) {
-      listEl.innerHTML =
-        '<div class="sc-empty"><div class="sc-empty-icon">✅</div><p>No jobs match this filter.</p></div>';
+      listEl.innerHTML = '<div class="sc-empty"><p>No jobs match this filter.</p></div>';
       return;
     }
 
@@ -191,8 +190,7 @@
     if (!listEl) {
       return;
     }
-    listEl.innerHTML =
-      '<div class="sc-empty"><div class="sc-empty-icon">⏳</div><p>Loading background jobs…</p></div>';
+    listEl.innerHTML = '<div class="sc-empty"><p>Loading background jobs…</p></div>';
     if (refreshBtn) {
       refreshBtn.disabled = true;
     }
@@ -234,7 +232,7 @@
 })();
 
 (function loadAdminDebugMobileImprovements() {
-  const version = '18.6.2';
+  const version = '18.7.0';
   const stylesheetPath = `/assets/css/admin-debug-mobile-improvements.css?v=${version}`;
   const scriptPath = `/assets/js/pages/admin-debug-mobile-improvements.js?v=${version}`;
 

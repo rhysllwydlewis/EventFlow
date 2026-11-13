@@ -984,6 +984,28 @@ canonicalPages.forEach(page => {
   });
 });
 
+[
+  ['/admin-reviews', 'reviews'],
+  ['/admin-photos', 'photos'],
+  ['/admin-reports', 'reports'],
+].forEach(([route, tab]) => {
+  [route, `${route}.html`].forEach(deprecated => {
+    app.get(deprecated, staticLimiter, (req, res) => {
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const base = qs ? `${qs}&tab=${tab}` : `?tab=${tab}`;
+      res.redirect(302, `/admin-moderation${base}`);
+    });
+  });
+});
+
+['/admin-payments', '/admin-payments.html'].forEach(deprecated => {
+  app.get(deprecated, staticLimiter, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    const base = qs ? `${qs}&tab=payments` : '?tab=payments';
+    res.redirect(302, `/admin-analytics${base}`);
+  });
+});
+
 ['/admin-content-dates', '/admin-content-dates.html'].forEach(deprecated => {
   app.get(deprecated, staticLimiter, (req, res) => {
     const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
@@ -1009,14 +1031,11 @@ const adminPages = [
   'admin-messenger',
   'admin-messenger-view',
   'admin-packages',
-  'admin-payments',
   'admin-media',
-  'admin-reviews',
+  'admin-moderation',
   'admin-search',
   'admin-seo',
-  'admin-photos',
   'admin-public-calendar',
-  'admin-reports',
   'admin-settings',
   'admin-supplier-detail',
   'admin-suppliers',
@@ -1041,7 +1060,8 @@ app.get('/articles/:slug', (req, res, next) => {
   const slug = req.params.slug;
   // Validate slug: only lowercase alphanumerics and hyphens — prevents path traversal
   if (!/^[a-z0-9-]+$/i.test(slug)) {
-    return next();
+    next();
+    return;
   }
   res.sendFile(path.join(PUBLIC_DIR, 'articles', `${slug}.html`), err => {
     if (err) {
@@ -1135,7 +1155,7 @@ function sendCommunityShell(res, page) {
   const canonical = escapeCommunityHtml(`https://event-flow.co.uk${page.route || '/community'}`);
   const head = [
     `<title>${title} | EventFlow</title>`,
-    `<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and approved EventFlow supplier listings." />`,
+    '<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and approved EventFlow supplier listings." />',
     `<link rel="canonical" href="${canonical}" />`,
     `<meta property="og:title" content="${title}" />`,
     page.noindex ? '<meta name="robots" content="noindex,follow" />' : '',

@@ -644,7 +644,7 @@ button:disabled,
 }
 
 .homepage-admin-hero {
-  background: linear-gradient(135deg, #ffffff 0%, #f4fbf9 54%, #eef7ff 100%);
+  background: #fff;
   padding: clamp(24px, 3vw, 42px);
 }
 
@@ -1086,3 +1086,9 @@ button:disabled,
     background: HighlightText;
   }
 }
+
+/* The Homepage page does not load the shared workspace styles; its footer text and links need the same readable colours */
+body.admin-homepage-manager .footer,
+body.admin-homepage-manager .footer .small,
+body.admin-homepage-manager .footer .version { color: #566176; }
+body.admin-homepage-manager .footer a { color: #0a7569; text-decoration: underline; text-underline-offset: 2px; }

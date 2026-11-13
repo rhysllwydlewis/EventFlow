@@ -120,7 +120,7 @@
     if (results.users && results.users.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>👥 Users (${countLabel('users')})</h3>
+          <h3>Users (${countLabel('users')})</h3>
           ${results.users
             .map(
               u => `
@@ -142,7 +142,7 @@
     if (results.suppliers && results.suppliers.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>🏢 Suppliers (${countLabel('suppliers')})</h3>
+          <h3>Suppliers (${countLabel('suppliers')})</h3>
           ${results.suppliers
             .map(
               s => `
@@ -164,7 +164,7 @@
     if (results.packages && results.packages.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>📦 Packages (${countLabel('packages')})</h3>
+          <h3>Packages (${countLabel('packages')})</h3>
           ${results.packages
             .map(
               p => `
@@ -186,7 +186,7 @@
     if (results.tickets && results.tickets.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>🎫 Tickets (${countLabel('tickets')})</h3>
+          <h3>Tickets (${countLabel('tickets')})</h3>
           ${results.tickets
             .map(
               t => `
@@ -210,7 +210,7 @@
     if (results.reports && results.reports.length > 0) {
       sections.push(`
         <div class="card search-results-section">
-          <h3>📈 Reports (${countLabel('reports')})</h3>
+          <h3>Reports (${countLabel('reports')})</h3>
           ${results.reports
             .map(
               r => `
@@ -221,7 +221,7 @@
               </div>
               <div class="search-result-meta">
                 <span class="badge badge-${badgeClass(r.status || 'pending')}">${AdminShared.escapeHtml(r.status || 'pending')}</span>
-                <a href="/admin-reports" class="btn-sm btn-secondary">View Reports</a>
+                <a href="/admin-moderation?tab=reports" class="btn-sm btn-secondary">View Reports</a>
               </div>
             </div>`
             )
@@ -233,7 +233,6 @@
     if (sections.length === 0) {
       container.innerHTML = `
         <div class="search-empty-state">
-          <div style="font-size:3rem;margin-bottom:1rem;">🔍</div>
           <p>No results found for <strong>"${AdminShared.escapeHtml(query)}"</strong>. Try a different search term.</p>
         </div>`;
     } else {

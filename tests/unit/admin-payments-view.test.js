@@ -205,7 +205,8 @@ describe('buildPaymentsView with the records Stripe checkout really creates', ()
 
 describe('the Payments page', () => {
   const page = source('public/assets/js/pages/admin-payments-init.js');
-  const html = source('public/admin-payments.html');
+  // Payments is a tab of the Analytics page (it was /admin-payments)
+  const html = source('public/admin-analytics.html');
 
   it('reads the fields real records have, not supplierId / planId / total / "success"', () => {
     expect(page).not.toMatch(/payment\.supplierId|payment\.total|=== 'success'|=== 'completed'/);

@@ -250,7 +250,7 @@ function buildRecommendations({ homepage, content, media, dbStatus }) {
         'media',
         'Supplier photos awaiting review',
         `${media.supplierPhotos.pending} photo${media.supplierPhotos.pending === 1 ? '' : 's'} need approval or rejection.`,
-        '/admin-photos'
+        '/admin-moderation?tab=photos'
       )
     );
   }

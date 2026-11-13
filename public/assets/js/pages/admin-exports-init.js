@@ -36,7 +36,7 @@
       fileType: 'JSON',
       confirmRequired: true,
       metaId: 'fullExportMeta',
-      metaText: '⚠️ This export can be large and may take a moment to generate.',
+      metaText: '⚠︎ This export can be large and may take a moment to generate.',
     },
   };
 
@@ -115,7 +115,7 @@
     // Re-enable after a short delay to allow repeat downloads
     setTimeout(() => {
       btn.disabled = false;
-      btn.innerHTML = `<span class="export-btn-icon" aria-hidden="true">⬇️</span> Download ${cfg.fileType}`;
+      btn.innerHTML = ` Download ${cfg.fileType}`;
     }, 3000);
   }
 

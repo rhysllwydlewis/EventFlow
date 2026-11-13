@@ -393,12 +393,12 @@ describe('shared admin styling', () => {
     expect(contacts).toContain('Narrow the list with the filters to see the rest.');
   });
 
-  it('the two email heroes keep their gradient and white controls', () => {
-    expect(workspace).toMatch(/:is\(\.email-centre-hero, \.email-preview-hero\) \.btn-icon/);
-    expect(read('public/assets/css/admin-emails.css')).toMatch(
-      /\.email-centre-hero \.dashboard-title \{ color: #fff; \}/
-    );
-    expect(read('public/assets/css/email-previews.css')).toMatch(
+  it('the email heroes are flat like every other admin page, with no white-on-gradient exceptions', () => {
+    expect(workspace).not.toMatch(/email-centre-hero, \.email-preview-hero/);
+    for (const file of ['admin-emails.css', 'email-previews.css']) {
+      expect(read(`public/assets/css/${file}`)).not.toMatch(/linear-gradient/);
+    }
+    expect(read('public/assets/css/email-previews.css')).not.toMatch(
       /\.email-preview-hero \.dashboard-title \{ color: #fff; \}/
     );
   });
@@ -448,7 +448,7 @@ describe('shared admin styling', () => {
   it('Partners row buttons and badges, and the Payments captions, use readable text', () => {
     const partners = read('public/admin-partners.html');
     expect(partners).toContain('.ap-action-btn--view { color: #4338ca; }');
-    expect(partners).toContain('.p-badge--success { color: #047857; }');
-    expect(read('public/admin-payments.html')).toContain('.payments-stats-grid .stat-card h3');
+    expect(partners).toContain('.p-badge--success { color: #065f46; }');
+    expect(read('public/admin-analytics.html')).toContain('.payments-stats-grid .stat-card h3');
   });
 });

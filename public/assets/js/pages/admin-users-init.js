@@ -252,7 +252,7 @@
         const supplierLink = hasProfile
           ? `<a href="${safeHref(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs" style="white-space:nowrap;">Supplier</a>`
           : user.role === 'supplier'
-            ? `<button type="button" class="btn btn-warning btn-xs" style="white-space:nowrap;" data-provision-profile="${userId}" title="Create missing supplier profile">⚠️ Provision</button>`
+            ? `<button type="button" class="btn btn-warning btn-xs" style="white-space:nowrap;" data-provision-profile="${userId}" title="Create missing supplier profile">Provision</button>`
             : '';
         return `<tr class="${user.suspended ? 'uc-row--suspended' : ''} ${(user.accountIssues || []).length ? 'uc-row--issues' : ''}">
           <td class="checkbox-cell"><input type="checkbox" class="uc-user-checkbox table-checkbox" data-user-id="${userId}" ${checked} aria-label="Select ${esc(String(user.name || '').trim() || user.email || 'user')}"></td>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <script src="/assets/js/dashboard-guard.js?v=18.4.3"></script>
+
+  <!-- PHASE 2: Error boundary (must load before other components) -->
+  <script src="/assets/js/utils/global-error-handler.js?v=18.8.5" defer></script>
+  <script src="/assets/js/utils/sentry-browser-init.js?v=18.5.14" defer></script>
+
+  <!-- PHASE 3: Core components -->
+  <script src="/assets/js/components/LoadingSpinner.js?v=18.5.14" defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Moderation — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0B8073">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.2">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.4.5">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.2">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.6">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.7.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.7.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.7.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.7.0">
+  <script src="/assets/js/admin-shared.js?v=18.7.0"></script>
+  <script src="/assets/js/components.js?v=18.7.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.7.0" defer></script>
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.1">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.7.0">
+  <link rel="stylesheet" href="/assets/css/admin-workspace.css?v=18.7.0">
+  <style>
+    /* admin.css styles the pending, resolved and dismissed badges but not this status */
+    .badge-reviewing { background: #dbeafe; color: #1e40af; }
+  </style>
+</head>
+<body class="has-admin-navbar admin">
+<div id="adminNavbarMount"></div>
+
+<main id="main-content" class="section">
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">Moderation</h1>
+        <p class="dashboard-subtitle">Reviews, supplier photos and content reports waiting for a decision.</p>
+      </div>
+      <div class="header-actions">
+        <button class="ef-cta btn-secondary" id="backToDashboard" type="button">← Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reviews, Photos and Reports share this page. They used to be /admin-reviews, /admin-photos and
+       /admin-reports, which redirect here. -->
+  <div class="admin-tabs" role="tablist" aria-label="Moderation queues">
+    <button class="ef-cta admin-tab admin-tab--active" id="tab-reviews" role="tab" aria-selected="true" aria-controls="panel-reviews" data-tab="reviews">Reviews <span class="admin-tab__count" id="tabCountReviews" hidden></span></button>
+    <button class="ef-cta admin-tab" id="tab-photos" role="tab" aria-selected="false" aria-controls="panel-photos" data-tab="photos">Photos <span class="admin-tab__count" id="tabCountPhotos" hidden></span></button>
+    <button class="ef-cta admin-tab" id="tab-reports" role="tab" aria-selected="false" aria-controls="panel-reports" data-tab="reports">Reports <span class="admin-tab__count" id="tabCountReports" hidden></span></button>
+  </div>
+
+  <div id="panel-reviews" role="tabpanel" aria-labelledby="tab-reviews">
+  <div class="container">
+    <h2 class="admin-panel-title">Review moderation</h2>
+    <p class="small">Manage pending reviews and reported reviews. Use <strong>Remove Review</strong> to uphold a report (the review is removed), or <strong>Dismiss Report</strong> to reject a report (the review stays published).</p>
+
+    <!-- Auto-approve toggle card -->
+    <div class="card card-mt">
+      <div class="ap-toggle-row">
+        <div class="ap-toggle-label">
+          <label for="autoApproveToggle"><strong>Auto-approve reviews</strong></label>
+          <span id="autoApproveDesc">When ON, reviews with a verified booking, no spam, and neutral/positive sentiment are automatically published. When OFF, all reviews are held in this queue for manual approval.</span>
+        </div>
+        <div class="ap-toggle-control">
+          <span class="ap-toggle-state ap-toggle-state--on" id="toggleStateLabel" aria-live="polite">ON</span>
+          <label class="toggle-switch" for="autoApproveToggle" aria-label="Toggle auto-approve reviews">
+            <input type="checkbox" id="autoApproveToggle" checked aria-describedby="autoApproveDesc">
+            <span class="toggle-slider" role="presentation"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status banner (updated dynamically) -->
+    <div id="statusBanner" class="card card-mt" role="status" aria-live="polite">
+      <div class="ap-status-banner ap-status-banner--on">
+        <p class="ap-status-banner__text"><strong>Auto-approval enabled</strong> — qualifying reviews (verified booking, no spam, neutral/positive sentiment) are published immediately.</p>
+      </div>
+    </div>
+
+    <!-- Batch action bar (shown when items selected) -->
+    <div id="batchActionsBar" class="ap-batch-bar" role="region" aria-label="Batch actions">
+      <span class="ap-batch-bar__count" id="batchCount">0 selected</span>
+      <div class="ap-batch-bar__buttons">
+        <button id="batchApproveBtn" class="ef-cta btn btn-sm btn-danger" type="button">Remove / reject selected</button>
+        <button id="batchRejectBtn" class="ef-cta btn btn-sm btn-success" type="button">Approve / dismiss selected</button>
+      </div>
+    </div>
+
+    <!-- Reviews list -->
+    <div id="reviewQueue" aria-live="polite" aria-label="Pending reviews">
+      <div class="card card-mt"><p>Loading reviews…</p></div>
+    </div>
+  </div>
+  </div>
+
+  <div id="panel-photos" role="tabpanel" aria-labelledby="tab-photos" hidden>
+  <div class="container">
+    <h2 class="admin-panel-title">Photo library</h2>
+    <p class="small">Manage supplier photos — toggle auto-approve to control moderation behaviour.</p>
+
+    <!-- Auto-approve toggle card -->
+    <div class="card card-mt">
+      <div class="ap-toggle-row">
+        <div class="ap-toggle-label">
+          <label for="photoAutoApproveToggle"><strong>Auto-approve uploads</strong></label>
+          <span id="photoAutoApproveDesc">When ON, supplier photos are immediately visible in the library. When OFF, each photo must be manually approved.</span>
+        </div>
+        <div class="ap-toggle-control">
+          <span class="ap-toggle-state ap-toggle-state--on" id="photoToggleStateLabel" aria-live="polite">ON</span>
+          <label class="toggle-switch" for="photoAutoApproveToggle" aria-label="Toggle auto-approve uploads">
+            <input type="checkbox" id="photoAutoApproveToggle" checked aria-describedby="photoAutoApproveDesc">
+            <span class="toggle-slider" role="presentation"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status banner (updated dynamically) -->
+    <div id="photoStatusBanner" class="card card-mt" role="status" aria-live="polite">
+      <div class="ap-status-banner ap-status-banner--on">
+        <p class="ap-status-banner__text"><strong>Auto-approval enabled</strong> — photos uploaded by suppliers are immediately visible. No manual approval needed.</p>
+      </div>
+    </div>
+
+    <!-- Filters card -->
+    <div class="card card-mt">
+      <div class="form-row">
+        <div>
+          <label for="searchSupplier">Search by supplier name</label>
+          <input id="searchSupplier" placeholder="Search by supplier name..." aria-label="Search suppliers">
+        </div>
+        <div class="ap-filter-supplier">
+          <label for="supplierNameFilter">Filter by supplier</label>
+          <input id="supplierNameFilter" placeholder="Type supplier name…" autocomplete="off" aria-label="Filter by supplier name" aria-expanded="false" aria-haspopup="listbox" role="combobox">
+          <ul id="supplierDropdown" role="listbox" aria-label="Matching suppliers" hidden></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch action bar (shown when queue mode and items selected) -->
+    <div id="photoBatchActionsBar" class="ap-batch-bar" role="region" aria-label="Batch actions">
+      <span class="ap-batch-bar__count" id="photoBatchCount">0 selected</span>
+      <div class="ap-batch-bar__buttons">
+        <button id="photoBatchApproveBtn" class="ef-cta btn btn-sm btn-success" type="button">Approve selected</button>
+        <button id="photoBatchRejectBtn" class="ef-cta btn btn-sm btn-danger" type="button">Reject selected</button>
+      </div>
+    </div>
+
+    <!-- Photo grid -->
+    <div id="photoQueue" class="photo-queue" aria-live="polite" aria-label="Photos">
+      <div class="card"><p>Loading photos…</p></div>
+    </div>
+  </div>
+  </div>
+
+  <div id="panel-reports" role="tabpanel" aria-labelledby="tab-reports" hidden>
+  <div class="container">
+    <h2 class="admin-panel-title">Content reports</h2>
+    <p class="small">Review user-submitted content reports and take action.</p>
+    <div class="data-section">
+      <div class="admin-toolbar">
+        <select id="statusFilter" class="filter-select" aria-label="Filter by status">
+          <option value="">All Status</option>
+          <option value="pending" selected>Pending</option>
+          <option value="reviewing">Reviewing</option>
+          <option value="resolved">Resolved</option>
+          <option value="dismissed">Dismissed</option>
+        </select>
+        <select id="typeFilter" class="filter-select" aria-label="Filter by type">
+          <option value="">All Types</option>
+          <option value="supplier">Supplier</option>
+          <option value="review">Review</option>
+          <option value="message">Message</option>
+          <option value="photo">Photo</option>
+          <option value="user">User</option>
+        </select>
+      </div>
+      
+      <div id="reportsContainer">
+        <p class="small">Loading reports...</p>
+      </div>
+    </div>
+  </div>
+  </div>
+</main>
+
+<footer class="footer" role="contentinfo">
+  <div class="container flex-between">
+    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
+    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="small"><a href="/guides">Guides</a> ·
+      <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
+    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+  </div>
+</footer>
+
+<script src="/assets/js/utils/modal-a11y.js?v=18.8.1" defer></script>
+<script src="/assets/js/utils/admin-tabs.js?v=1" defer></script>
+<script src="/assets/js/pages/admin-reviews-init.js?v=18.7.0" defer></script>
+<script src="/assets/js/pages/admin-photos-init.js?v=18.7.0" defer></script>
+<script src="/assets/js/pages/admin-reports-init.js?v=18.7.0" defer></script>
+<script src="/assets/js/pages/admin-moderation-init.js?v=18.7.0" defer></script>
+<script src="/assets/js/cookie-consent.js?v=3.0.2" defer></script>
+</body>
+</html>

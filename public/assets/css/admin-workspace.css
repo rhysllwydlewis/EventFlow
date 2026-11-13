@@ -1,19 +1,19 @@
 /* Quiet, consistent admin surface across the management pages. */
-body.has-admin-navbar.admin { background: #f5f7f8; color: #19343b; }
+body.has-admin-navbar.admin { background: #f7f6f3; color: #17202f; }
 body.has-admin-navbar.admin main.section,
 body.has-admin-navbar.admin main.admin-main,
 body.has-admin-navbar.admin main.admin-main-content { width: 100%; max-width: 1440px; box-sizing: border-box; margin: 0 auto; padding: 24px clamp(16px, 2.5vw, 36px) 56px; }
-body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) { background: #fff; border: 1px solid #e2e9e9; box-shadow: none; border-radius: 13px; padding: 22px 26px; margin-bottom: 18px; }
-body.has-admin-navbar.admin .dashboard-title { color: #163239; font-size: clamp(23px, 2.5vw, 31px); letter-spacing: -.035em; line-height: 1.2; margin: 0; }
-body.has-admin-navbar.admin .dashboard-subtitle { color: #4f6168; font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
+body.has-admin-navbar.admin .dashboard-header { background: #fff; border: 1px solid #e8e5de; box-shadow: none; border-radius: 13px; padding: 22px 26px; margin-bottom: 18px; }
+body.has-admin-navbar.admin .dashboard-title { color: #17202f; font-size: clamp(23px, 2.5vw, 31px); letter-spacing: -.035em; line-height: 1.2; margin: 0; }
+body.has-admin-navbar.admin .dashboard-subtitle { color: #566176; font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
 body.has-admin-navbar.admin .section-header { margin: 24px 0 12px; gap: 8px 20px; }
-body.has-admin-navbar.admin .section-title { color: #19343b; font-size: 18px; letter-spacing: -.02em; }
-body.has-admin-navbar.admin .section-description { color: #5f6673; font-size: 12px; }
+body.has-admin-navbar.admin .section-title { color: #17202f; font-size: 18px; letter-spacing: -.02em; }
+body.has-admin-navbar.admin .section-description { color: #566176; font-size: 12px; }
 body.has-admin-navbar.admin .card,
 body.has-admin-navbar.admin .admin-card,
-body.has-admin-navbar.admin .data-section { border: 1px solid #e2e9e9; border-radius: 12px; box-shadow: 0 2px 8px rgba(26,57,62,.025); background: #fff; }
+body.has-admin-navbar.admin .data-section { border: 1px solid #e8e5de; border-radius: 12px; box-shadow: 0 2px 8px rgba(26,57,62,.025); background: #fff; }
 body.has-admin-navbar.admin .stats-grid { gap: 12px; margin-bottom: 18px; }
-body.has-admin-navbar.admin .stats-grid .stat-card { border: 1px solid #e2e9e9; border-radius: 12px; box-shadow: none; padding: 18px; }
+body.has-admin-navbar.admin .stats-grid .stat-card { border: 1px solid #e8e5de; border-radius: 12px; box-shadow: none; padding: 18px; }
 body.has-admin-navbar.admin .stats-grid .stat-card::before { display: none; }
 body.has-admin-navbar.admin .stats-grid .stat-card:hover { transform: none; box-shadow: 0 2px 8px rgba(26,57,62,.07); }
 body.has-admin-navbar.admin .admin-toolbar { gap: 10px; }
@@ -24,9 +24,11 @@ body.has-admin-navbar.admin :is(button,a):focus-visible { outline: 2px solid #0b
 body.has-admin-navbar.admin :is(button,input,select,textarea):disabled { cursor: not-allowed; }
 body.has-admin-navbar.admin .btn-icon:hover { transform: none; box-shadow: none; }
 @media (max-width: 700px) {
+  /* !important: mobile-optimizations.css forces .section to 16px 0 on phones, which pushed the page
+     flush against the screen edge. */
   body.has-admin-navbar.admin main.section,
   body.has-admin-navbar.admin main.admin-main,
-  body.has-admin-navbar.admin main.admin-main-content { padding: 16px 12px 40px; }
+  body.has-admin-navbar.admin main.admin-main-content { padding: 16px 12px 40px !important; }
   body.has-admin-navbar.admin .dashboard-header { padding: 18px; }
   body.has-admin-navbar.admin .header-content { align-items: flex-start; }
   body.has-admin-navbar.admin .header-actions { flex-wrap: wrap; gap: 8px; }
@@ -38,15 +40,14 @@ body.has-admin-navbar.admin .btn-icon:hover { transform: none; box-shadow: none;
 /* ── Controls left over from the old teal gradient banner ──────────────────────────────────
    Header icon buttons, "Back" buttons and links were styled for white text on a see-through white
    fill. The banner is a white card now, so they were invisible (white on white). They get real
-   colours here. The two email heroes keep their gradient and so keep the white controls. */
+   colours here. */
 body.has-admin-navbar.admin .btn-icon,
-body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary,
+body.has-admin-navbar.admin .dashboard-header .btn-secondary,
 body.has-admin-navbar.admin .link-white { color: #0a7569 !important; }
 body.has-admin-navbar.admin .btn-icon,
-body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary { background: #fff; border: 1px solid #cfdcdc; }
+body.has-admin-navbar.admin .dashboard-header .btn-secondary { background: #fff; border: 1px solid #cfdcdc; }
 body.has-admin-navbar.admin .btn-icon:hover,
-body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) .btn-secondary:hover { background: #eef6f5; }
-body.has-admin-navbar.admin :is(.email-centre-hero, .email-preview-hero) .btn-icon { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.3); color: #fff !important; }
+body.has-admin-navbar.admin .dashboard-header .btn-secondary:hover { background: #eef6f5; }
 /* An icon button that also carries a text label (Payments "Refresh Data") sizes to its content */
 body.has-admin-navbar.admin .filter-bar .btn-icon { width: auto; min-width: 44px; padding: 0 14px !important; gap: 8px; font-weight: 600; }
 
@@ -90,7 +91,7 @@ body.has-admin-navbar.admin .row-more__panel { display: flex; flex-wrap: wrap; g
 
 /* ── Paging line and Previous / Next buttons under a list (assets/js/utils/admin-pager.js) ── */
 body.has-admin-navbar.admin .admin-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 12px 0 4px; }
-body.has-admin-navbar.admin .admin-pager__label { margin: 0 auto 0 0; color: #62777d; }
+body.has-admin-navbar.admin .admin-pager__label { margin: 0 auto 0 0; color: #566176; }
 /* .btn sets display, which beats the hidden attribute: a one-page list showed two dead buttons */
 body.has-admin-navbar.admin .admin-pager [hidden] { display: none !important; }
 
@@ -99,13 +100,13 @@ body.has-admin-navbar.admin .admin-pager [hidden] { display: none !important; }
 }
 
 /* "Skip to main content": hidden until a keyboard user tabs to it (the SEO page showed it as plain text) */
-body.has-admin-navbar.admin .efl-skip { position: absolute; left: -9999px; top: 0; z-index: 2000; padding: 0.75rem 1rem; background: #fff; color: #19343b; }
+body.has-admin-navbar.admin .efl-skip { position: absolute; left: -9999px; top: 0; z-index: 2000; padding: 0.75rem 1rem; background: #fff; color: #17202f; }
 body.has-admin-navbar.admin .efl-skip:focus { left: 1rem; top: 1rem; }
 
 /* Location pages: inside the admin frame the shared button rules painted the ghost buttons blue,
    and the search box and state filter stretched across the whole page */
 body.has-admin-navbar.admin button.efl-btn { margin: 0; font-size: 0.875rem; white-space: normal; }
-body.has-admin-navbar.admin .efl-btn--ghost { background: #fff; color: #19343b; }
+body.has-admin-navbar.admin .efl-btn--ghost { background: #fff; color: #17202f; }
 body.has-admin-navbar.admin .efl-btn--ghost:hover { background: #eef6f5; transform: none; box-shadow: none; }
 body.has-admin-navbar.admin .efl-btn--solid:hover { background: #09695f; transform: none; box-shadow: none; }
 body.has-admin-navbar.admin .efl-actions :is(input[type="search"], select) { width: auto; flex: 1 1 220px; max-width: 340px; }
@@ -119,7 +120,7 @@ body.has-admin-navbar.admin details.dev-tools > summary {
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #5f6673;
+  color: #566176;
 }
 body.has-admin-navbar.admin details.dev-tools[open] > summary {
   margin-bottom: 0.5rem;
@@ -135,15 +136,108 @@ body.has-admin-navbar.admin :is(p, .small, .section-description, .footer-credit,
 /* Page footer: the shared footer colours were just under the 4.5:1 contrast needed on the grey page background */
 body.has-admin-navbar.admin .footer,
 body.has-admin-navbar.admin .footer .small,
-body.has-admin-navbar.admin .footer .version { color: #5f6673; }
+body.has-admin-navbar.admin .footer .version { color: #566176; }
 body.has-admin-navbar.admin .footer a { color: #0a7569; }
 
 /* Muted and secondary text: the shared "muted" grey and the small stat labels sat just under 4.5:1
    on the grey page background. Links inside small print use the darker brand teal. */
-body.has-admin-navbar.admin { --color-text-muted: #5f6673; --color-primary: #0a7569; }
+body.has-admin-navbar.admin { --color-text-muted: #566176; --color-primary: #0a7569; }
 body.has-admin-navbar.admin .stat-label,
-body.has-admin-navbar.admin .stat-card-mini .stat-label { color: #4b5563; opacity: 1; }
+body.has-admin-navbar.admin .stat-card-mini .stat-label { color: #3d4955; opacity: 1; }
 body.has-admin-navbar.admin :is(.small, .section-description) > a:not([class*="btn"]):not(.ef-cta) { color: #0a7569 !important; }
 
 /* Links inside the yellow warning notes (Debug page) were brand teal on pale yellow, just under 4.5:1 */
 body.has-admin-navbar.admin .sc-warning-banner a { color: #0a7569; text-decoration: underline; }
+
+/* Tabbed pages: the number of items waiting, shown on the tab (Moderation) */
+body.has-admin-navbar.admin .admin-tab__count {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-left: 0.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+}
+body.has-admin-navbar.admin .admin-tab__count[hidden] { display: none; }
+body.has-admin-navbar.admin .admin-panel-title { margin: 1rem 0 0.25rem; font-size: 1.25rem; }
+
+/* Small icon-only row buttons: drawn icons take the text colour (white-on-white before), and stay
+   white on the dark Delete button */
+body.has-admin-navbar.admin .btn-xs svg { stroke: #3d4955; }
+body.has-admin-navbar.admin .btn-xs[style*="color: white"] svg { stroke: #fff; }
+
+/* Plain text links on the warm page background: the brand teal was a hair under 4.5:1 there */
+body.has-admin-navbar.admin main a:not([class]):not([style]) { color: #0a7569; }
+
+/* Page content fills the same width as the page header above it. The shared .container rule would
+   otherwise centre it in a narrower column, which also squeezed wide tables. */
+body.has-admin-navbar.admin main.section > .container,
+body.has-admin-navbar.admin main.admin-main-content > .container,
+body.has-admin-navbar.admin main [role="tabpanel"] > .container {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The auto-approve status banners already have their own tinted box, so the card they sit in adds
+   a second border. Drop the card's chrome. */
+#statusBanner,
+#photoStatusBanner {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* A quiet button for the safe alternative next to a primary action (for example Dismiss beside
+   Resolve), so two filled buttons do not compete. */
+body.has-admin-navbar.admin .ef-cta.btn-quiet {
+  background: #fff !important;
+  color: #3d4955 !important;
+  border: 1px solid #d6d2c8 !important;
+  box-shadow: none !important;
+}
+
+body.has-admin-navbar.admin .ef-cta.btn-quiet:hover {
+  background: #f7f6f3 !important;
+}
+
+/* Users table: a row with three or four action buttons wraps instead of running out of its cell
+   and being clipped by the pinned Actions column. */
+body.has-admin-navbar.admin .uc-actions-cell {
+  white-space: normal !important;
+  min-width: 190px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+body.has-admin-navbar.admin .uc-actions-cell .btn {
+  flex: 0 0 auto;
+}
+
+/* Section headings inside the Debug tabs match the other admin panel titles. */
+body.has-admin-navbar.admin .section-heading {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+/* On phones the tab buttons stay in one scrollable row instead of stretching to full-width rows. */
+@media (max-width: 600px) {
+  body.has-admin-navbar.admin .admin-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body.has-admin-navbar.admin .admin-tabs .admin-tab {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+  }
+}

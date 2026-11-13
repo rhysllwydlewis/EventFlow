@@ -12,8 +12,8 @@ const publicDir = path.join(__dirname, '../../public');
 
 // Pages that should carry both scripts for full error tracking coverage
 const PAGES = [
-  'admin-payments.html',
-  'admin-photos.html',
+  'admin-analytics.html',
+  'admin-moderation.html',
   'admin-supplier-detail.html',
   'admin.html',
   'auth.html',

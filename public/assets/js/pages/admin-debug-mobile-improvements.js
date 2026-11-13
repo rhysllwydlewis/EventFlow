@@ -87,7 +87,7 @@
     if (state === 'protected') {
       row.classList.remove('sc-check-row--warn');
       if (status) {
-        status.textContent = '🔒';
+        status.textContent = '';
         status.setAttribute('aria-label', 'Protected route');
       }
       if (result) {
@@ -259,20 +259,20 @@
         createGroup({
           key: 'attention',
           label: 'Needs attention',
-          icon: attentionRows.length ? '⚠️' : '✅',
+          icon: attentionRows.length ? '⚠︎' : '✓',
           rows: attentionRows,
           fixed: true,
         }),
         createGroup({
           key: 'protected',
           label: 'Expected authentication redirects',
-          icon: '🔒',
+          icon: '',
           rows: buckets.protected,
         }),
         createGroup({
           key: 'passed',
           label: 'Successful checks',
-          icon: '✅',
+          icon: '✓',
           rows: buckets.passed,
         }),
       ];

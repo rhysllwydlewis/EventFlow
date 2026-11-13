@@ -78,8 +78,8 @@ test.describe('Admin Dashboard — Quick Action Buttons', () => {
     { id: 'packageManagementBtn', label: 'Packages', href: '/admin-packages' },
     { id: 'homepageChangesBtn', label: 'Homepage', href: '/admin-homepage' },
     { id: 'supportTicketsBtn', label: 'Enquiries', href: '/admin-tickets' },
-    { id: 'paymentsAnalyticsBtn', label: 'Payments', href: '/admin-payments' },
-    { id: 'reportsQueueBtn', label: 'Reports', href: '/admin-reports' },
+    { id: 'paymentsAnalyticsBtn', label: 'Payments', href: '/admin-analytics' },
+    { id: 'reportsQueueBtn', label: 'Reports', href: '/admin-moderation' },
     { id: 'auditLogBtn', label: 'Audit Log', href: '/admin-audit' },
     { id: 'adminSettingsBtn', label: 'Settings', href: '/admin-settings' },
   ];
@@ -104,8 +104,8 @@ test.describe('Admin Dashboard — Quick Action Buttons', () => {
 
 test.describe('Admin Dashboard — Moderation Queue Buttons', () => {
   const moderationButtons = [
-    { id: 'reviewPhotosBtn', label: 'Review Photos', href: '/admin-photos' },
-    { id: 'reviewReportsBtn', label: 'Review Reports', href: '/admin-reports' },
+    { id: 'reviewPhotosBtn', label: 'Review Photos', href: '/admin-moderation' },
+    { id: 'reviewReportsBtn', label: 'Review Reports', href: '/admin-moderation' },
     { id: 'verifySuppliersBtn', label: 'Verify Suppliers', href: '/admin-suppliers' },
   ];
 
@@ -197,12 +197,10 @@ test.describe('Admin Dashboard — Navbar Links', () => {
     { text: 'Users', href: '/admin-users' },
     { text: 'Suppliers', href: '/admin-suppliers' },
     { text: 'Packages', href: '/admin-packages' },
-    { text: 'Photos', href: '/admin-photos' },
+    { text: 'Moderation', href: '/admin-moderation' },
     { text: 'Tickets', href: '/admin-tickets' },
-    { text: 'Reports', href: '/admin-reports' },
     { text: 'Audit', href: '/admin-audit' },
     { text: 'Homepage', href: '/admin-homepage' },
-    { text: 'Payments', href: '/admin-payments' },
     { text: 'Content', href: '/admin-content' },
     { text: 'Settings', href: '/admin-settings' },
   ];

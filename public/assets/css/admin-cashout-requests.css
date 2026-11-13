@@ -12,12 +12,12 @@
     .acr-title {
       font-size: 1.6rem;
       font-weight: 700;
-      color: #111827;
+      color: #17202f;
       margin: 0;
     }
     .acr-subtitle {
       font-size: 0.9rem;
-      color: #646b78;
+      color: #566176;
       margin: 0.25rem 0 0;
     }
 
@@ -32,10 +32,10 @@
     .acr-filters select,
     .acr-filters input {
       padding: 0.45rem 0.75rem;
-      border: 1px solid #d1d5db;
+      border: 1px solid #d6d2c8;
       border-radius: 8px;
       font-size: 0.875rem;
-      color: #374151;
+      color: #3d4955;
       background: #fff;
       outline: none;
       transition: border-color 0.15s;
@@ -58,7 +58,7 @@
     /* Table */
     .acr-table-wrap {
       background: #fff;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #e8e5de;
       border-radius: 16px;
       overflow-x: auto;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -69,22 +69,22 @@
       font-size: 0.875rem;
     }
     .acr-table th {
-      background: #f9fafb;
+      background: #f7f6f3;
       padding: 0.75rem 1rem;
       text-align: left;
       font-weight: 600;
-      color: #374151;
-      border-bottom: 1px solid #e5e7eb;
+      color: #3d4955;
+      border-bottom: 1px solid #e8e5de;
       white-space: nowrap;
     }
     .acr-table td {
       padding: 0.85rem 1rem;
-      border-bottom: 1px solid #f3f4f6;
+      border-bottom: 1px solid #f0eee9;
       vertical-align: top;
-      color: #374151;
+      color: #3d4955;
     }
     .acr-table tr:last-child td { border-bottom: none; }
-    .acr-table tr:hover td { background: #f9fafb; }
+    .acr-table tr:hover td { background: #f7f6f3; }
 
     /* Status badges */
     .acr-badge {
@@ -107,16 +107,16 @@
       align-items: center;
       gap: 0.3rem;
       padding: 0.35rem 0.75rem;
-      background: #f3f4f6;
-      border: 1px solid #e5e7eb;
+      background: #f0eee9;
+      border: 1px solid #e8e5de;
       border-radius: 7px;
       font-size: 0.8rem;
       font-weight: 600;
-      color: #374151;
+      color: #3d4955;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
-    .acr-action-btn:hover { background: #e5e7eb; border-color: #d1d5db; }
+    .acr-action-btn:hover { background: #e8e5de; border-color: #d6d2c8; }
     .acr-action-btn--primary { background: #0B8073; color: #fff; border-color: #0B8073; }
     .acr-action-btn--primary:hover { background: #0a6b63; }
     .acr-action-btn--danger { background: rgba(239,68,68,0.08); color: #b91c1c; border-color: rgba(239,68,68,0.2); }
@@ -127,7 +127,7 @@
     .acr-empty {
       padding: 3rem 1rem;
       text-align: center;
-      color: #646b78;
+      color: #566176;
     }
     .acr-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
     .acr-empty-text { font-size: 0.95rem; }
@@ -159,11 +159,11 @@
       border: none;
       font-size: 1.4rem;
       cursor: pointer;
-      color: #646b78;
+      color: #566176;
       line-height: 1;
       padding: 0 0.25rem;
     }
-    .acr-modal-close:hover { color: #111827; }
+    .acr-modal-close:hover { color: #17202f; }
     /* Also carries .ef-cta, whose !important padding/font-size would
        otherwise override the compact sizing above — same bug class as
        admin-navbar.css's close button fix. */
@@ -175,7 +175,7 @@
     .acr-modal-title {
       font-size: 1.2rem;
       font-weight: 700;
-      color: #111827;
+      color: #17202f;
       margin: 0 0 1.5rem;
     }
     .acr-modal-field { margin-bottom: 1rem; }
@@ -183,22 +183,22 @@
       display: block;
       font-size: 0.8rem;
       font-weight: 600;
-      color: #646b78;
+      color: #566176;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-bottom: 0.3rem;
     }
     .acr-modal-value {
       font-size: 0.925rem;
-      color: #111827;
+      color: #17202f;
     }
     .acr-modal-textarea {
       width: 100%;
       padding: 0.6rem 0.75rem;
-      border: 1px solid #d1d5db;
+      border: 1px solid #d6d2c8;
       border-radius: 8px;
       font-size: 0.875rem;
-      color: #374151;
+      color: #3d4955;
       resize: vertical;
       min-height: 80px;
       outline: none;
@@ -208,10 +208,10 @@
     .acr-modal-select {
       width: 100%;
       padding: 0.5rem 0.75rem;
-      border: 1px solid #d1d5db;
+      border: 1px solid #d6d2c8;
       border-radius: 8px;
       font-size: 0.875rem;
-      color: #374151;
+      color: #3d4955;
       background: #fff;
       outline: none;
     }
@@ -232,7 +232,7 @@
       bottom: 1.5rem;
       left: 50%;
       transform: translateX(-50%);
-      background: #111827;
+      background: #17202f;
       color: #fff;
       padding: 0.75rem 1.5rem;
       border-radius: 10px;
@@ -257,7 +257,7 @@
     }
     .acr-stat-card {
       background: #fff;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #e8e5de;
       border-radius: 14px;
       padding: 1rem 1.25rem;
       display: flex;
@@ -273,12 +273,12 @@
     .acr-stat-value {
       font-size: 1.6rem;
       font-weight: 700;
-      color: #111827;
+      color: #17202f;
       line-height: 1.1;
     }
     .acr-stat-label {
       font-size: 0.75rem;
-      color: #646b78;
+      color: #566176;
       font-weight: 500;
       margin-top: 0.1rem;
     }

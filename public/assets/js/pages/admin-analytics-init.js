@@ -155,10 +155,10 @@
           ? roles
               .map(
                 role =>
-                  `<span style="background:var(--color-surface-2,#f3f4f6);padding:5px 14px;border-radius:999px;font-size:.875rem;border:1px solid #e5e7eb"><strong>${capitalise(role)}</strong>: ${byRole[role]}</span>`
+                  `<span style="background:var(--color-surface-2,#f0eee9);padding:5px 14px;border-radius:999px;font-size:.875rem;border:1px solid #e8e5de"><strong>${capitalise(role)}</strong>: ${byRole[role]}</span>`
               )
               .join('')
-          : '<span style="color:#5f6673;font-size:.875rem">No role data</span>';
+          : '<span style="color:#566176;font-size:.875rem">No role data</span>';
       }
     } catch {
       AdminShared.showToast('Failed to load platform metrics', 'error');
@@ -176,19 +176,19 @@
       body.innerHTML = series.length
         ? series
             .map(
-              (row, index) => `<tr style="${index % 2 ? 'background:#f9fafb' : ''}">
-                <td style="padding:.5rem 1rem;font-size:.875rem;color:#374151">${row.date}</td>
+              (row, index) => `<tr style="${index % 2 ? 'background:#f7f6f3' : ''}">
+                <td style="padding:.5rem 1rem;font-size:.875rem;color:#3d4955">${row.date}</td>
                 <td style="padding:.5rem 1rem;text-align:center;font-size:.875rem">${row.signups || 0}</td>
                 <td style="padding:.5rem 1rem;text-align:center;font-size:.875rem">${row.plans || 0}</td>
               </tr>`
             )
             .join('')
-        : '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#5f6673">No data available</td></tr>';
+        : '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#566176">No data available</td></tr>';
     } catch {
       const body = document.getElementById('an-timeseriesBody');
       if (body) {
         body.innerHTML =
-          '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#5f6673">Failed to load timeseries data</td></tr>';
+          '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#566176">Failed to load timeseries data</td></tr>';
       }
     }
   }
@@ -353,9 +353,38 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
+  // ── Tabs: Overview and Payments share this page ────────────────────────────────
+  function mountTabs() {
+    if (!window.AdminTabs) {
+      return;
+    }
+    const tab = (name, onShow) => ({
+      name,
+      button: document.getElementById(`tab-${name}`),
+      panel: document.getElementById(`panel-${name}`),
+      onShow,
+    });
+    const tabs = window.AdminTabs.mount({
+      tabs: [tab('overview'), tab('payments', () => window.AdminPayments?.start())],
+      activeClass: 'admin-tab--active',
+      initial: 'overview',
+    });
+    document.querySelectorAll('[data-open-tab]').forEach(link => {
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        tabs.show(link.dataset.openTab);
+      });
+    });
+  }
+
+  function start() {
     init();
+    mountTabs();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
   }
 })();

@@ -143,7 +143,6 @@
     if (!run) {
       summaryEl.innerHTML = `
         <div class="sc-summary-card">
-          <div class="sc-badge sc-badge--none" aria-hidden="true">📭</div>
           <div class="sc-summary-meta">
             <p class="sc-summary-title">No runs recorded yet</p>
             <p class="sc-summary-subtitle">Click "Run Now" to perform the first system check.</p>
@@ -154,7 +153,7 @@
 
     const isPassed = run.status === 'pass';
     const badgeCls = isPassed ? 'sc-badge--pass' : 'sc-badge--fail';
-    const icon = isPassed ? '✅' : '❌';
+    const icon = isPassed ? '✓' : '✗';
     const label = isPassed ? 'PASS' : 'FAIL';
     const checks = Array.isArray(run.checks) ? run.checks : [];
     const failed = checks.filter(c => !c.ok).length;
@@ -187,7 +186,6 @@
     if (!run || !Array.isArray(run.checks) || run.checks.length === 0) {
       checksListEl.innerHTML = `
         <div class="sc-empty">
-          <div class="sc-empty-icon" aria-hidden="true">📋</div>
           <p>No check details available</p>
         </div>`;
       return;
@@ -201,7 +199,7 @@
         if (c.error) {
           resultHtml = `<span class="sc-check-err">${escHtml(c.error)}</span>`;
         } else if (c.warning) {
-          resultHtml = `<span class="sc-check-warn" title="${escHtml(c.warning)}">⚠️ WARN</span>`;
+          resultHtml = `<span class="sc-check-warn" title="${escHtml(c.warning)}">⚠︎ WARN</span>`;
         } else {
           resultHtml = `<span class="sc-check-ok">OK</span>`;
         }
@@ -211,7 +209,7 @@
             : '';
         return `
         <div class="sc-check-row${c.warning && c.ok ? ' sc-check-row--warn' : ''}">
-          <span class="sc-check-status" aria-label="${c.ok ? 'Pass' : 'Fail'}">${c.ok ? (c.warning ? '⚠️' : '✅') : '❌'}</span>
+          <span class="sc-check-status" aria-label="${c.ok ? 'Pass' : 'Fail'}">${c.ok ? (c.warning ? '⚠︎' : '✓') : '✗'}</span>
           <span class="sc-check-name">${escHtml(c.name)}</span>
           <span class="sc-check-type">${escHtml(c.type)}</span>
           <span class="sc-check-code">${escHtml(codeStr)}</span>
@@ -225,12 +223,12 @@
 
   /* ── Coverage tab ───────────────────────────────────────────────────────── */
   const GROUP_LABELS = {
-    infrastructure: '🔧 Infrastructure',
-    public: '🌐 Public Pages',
-    protected: '🔒 Protected Pages',
-    admin: '🛡️ Admin Pages',
-    'api-public': '📡 Public APIs',
-    'api-auth': '🔑 Auth-Required APIs',
+    infrastructure: 'Infrastructure',
+    public: 'Public Pages',
+    protected: 'Protected Pages',
+    admin: 'Admin Pages',
+    'api-public': 'Public APIs',
+    'api-auth': 'Auth-Required APIs',
   };
 
   function renderCoverage() {
@@ -271,7 +269,6 @@
     if (filtered.length === 0) {
       coverageEl.innerHTML = `
         <div class="sc-empty">
-          <div class="sc-empty-icon" aria-hidden="true">✅</div>
           <p>No items match this filter.</p>
         </div>`;
       return;
@@ -297,23 +294,23 @@
     sortedGroups.forEach(grp => {
       const label = GROUP_LABELS[grp] || escHtml(grp);
       const items = groups[grp];
-      html += `<div class="sc-group-header">${label} <span style="font-weight:400;color:#5f6673;">(${items.length})</span></div>`;
+      html += `<div class="sc-group-header">${label} <span style="font-weight:400;color:#566176;">(${items.length})</span></div>`;
       items.forEach(item => {
         const r = resultMap[item.name];
         let statusIcon, resultHtml;
         if (!r) {
-          statusIcon = '⬜';
+          statusIcon = '';
           resultHtml = `<span class="sc-check-untested">Not yet tested</span>`;
         } else if (!r.ok) {
-          statusIcon = '❌';
+          statusIcon = '✗';
           resultHtml = `<span class="sc-check-err">${escHtml(r.error || String(r.statusCode || 'Error'))}</span>`;
         } else if (r.warning) {
-          statusIcon = '⚠️';
+          statusIcon = '⚠︎';
           const codeStr =
             r.statusCode !== null && r.statusCode !== undefined ? String(r.statusCode) : '—';
           resultHtml = `<span class="sc-check-warn" title="${escHtml(r.warning)}">${escHtml(codeStr)} · ${fmtDuration(r.durationMs)} · WARN</span>`;
         } else {
-          statusIcon = '✅';
+          statusIcon = '✓';
           const codeStr =
             r.statusCode !== null && r.statusCode !== undefined ? String(r.statusCode) : '—';
           resultHtml = `<span class="sc-check-ok">${escHtml(codeStr)} · ${fmtDuration(r.durationMs)}</span>`;
@@ -358,7 +355,6 @@
     if (!runs || runs.length === 0) {
       historyBody.innerHTML = `
         <tr><td colspan="7" class="sc-empty">
-          <div class="sc-empty-icon" aria-hidden="true">📭</div>
           <p>No run history yet</p>
         </td></tr>`;
       return;
@@ -373,11 +369,11 @@
         const rowId = `sc-detail-${idx}`;
         const triggeredBy = run.triggeredBy
           ? escHtml(run.triggeredBy.email || run.triggeredBy.id || 'unknown')
-          : '<span style="color:#5f6673;">scheduler</span>';
+          : '<span style="color:#566176;">scheduler</span>';
 
         const detailRows = checks
           .map(c => {
-            const icon = c.ok ? (c.warning ? '⚠️' : '✅') : '❌';
+            const icon = c.ok ? (c.warning ? '⚠︎' : '✓') : '✗';
             const code =
               c.statusCode !== null && c.statusCode !== undefined ? String(c.statusCode) : '—';
             const note = c.warning
@@ -519,7 +515,7 @@
       if (summaryEl) {
         summaryEl.innerHTML = `
           <div class="sc-summary-card">
-            <div class="sc-badge sc-badge--fail" aria-hidden="true">⚠️</div>
+            <div class="sc-badge sc-badge--fail" aria-hidden="true">⚠︎</div>
             <div class="sc-summary-meta">
               <p class="sc-summary-title">Failed to load</p>
               <p class="sc-summary-subtitle">${msg}</p>
@@ -560,15 +556,12 @@
       const result = await AdminShared.adminFetch(RUN_URL, { method: 'POST' });
 
       if (result && result.status === 409) {
-        setRunStatus('⏳ A run is already in progress — please wait and refresh.', true);
+        setRunStatus('A run is already in progress — please wait and refresh.', true);
         return;
       }
 
       if (result && result.status === 403) {
-        setRunStatus(
-          '🔒 CSRF token missing or invalid. Please refresh the page and try again.',
-          true
-        );
+        setRunStatus('CSRF token missing or invalid. Please refresh the page and try again.', true);
         return;
       }
 
@@ -578,14 +571,11 @@
     } catch (err) {
       const status = err && err.status;
       if (status === 409) {
-        setRunStatus('⏳ A run is already in progress — please wait and refresh.', true);
+        setRunStatus('A run is already in progress — please wait and refresh.', true);
       } else if (status === 403) {
-        setRunStatus(
-          '🔒 CSRF token missing or invalid. Please refresh the page and try again.',
-          true
-        );
+        setRunStatus('CSRF token missing or invalid. Please refresh the page and try again.', true);
       } else {
-        setRunStatus(`❌ Error: ${err.message || 'Run failed. Check server logs.'}`, true);
+        setRunStatus(`✗ Error: ${err.message || 'Run failed. Check server logs.'}`, true);
       }
     } finally {
       runBtn.disabled = false;
@@ -604,7 +594,7 @@
       return;
     }
 
-    statusEl.innerHTML = '<p style="color:#5f6673;">Checking debug route status…</p>';
+    statusEl.innerHTML = '<p style="color:#566176;">Checking debug route status…</p>';
 
     try {
       const status = await AdminShared.api(DEBUG_STATUS_URL);
@@ -612,7 +602,7 @@
       if (status.enabled) {
         statusEl.innerHTML = `
           <div class="sc-info-banner sc-info-banner--ok" role="status">
-            ✅ Emergency account tools are <strong>enabled</strong> (${escHtml(status.environment)} environment).
+            ✓ Emergency account tools are <strong>enabled</strong> (${escHtml(status.environment)} environment).
           </div>`;
         if (bodyEl) {
           bodyEl.hidden = false;
@@ -621,15 +611,15 @@
       } else {
         statusEl.innerHTML = `
           <div class="sc-info-banner sc-info-banner--disabled" role="status">
-            🔒 <strong>Account tools are disabled.</strong><br>
+            <strong>Account tools are disabled.</strong><br>
             ${escHtml(status.disabledReason || '')}<br>
-            <span style="color:#4b5563;">${escHtml(status.enableInstructions || '')}</span>
+            <span style="color:#3d4955;">${escHtml(status.enableInstructions || '')}</span>
           </div>`;
       }
     } catch (err) {
       statusEl.innerHTML = `
         <div class="sc-info-banner sc-info-banner--error" role="alert">
-          ⚠️ Could not check debug route status: ${escHtml(err.message || 'Unknown error')}
+          ⚠︎ Could not check debug route status: ${escHtml(err.message || 'Unknown error')}
         </div>`;
     }
   }
@@ -639,7 +629,7 @@
       return;
     }
     if (isError) {
-      el.innerHTML = `<div class="sc-acct-result--error" role="alert">❌ ${escHtml(typeof data === 'string' ? data : JSON.stringify(data))}</div>`;
+      el.innerHTML = `<div class="sc-acct-result--error" role="alert">✗ ${escHtml(typeof data === 'string' ? data : JSON.stringify(data))}</div>`;
     } else {
       el.innerHTML = `<pre class="sc-acct-json">${escHtml(JSON.stringify(data, null, 2))}</pre>`;
     }
@@ -846,10 +836,10 @@
    * Icons / badge colours for webhook test results.
    */
   const WEBHOOK_ICONS = {
-    pass: '✅',
-    warn: '⚠️',
-    fail: '❌',
-    unconfigured: '⚪',
+    pass: '✓',
+    warn: '⚠︎',
+    fail: '✗',
+    unconfigured: '',
   };
 
   /**
@@ -884,14 +874,14 @@
         // Prefer label over name; show path as a hint when available
         const displayName = escHtml(r.label || r.name);
         const pathHint = r.path
-          ? `<br><span style="font-weight:normal;color:#5f6673;font-size:.8em;">${escHtml(r.path)}</span>`
+          ? `<br><span style="font-weight:normal;color:#566176;font-size:.8em;">${escHtml(r.path)}</span>`
           : '';
         const detail = escHtml(r.details || r.error || '');
         return `
           <tr>
             <td style="white-space:nowrap;">${icon} <strong>${displayName}</strong>${pathHint}</td>
             <td>${statusLabel}</td>
-            <td style="color:var(--color-text-muted,#6b7280);font-size:.875em;">${detail}</td>
+            <td style="color:var(--color-text-muted,#566176);font-size:.875em;">${detail}</td>
           </tr>`;
       })
       .join('');
@@ -908,9 +898,9 @@
         : 0;
     let summaryText;
     if (allOk && summary && summary.configured === 0) {
-      summaryText = `⚪ No webhooks configured (${summary.total} integration${summary.total !== 1 ? 's' : ''} in catalog)`;
+      summaryText = `No webhooks configured (${summary.total} integration${summary.total !== 1 ? 's' : ''} in catalog)`;
     } else if (allOk) {
-      summaryText = `✅ All ${summary.configured} configured webhook${summary.configured !== 1 ? 's' : ''} passed`;
+      summaryText = `✓ All ${summary.configured} configured webhook${summary.configured !== 1 ? 's' : ''} passed`;
       if (unconfiguredCount > 0) {
         summaryText += ` (${unconfiguredCount} not configured)`;
       }
@@ -929,9 +919,9 @@
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr>
-              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Integration</th>
-              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Status</th>
-              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Details</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e8e5de);">Integration</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e8e5de);">Status</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e8e5de);">Details</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -953,7 +943,7 @@
       btn.disabled = true;
       btn.textContent = 'Testing…';
       if (resultEl) {
-        resultEl.innerHTML = '<p style="color:#5f6673;">Running webhook tests…</p>';
+        resultEl.innerHTML = '<p style="color:#566176;">Running webhook tests…</p>';
       }
 
       try {
@@ -971,7 +961,7 @@
         if (resultEl) {
           // Produce a friendly message; avoid secondary TypeError if err.message is empty
           const msg = err && err.message ? err.message : 'Webhook test failed — please try again.';
-          resultEl.innerHTML = `<div class="sc-info-banner sc-info-banner--error" role="alert">⚠️ ${escHtml(msg)}</div>`;
+          resultEl.innerHTML = `<div class="sc-info-banner sc-info-banner--error" role="alert">⚠︎ ${escHtml(msg)}</div>`;
         }
       } finally {
         btn.disabled = false;

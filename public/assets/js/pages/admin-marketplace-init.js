@@ -152,7 +152,7 @@
           <p class="small">${escapeHtml(listing.description.slice(0, 150))}${listing.description.length > 150 ? '...' : ''}</p>
           <div class="listing-meta">
             <span><strong>£${listing.price.toFixed(2)}</strong></span>
-            <span>📍 ${escapeHtml(listing.location || 'No location')}</span>
+            <span>${escapeHtml(listing.location || 'No location')}</span>
             <span>Category: ${escapeHtml(listing.category)}</span>
             <span>Condition: ${escapeHtml(listing.condition)}</span>
           </div>
@@ -163,7 +163,7 @@
         </div>
         <div class="listing-actions">
           <span class="status-badge status-${listing.status}">${listing.status}</span>
-          <button class="cta" data-listing-action="edit" data-listing-id="${escapeHtml(listing.id)}">✏️ Edit</button>
+          <button class="cta" data-listing-action="edit" data-listing-id="${escapeHtml(listing.id)}">Edit</button>
           ${
             listing.status === 'pending'
               ? `
@@ -306,23 +306,23 @@
         <form id="editListingForm" style="display: flex; flex-direction: column; gap: 16px;">
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 500;">Title</label>
-            <input type="text" id="editTitle" value="${escapeHtml(listing.title)}" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            <input type="text" id="editTitle" value="${escapeHtml(listing.title)}" required style="width: 100%; padding: 8px; border: 1px solid #d6d2c8; border-radius: 6px;">
           </div>
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 500;">Description</label>
-            <textarea id="editDescription" rows="4" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">${escapeHtml(listing.description)}</textarea>
+            <textarea id="editDescription" rows="4" required style="width: 100%; padding: 8px; border: 1px solid #d6d2c8; border-radius: 6px;">${escapeHtml(listing.description)}</textarea>
           </div>
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 500;">Price (£)</label>
-            <input type="number" id="editPrice" value="${listing.price}" required min="0" step="0.01" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            <input type="number" id="editPrice" value="${listing.price}" required min="0" step="0.01" style="width: 100%; padding: 8px; border: 1px solid #d6d2c8; border-radius: 6px;">
           </div>
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 500;">Location</label>
-            <input type="text" id="editLocation" value="${escapeHtml(listing.location || '')}" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            <input type="text" id="editLocation" value="${escapeHtml(listing.location || '')}" style="width: 100%; padding: 8px; border: 1px solid #d6d2c8; border-radius: 6px;">
           </div>
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 500;">Category</label>
-            <select id="editCategory" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            <select id="editCategory" required style="width: 100%; padding: 8px; border: 1px solid #d6d2c8; border-radius: 6px;">
               <option value="attire" ${listing.category === 'attire' ? 'selected' : ''}>Attire</option>
               <option value="decor" ${listing.category === 'decor' ? 'selected' : ''}>Décor</option>
               <option value="av-equipment" ${listing.category === 'av-equipment' ? 'selected' : ''}>AV Equipment</option>
@@ -333,7 +333,7 @@
           </div>
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 500;">Condition</label>
-            <select id="editCondition" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            <select id="editCondition" required style="width: 100%; padding: 8px; border: 1px solid #d6d2c8; border-radius: 6px;">
               <option value="new" ${listing.condition === 'new' ? 'selected' : ''}>New</option>
               <option value="like-new" ${listing.condition === 'like-new' ? 'selected' : ''}>Like New</option>
               <option value="good" ${listing.condition === 'good' ? 'selected' : ''}>Good</option>
@@ -342,7 +342,7 @@
           </div>
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 500;">Status</label>
-            <select id="editStatus" required style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+            <select id="editStatus" required style="width: 100%; padding: 8px; border: 1px solid #d6d2c8; border-radius: 6px;">
               <option value="pending" ${listing.status === 'pending' ? 'selected' : ''}>Pending</option>
               <option value="active" ${listing.status === 'active' ? 'selected' : ''}>Active</option>
               <option value="sold" ${listing.status === 'sold' ? 'selected' : ''}>Sold</option>

@@ -21,7 +21,7 @@
       <div style="display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap;">
         <div>
           <h2 style="margin: 0 0 6px; font-size: 1.5rem; font-weight: 700;">Homepage versions</h2>
-          <p class="small" style="margin: 0; color: #4b5563;">Select the version to edit, preview drafts and publish a version when it is ready for the live site.</p>
+          <p class="small" style="margin: 0; color: #3d4955;">Select the version to edit, preview drafts and publish a version when it is ready for the live site.</p>
         </div>
         <div class="badge" id="homepageActiveBadge" style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;">
           Live version: loading
@@ -33,9 +33,9 @@
       </div>
 
       <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 360px); gap: 20px;">
-        <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+        <div style="padding: 16px; border: 1px solid #e8e5de; border-radius: 8px; background: #f7f6f3;">
           <h3 id="homepageSelectedTitle" style="margin: 0 0 8px; font-size: 1.1rem;">Selected homepage version</h3>
-          <p id="homepageSelectedDescription" class="small" style="margin: 0 0 14px; color: #4b5563;">Choose a homepage version to manage its settings.</p>
+          <p id="homepageSelectedDescription" class="small" style="margin: 0 0 14px; color: #3d4955;">Choose a homepage version to manage its settings.</p>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <a id="homepagePreviewLink" class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener noreferrer">Preview version</a>
             <button id="publishHomepageVersion" class="ef-cta btn btn-primary" type="button">Set live</button>
@@ -47,15 +47,15 @@
           <h3 style="margin: 0 0 8px; font-size: 1rem;">Version status</h3>
           <dl style="margin: 0; display: grid; gap: 8px; font-size: 0.9rem;">
             <div style="display: flex; justify-content: space-between; gap: 12px;">
-              <dt style="color: #4b5563;">Selected</dt>
+              <dt style="color: #3d4955;">Selected</dt>
               <dd id="homepageSelectedVersion" style="margin: 0; font-weight: 700;">-</dd>
             </div>
             <div style="display: flex; justify-content: space-between; gap: 12px;">
-              <dt style="color: #4b5563;">Status</dt>
+              <dt style="color: #3d4955;">Status</dt>
               <dd id="homepageSelectedStatus" style="margin: 0; font-weight: 700;">-</dd>
             </div>
             <div style="display: flex; justify-content: space-between; gap: 12px;">
-              <dt style="color: #4b5563;">Updated</dt>
+              <dt style="color: #3d4955;">Updated</dt>
               <dd id="homepageSelectedUpdated" style="margin: 0; font-weight: 700;">-</dd>
             </div>
           </dl>
@@ -172,13 +172,13 @@
           type="button"
           class="homepage-version-tab ${isSelected ? 'is-selected' : ''}"
           data-version="${version}"
-          style="text-align: left; padding: 16px; border: 2px solid ${isSelected ? '#0B8073' : '#e5e7eb'}; border-radius: 8px; background: ${isSelected ? '#ecfdf5' : '#ffffff'}; cursor: pointer;"
+          style="text-align: left; padding: 16px; border: 2px solid ${isSelected ? '#0B8073' : '#e8e5de'}; border-radius: 8px; background: ${isSelected ? '#ecfdf5' : '#ffffff'}; cursor: pointer;"
         >
           <span style="display: flex; justify-content: space-between; gap: 8px; align-items: center;">
             <strong class="homepage-version-name" data-version="${version}" title="Double-click to rename">${escapeHtml(slot.tabName)}</strong>
-            <span class="badge" style="background: ${isActive ? '#dcfce7' : '#f3f4f6'}; color: ${isActive ? '#166534' : '#374151'}; padding: 3px 8px; border-radius: 999px; font-size: 0.7rem;">${isActive ? 'Live on site' : isSelected ? 'Editing this version' : escapeHtml(slot.status || 'Draft')}</span>
+            <span class="badge" style="background: ${isActive ? '#dcfce7' : '#f0eee9'}; color: ${isActive ? '#166534' : '#3d4955'}; padding: 3px 8px; border-radius: 999px; font-size: 0.7rem;">${isActive ? 'Live on site' : isSelected ? 'Editing this version' : escapeHtml(slot.status || 'Draft')}</span>
           </span>
-          <span class="small" style="display: block; color: #646b78; margin-top: 8px;">${escapeHtml(slot.description || '')}</span>
+          <span class="small" style="display: block; color: #566176; margin-top: 8px;">${escapeHtml(slot.description || '')}</span>
         </button>
       `;
     }).join('');

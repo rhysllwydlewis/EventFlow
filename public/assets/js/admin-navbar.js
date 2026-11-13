@@ -17,41 +17,75 @@
 'use strict';
 (function () {
 
+  // ── Line icons for the Quick Nav (one consistent style instead of emoji) ──
+  const NAV_ICON_PATHS = {
+    dashboard: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+    analytics: '<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/>',
+    settings: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    suppliers: '<path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 13v.01M9 17v.01"/>',
+    packages: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+    marketplace: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+    events: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    media: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+    moderation: '<path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    enquiries: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    community: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/>',
+    messages: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+    locations: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+    seo: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    partners: '<circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/>',
+    audit: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>',
+    exports: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+    emails: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+    homepage: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+    content: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    debug: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    catalogue: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+    tools: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>',
+  };
+
+  function navIcon(name) {
+    const paths = NAV_ICON_PATHS[name] || NAV_ICON_PATHS.dashboard;
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">${paths}</svg>`;
+  }
+
   // ── Nav items registry (browser copy of config/adminRegistry.js getNavItems) ──
   // Update config/adminRegistry.js first; then mirror inNav=true entries here.
   // `group` maps to category; `desc` is shown in the Quick Nav tile.
   const NAV_ITEMS = [
     {
       href: '/admin',
-      icon: '📊',
+      icon: 'dashboard',
       label: 'Dashboard',
       group: 'core',
       desc: 'Overview & platform metrics',
     },
     {
       href: '/admin-analytics',
-      icon: '📈',
-      label: 'Analytics',
+      icon: 'analytics',
+      label: 'Analytics & Payments',
       group: 'core',
-      desc: 'Revenue, growth & platform analytics',
+      desc: 'Visitors, revenue, growth, platform analytics and payment records',
     },
     {
       href: '/admin-settings',
-      icon: '⚙️',
+      icon: 'settings',
       label: 'Settings',
       group: 'core',
       desc: 'Admin preferences & configuration',
     },
     {
       href: '/admin-users',
-      icon: '👥',
+      icon: 'users',
       label: 'Users',
       group: 'users',
       desc: 'User accounts & management',
     },
     {
       href: '/admin-suppliers',
-      icon: '🏢',
+      icon: 'suppliers',
       label: 'Suppliers',
       group: 'users',
       desc: 'Supplier approvals & profiles',
@@ -59,7 +93,7 @@
     },
     {
       href: '/admin-packages',
-      icon: '📦',
+      icon: 'packages',
       label: 'Packages',
       group: 'catalogue',
       desc: 'Package approvals & listings',
@@ -67,45 +101,37 @@
     },
     {
       href: '/admin-marketplace',
-      icon: '🛒',
+      icon: 'marketplace',
       label: 'Marketplace',
       group: 'catalogue',
       desc: 'Marketplace management',
     },
     {
       href: '/admin-public-calendar',
-      icon: '📅',
+      icon: 'events',
       label: 'Events',
       group: 'catalogue',
       desc: 'Shared calendar events & publishing requests',
       badgeId: 'navBadgePublicCalendar',
     },
     {
-      href: '/admin-photos',
-      icon: '📸',
-      label: 'Photos',
-      group: 'catalogue',
-      desc: 'Photo review & moderation',
-      badgeId: 'navBadgePhotos',
-    },
-    {
       href: '/admin-media',
-      icon: '🎨',
+      icon: 'media',
       label: 'Media',
       group: 'catalogue',
       desc: 'Media asset management',
     },
     {
-      href: '/admin-reviews',
-      icon: '⭐',
-      label: 'Reviews',
+      href: '/admin-moderation',
+      icon: 'moderation',
+      label: 'Moderation',
       group: 'moderation',
-      desc: 'Review approvals & moderation',
-      badgeId: 'navBadgeReviews',
+      desc: 'Reviews, supplier photos and content reports waiting for a decision',
+      badgeId: 'navBadgeModeration',
     },
     {
       href: '/admin-tickets',
-      icon: '🎫',
+      icon: 'enquiries',
       label: 'Enquiries',
       group: 'moderation',
       desc: 'Support tickets, contact-form enquiries and enquiries from VEXI and Chlo',
@@ -113,29 +139,21 @@
     },
     {
       href: '/admin-community',
-      icon: '💜',
+      icon: 'community',
       label: 'Community',
       group: 'moderation',
       desc: 'Community moderation, reports, categories and health',
     },
     {
-      href: '/admin-reports',
-      icon: '🚩',
-      label: 'Reports',
-      group: 'moderation',
-      desc: 'User-submitted content reports & moderation actions',
-      badgeId: 'navBadgeReports',
-    },
-    {
       href: '/admin-messenger',
-      icon: '💬',
+      icon: 'messages',
       label: 'Messages',
       group: 'moderation',
       desc: 'Conversation moderation',
     },
     {
       href: '/admin-locations',
-      icon: '📍',
+      icon: 'locations',
       label: 'Locations',
       group: 'content',
       desc: 'UK city pages: publication, indexing and editorial review',
@@ -143,70 +161,63 @@
     },
     {
       href: '/admin-seo',
-      icon: '🔍',
+      icon: 'seo',
       label: 'SEO Insights',
       group: 'content',
       desc: 'Search Console performance, keyword gaps and rewrite opportunities',
     },
     {
-      href: '/admin-payments',
-      icon: '💳',
-      label: 'Payments',
-      group: 'operations',
-      desc: 'Payment records & billing',
-    },
-    {
       href: '/admin-partners',
-      icon: '🤝',
+      icon: 'partners',
       label: 'Partners',
       group: 'operations',
       desc: 'Partner accounts, cashout requests & campaign report',
     },
     {
       href: '/admin-audit',
-      icon: '📋',
+      icon: 'audit',
       label: 'Audit',
       group: 'operations',
       desc: 'Admin activity log',
     },
     {
       href: '/admin-exports',
-      icon: '📤',
+      icon: 'exports',
       label: 'Exports',
       group: 'operations',
       desc: 'Data export & downloads',
     },
     {
       href: '/admin-emails',
-      icon: '📨',
+      icon: 'emails',
       label: 'Email Centre',
       group: 'operations',
       desc: 'Sent email logs, campaigns, template previews, review requests and delivery health',
     },
     {
       href: '/admin-homepage',
-      icon: '🏠',
+      icon: 'homepage',
       label: 'Homepage',
       group: 'content',
       desc: 'Homepage content & imagery',
     },
     {
       href: '/admin-content',
-      icon: '✏️',
+      icon: 'content',
       label: 'Content',
       group: 'content',
       desc: 'Page content editor',
     },
     {
       href: '/admin-search',
-      icon: '🔍',
+      icon: 'search',
       label: 'Search',
       group: 'tools',
       desc: 'Search index & configuration',
     },
     {
       href: '/admin-debug',
-      icon: '🩺',
+      icon: 'debug',
       label: 'Debug',
       group: 'tools',
       desc: 'System diagnostics & checks',
@@ -215,13 +226,13 @@
 
   // ── Quick Nav group definitions (display order for the panel) ─────────────
   const NAV_GROUPS = [
-    { id: 'core', label: 'Core', icon: '📊' },
-    { id: 'users', label: 'People', icon: '👥' },
-    { id: 'catalogue', label: 'Catalogue', icon: '🗂️' },
-    { id: 'moderation', label: 'Moderation', icon: '🔍' },
-    { id: 'operations', label: 'Operations', icon: '⚙️' },
-    { id: 'content', label: 'Content', icon: '✏️' },
-    { id: 'tools', label: 'Tools', icon: '🔧' },
+    { id: 'core', label: 'Core', icon: 'dashboard' },
+    { id: 'users', label: 'People', icon: 'users' },
+    { id: 'catalogue', label: 'Catalogue', icon: 'catalogue' },
+    { id: 'moderation', label: 'Moderation', icon: 'moderation' },
+    { id: 'operations', label: 'Operations', icon: 'settings' },
+    { id: 'content', label: 'Content', icon: 'content' },
+    { id: 'tools', label: 'Tools', icon: 'tools' },
   ];
 
   // ── Notification bell state — declared here so init() can safely call
@@ -397,7 +408,7 @@
       return [
         `      <div class="admin-qnav-group" data-group="${group.id}">`,
         '        <h3 class="admin-qnav-group-label">',
-        `          <span class="admin-qnav-group-icon" aria-hidden="true">${group.icon}</span>`,
+        `          <span class="admin-qnav-group-icon" aria-hidden="true">${navIcon(group.icon)}</span>`,
         `          ${group.label}`,
         '        </h3>',
         '        <div class="admin-qnav-tiles">',
@@ -465,7 +476,7 @@
       `          <a href="${item.href}" class="admin-qnav-tile"`,
       `             data-label="${item.label.toLowerCase()}">`,
       badge,
-      `            <span class="admin-qnav-tile-icon" aria-hidden="true">${item.icon}</span>`,
+      `            <span class="admin-qnav-tile-icon" aria-hidden="true">${navIcon(item.icon)}</span>`,
       '            <span class="admin-qnav-tile-body">',
       `              <span class="admin-qnav-tile-label">${item.label}</span>`,
       desc,
@@ -916,9 +927,11 @@
         setNavBadge('navBadgePackages', pending.packages || 0);
         // Public calendar: pending publishing requests + open event reports
         setNavBadge('navBadgePublicCalendar', pending.publicCalendarRequests || 0);
-        setNavBadge('navBadgePhotos', pending.photos || 0);
-        setNavBadge('navBadgeReviews', pending.reviews || 0);
-        setNavBadge('navBadgeReports', pending.reports || 0);
+        // Moderation: reviews, photos and content reports all wait in one place
+        setNavBadge(
+          'navBadgeModeration',
+          (pending.reviews || 0) + (pending.photos || 0) + (pending.reports || 0)
+        );
         // Open tickets: support tickets plus new enquiries from VEXI, Chlo and other integrated sites
         setNavBadge(
           'openTicketsBadge',
