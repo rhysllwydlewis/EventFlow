@@ -124,6 +124,19 @@ function minifyCss(source) {
 }
 
 /**
+ * Percent-decode a request path.
+ * @param {string} urlPath Request path.
+ * @returns {string|null} The decoded path, or null if it is malformed.
+ */
+function safeDecode(urlPath) {
+  try {
+    return decodeURIComponent(urlPath);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Map a request path to a stylesheet inside `base`, or null if it is not one we
  * minify (not CSS, vendor/minified already, or outside the directory).
  * @param {string} base Absolute public directory.
@@ -131,13 +144,9 @@ function minifyCss(source) {
  * @returns {string|null} Absolute file path.
  */
 function resolveCssFile(base, urlPath) {
-  let relative;
-  try {
-    relative = decodeURIComponent(urlPath);
-  } catch {
-    return null;
-  }
+  const relative = safeDecode(urlPath);
   if (
+    relative === null ||
     relative.includes('\0') ||
     relative.includes('\\') ||
     !/^\/assets\/.+\.css$/i.test(relative) ||
@@ -176,11 +185,12 @@ function createCssMinifyMiddleware({ root, enabled } = {}) {
     }
   };
 
-  const load = async (file, stat) => {
+  // Resolves to the minified CSS, or null when the file should be served as it is.
+  const load = (file, stat) => {
     const hit = cache.get(file);
     if (hit && hit.mtimeMs === stat.mtimeMs && hit.size === stat.size) {
       remember(file, hit);
-      return hit.css;
+      return Promise.resolve(hit.css);
     }
     const key = `${file}:${stat.mtimeMs}:${stat.size}`;
     if (!inflight.has(key)) {
