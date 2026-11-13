@@ -77,7 +77,7 @@ body.has-admin-navbar.admin .table-wrapper--sticky-actions table tbody tr:hover 
    A table cell keeps its text on one line, so a single long business name or email stretched a
    whole table (Suppliers was 2,800px wide, Reports 1,480px) and squashed the date. These columns
    now wrap inside a sensible width, breaking mid-word only when a word cannot otherwise fit. */
-body.has-admin-navbar.admin .table-wrapper td.col-wrap { white-space: normal; overflow-wrap: anywhere; min-width: 9rem; max-width: 24rem; }
+body.has-admin-navbar.admin .table-wrapper td.col-wrap { white-space: normal; overflow-wrap: anywhere; min-width: 9rem; max-width: 18rem; }
 
 /* ── Secondary row actions tucked into a "More" control ─────────────────────────────────────
    Suppliers showed seven or more controls per row (tier, duration, Grant, Remove, ...), which made
@@ -127,7 +127,7 @@ body.has-admin-navbar.admin details.dev-tools[open] > summary {
 
 /* Links inside a line of text (footer links, "View supplier record") were told apart from the
    surrounding words by colour alone, which people who cannot see colour cannot pick out. */
-body.has-admin-navbar.admin :is(p, .small, li, .section-description, .footer-credit, .photo-queue__supplier) > a:not([class*="btn"]):not(.ef-cta) {
+body.has-admin-navbar.admin :is(p, .small, .section-description, .footer-credit, .photo-queue__supplier) > a:not([class*="btn"]):not(.ef-cta) {
   text-decoration: underline;
   text-underline-offset: 2px;
 }

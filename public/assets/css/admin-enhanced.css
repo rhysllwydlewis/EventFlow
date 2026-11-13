@@ -2032,7 +2032,7 @@ tbody tr.selected td {
 }
 
 .stat-trend.down {
-  color: #dc2626;
+  color: #b91c1c;
   background: #fee2e2;
 }
 
@@ -2147,7 +2147,7 @@ tbody tr.selected td {
 
 .toast.error .toast-icon {
   background: #fee2e2;
-  color: #dc2626;
+  color: #b91c1c;
 }
 
 .toast.warning .toast-icon {
@@ -2868,7 +2868,7 @@ tbody tr.selected td {
 
 .subscription-status-card--free .sub-countdown--expired {
   background: #fee2e2;
-  color: #dc2626;
+  color: #b91c1c;
 }
 
 .sub-countdown--urgent {
@@ -3242,7 +3242,7 @@ tbody tr.selected td {
 }
 
 .sc-badge--pass { background: #dcfce7; color: #16a34a; }
-.sc-badge--fail { background: #fee2e2; color: #dc2626; }
+.sc-badge--fail { background: #fee2e2; color: #b91c1c; }
 .sc-badge--none { background: #f3f4f6; color: #5f6673; }
 
 .sc-summary-meta { flex: 1; }
@@ -4222,7 +4222,7 @@ tbody tr.selected td {
 .uc-summary-card__icon--purple { background: #ede9fe; color: #7c3aed; }
 .uc-summary-card__icon--green  { background: #d1fae5; color: #047857; }
 .uc-summary-card__icon--amber  { background: #fef3c7; color: #b45309; }
-.uc-summary-card__icon--red    { background: #fee2e2; color: #dc2626; }
+.uc-summary-card__icon--red    { background: #fee2e2; color: #b91c1c; }
 .uc-summary-card__icon--grey   { background: #f3f4f6; color: #646b78; }
 .uc-summary-card__value { font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.5px; line-height: 1; }
 .uc-summary-card__label { font-size: 12px; font-weight: 600; color: #646b78; text-transform: uppercase; letter-spacing: .04em; }
