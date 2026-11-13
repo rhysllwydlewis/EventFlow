@@ -138,13 +138,13 @@
         supplierPending.textContent =
           pendingSuppliers > 0 ? `${pendingSuppliers} pending approval` : 'No pending approvals';
         supplierPending.style.color =
-          pendingSuppliers > 0 ? 'var(--color-warning,#d97706)' : 'var(--color-success,#16a34a)';
+          pendingSuppliers > 0 ? 'var(--color-warning,#b45309)' : 'var(--color-success,#15803d)';
       }
       if (packagePending) {
         packagePending.textContent =
           pendingPackages > 0 ? `${pendingPackages} pending approval` : 'No pending approvals';
         packagePending.style.color =
-          pendingPackages > 0 ? 'var(--color-warning,#d97706)' : 'var(--color-success,#16a34a)';
+          pendingPackages > 0 ? 'var(--color-warning,#b45309)' : 'var(--color-success,#15803d)';
       }
 
       const roleBreakdown = document.getElementById('an-roleBreakdown');

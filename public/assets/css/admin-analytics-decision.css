@@ -24,7 +24,7 @@
 .analytics-decision-header p,
 .analytics-decision-card__intro,
 .analytics-definition-grid p {
-  color: #64748b;
+  color: #475569;
 }
 
 .analytics-decision-eyebrow,
@@ -67,7 +67,7 @@
 .analytics-comparison-card > span,
 .analytics-comparison-card small {
   display: block;
-  color: #64748b;
+  color: #475569;
 }
 
 .analytics-comparison-card strong {
@@ -141,7 +141,7 @@
 }
 
 .analytics-decision-table th {
-  color: #64748b;
+  color: #475569;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;

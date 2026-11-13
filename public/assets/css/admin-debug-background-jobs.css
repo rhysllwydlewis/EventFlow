@@ -68,7 +68,7 @@
 .bj-job-card--unknown { border-left-color: #d97706; }
 .bj-job-card--failed { border-left-color: #dc2626; }
 .bj-job-card--overdue { border-left-color: #ea580c; }
-.bj-job-card--disabled { border-left-color: #9ca3af; opacity: 0.85; }
+.bj-job-card--disabled { border-left-color: #9ca3af; }
 .bj-job-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
 .bj-job-title-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .bj-job-title-row h3 { margin: 0; font-size: 1.05rem; }
