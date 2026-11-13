@@ -1184,7 +1184,7 @@ router.put(
     if (checkedImage && !checkedImage.ok && !isStoredImage(req.body.image, pkg)) {
       return res.status(400).json({ error: 'Invalid image', details: checkedImage.error });
     }
-    if (checkedImage && checkedImage.ok) {
+    if (checkedImage?.ok) {
       const newImage = checkedImage.value;
       pkgUpdates.image = newImage;
       // Sync to gallery so the detail view resolvedGallery reflects the new image
