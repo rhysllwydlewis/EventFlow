@@ -385,7 +385,7 @@
     <link rel="stylesheet" href="/assets/css/home-wedding-showcase.css?v=1.3.0" />
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
     <link rel="stylesheet" href="/assets/css/signup-popup.css?v=1" />
-    <link rel="stylesheet" href="/assets/css/homepage-flow.css?v=9" />
+    <link rel="stylesheet" href="/assets/css/homepage-flow.css?v=10" />
 </head>
   <body class="ef-home-flow ef-home-guidance ef-home-quicklinks">
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -640,12 +640,13 @@
             </div>
           </div>
           <div>
-            <!-- `inert` as well as aria-hidden: aria-hidden alone hides the collage from
-                 assistive technology but leaves its links in the tab order, so a keyboard
-                 user could focus something a screen reader never announces. -->
-            <div class="hero-collage" aria-hidden="true" inert>
+            <!-- The collage is navigation, not decoration: each card is a labelled link to a
+                 category. It used to be aria-hidden and inert as a whole, which made the four
+                 cards unclickable for everyone, not just hidden from screen readers. Only the
+                 video card, which has no label and goes nowhere, is hidden and inert now. -->
+            <div class="hero-collage" role="group" aria-label="Popular categories">
               <!-- Row 1: Video (no label, spans 2 columns) -->
-              <div class="hero-video-card">
+              <div class="hero-video-card" aria-hidden="true" inert>
                 <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->
                 <video id="hero-pexels-video" muted loop playsinline preload="none"
                        poster="/assets/images/hero-video-poster-960.webp"
@@ -1024,7 +1025,11 @@
       <section class="ef-section ef-section--bordered home-featured-section" aria-label="Featured packages">
         <div class="container">
           <div class="ef-section__header">
-            <span class="ef-section__kicker">Featured packages</span>
+            <span class="ef-section__kicker">Hand-picked</span>
+            <h2 class="ef-section__title">Featured packages</h2>
+            <p class="ef-section__subtitle">
+              Ready-made packages from approved suppliers, with the price up front.
+            </p>
           </div>
           <div id="featured-packages" class="featured-carousel">
             <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true"><div class="skeleton-supplier-header"><div class="skeleton skeleton-avatar-large"></div><div style="flex:1"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text skeleton-text-medium"></div></div></div><div class="skeleton skeleton-text skeleton-text-long"></div></div>
@@ -1037,9 +1042,10 @@
       <section class="ef-section home-spotlight-section" aria-label="Spotlight packages">
         <div class="container">
           <div class="ef-section__header">
-            <span class="ef-section__kicker">Spotlight packages</span>
+            <span class="ef-section__kicker">Spotlight</span>
+            <h2 class="ef-section__title">Something new to discover</h2>
             <p class="ef-section__subtitle">
-              Discover something new — our spotlight changes every hour
+              A fresh selection of packages, rotated every hour.
             </p>
           </div>
           <div id="spotlight-packages" class="featured-carousel">
@@ -1393,7 +1399,7 @@
     <script src="/assets/js/components/category-grid.js" defer></script>
     <script src="/assets/js/components/package-list.js?v=1.0.2" defer></script>
     <!-- Carousel must load before home-init.js -->
-    <script src="/assets/js/components/carousel.js?v=2" defer></script>
+    <script src="/assets/js/components/carousel.js?v=2.0.2" defer></script>
     
     <!-- Issue Fix Components - Must load before home-init.js -->
     <script src="/assets/js/utils/fetch-with-retry.js" defer></script>

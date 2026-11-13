@@ -27,7 +27,18 @@ const SUPPLIERS = [
 ];
 
 const PACKAGES = [
-  { id: 'pkg-real', supplierId: 'sup-real', title: 'Real Package', approved: true },
+  {
+    id: 'pkg-real',
+    supplierId: 'sup-real',
+    title: 'Real Package',
+    slug: 'real-package',
+    approved: true,
+    featured: true,
+    // Bookkeeping that must never reach an anonymous visitor.
+    _id: 'mongo-object-id',
+    lastEditedBy: 'usr-admin',
+    versionHistory: [{ editedBy: 'usr-admin', title: 'Old title' }],
+  },
   // Test package under an otherwise-real supplier: package-level isTest must
   // exclude it on its own, independent of the supplier's own flag.
   {
@@ -158,6 +169,22 @@ describe('public discovery endpoints exclude isTest suppliers/packages', () => {
     expect(ids).toContain('pkg-real');
     expect(ids).not.toContain('pkg-real-supplier-test-pkg');
     expect(ids).not.toContain('pkg-test');
+  });
+
+  it.each([
+    ['/api/packages/featured', res => res.body.items],
+    ['/api/packages/spotlight', res => res.body.items],
+    ['/api/packages/search', res => res.body.items],
+    ['/api/suppliers/sup-real/packages', res => res.body.items],
+    ['/api/packages/real-package', res => [res.body.package || res.body]],
+  ])('GET %s does not publish edit history or internal ids', async (url, pick) => {
+    const res = await request(app).get(url).expect(200);
+    const real = pick(res).find(item => item && item.id === 'pkg-real');
+    expect(real).toBeDefined();
+    expect(real.title).toBe('Real Package');
+    expect(real).not.toHaveProperty('_id');
+    expect(real).not.toHaveProperty('lastEditedBy');
+    expect(real).not.toHaveProperty('versionHistory');
   });
 
   it('POST /api/packages/bulk excludes test suppliers and packages', async () => {

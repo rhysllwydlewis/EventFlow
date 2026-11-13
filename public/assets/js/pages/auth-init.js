@@ -57,8 +57,8 @@
     if (subtitle) {
       subtitle.textContent =
         activeTab.id === 'tab-create'
-          ? 'Join thousands of event planners and suppliers on EventFlow — it\u2019s free.'
-          : 'Sign in to your EventFlow account to continue planning.';
+          ? 'Free to join \u2014 plan an event or list your business.'
+          : 'Log in to pick up your plans, shortlists and messages.';
     }
   }
 

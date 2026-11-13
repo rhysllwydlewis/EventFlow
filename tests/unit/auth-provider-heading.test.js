@@ -125,9 +125,28 @@ describe('auth page wiring', () => {
   });
 
   test('Google announces unavailability on every path where its button cannot be used', () => {
-    // not configured, config failed to load, GIS script failed, GIS unavailable in browser
-    expect(googleSource.match(/announceGoogleAvailability\(false\)/g)).toHaveLength(4);
+    // not configured, config failed to load, GIS script failed, GIS unavailable in browser.
+    // Every one of those goes through showGoogleUnavailable(), which is the single place
+    // that announces it — so a path cannot show the inline note and forget the heading.
+    const unavailable = googleSource.slice(
+      googleSource.indexOf('function showGoogleUnavailable('),
+      googleSource.indexOf('function setGoogleAuthContext(')
+    );
+    expect(unavailable).toContain('announceGoogleAvailability(false)');
+    expect(googleSource.match(/announceGoogleAvailability\(false\)/g)).toHaveLength(1);
+    expect(googleSource.match(/\bshowGoogleUnavailable\(/g)).toHaveLength(5); // definition + 4 paths
     expect(googleSource).toContain("provider: 'google'");
+  });
+
+  test('a blocked or missing Google button is an inline note, not a page-level error', () => {
+    // accounts.google.com is blocked by plenty of browsers and networks. Email sign-in
+    // still works there, so none of the load-failure paths may raise the red alert.
+    expect(googleSource).not.toContain(
+      "setStatus('Google sign-in configuration could not be loaded"
+    );
+    expect(googleSource).not.toContain("setStatus('Google sign-in could not be loaded");
+    expect(googleSource).not.toContain("setStatus('Google sign-in is unavailable in this browser");
+    expect(googleSource).toContain('showGoogleUnavailable(GOOGLE_BLOCKED_MESSAGE)');
   });
 
   test('Facebook announces unavailable (config failed / not configured) and available', () => {
