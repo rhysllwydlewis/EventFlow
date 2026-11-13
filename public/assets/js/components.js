@@ -422,6 +422,7 @@ function initBackToTop() {
   if (!button) {
     const btn = document.createElement('button');
     btn.className = 'back-to-top';
+    btn.type = 'button';
     btn.innerHTML = '↑';
     btn.setAttribute('aria-label', 'Back to top');
     document.body.appendChild(btn);
@@ -431,25 +432,50 @@ function initBackToTop() {
     });
   }
 
-  // Throttle scroll event for better performance
-  let scrollTimeout;
-  window.addEventListener('scroll', () => {
-    if (scrollTimeout) {
-      return; // Skip if already scheduled
-    }
+  // When to show it. The button used to appear after 500px on every screen,
+  // which on a phone is half a swipe: it then sat over the content for the
+  // rest of the page, next to the chat launcher and above the bottom bar.
+  //
+  //  - It now waits until the visitor is well down the page (a screen and a
+  //    half, never less than the old 500px).
+  //  - On phones it also waits for an upward scroll — the moment someone is
+  //    actually heading back — and steps aside again when they read on.
+  const MOBILE_QUERY = '(max-width: 768px)';
+  const DIRECTION_SLOP = 8; // ignore jitter smaller than this many px
+  let lastY = window.scrollY;
+  let headingUp = false;
 
-    scrollTimeout = setTimeout(() => {
-      const btn = document.querySelector('.back-to-top');
-      if (btn) {
-        if (window.scrollY > 500) {
-          btn.classList.add('visible');
-        } else {
-          btn.classList.remove('visible');
-        }
+  const update = () => {
+    const btn = document.querySelector('.back-to-top');
+    if (!btn) {
+      return;
+    }
+    const y = window.scrollY;
+    if (Math.abs(y - lastY) >= DIRECTION_SLOP) {
+      headingUp = y < lastY;
+      lastY = y;
+    }
+    const farEnough = y > Math.max(500, window.innerHeight * 1.5);
+    const isPhone = window.matchMedia ? window.matchMedia(MOBILE_QUERY).matches : false;
+    btn.classList.toggle('visible', farEnough && (!isPhone || headingUp));
+  };
+
+  // Throttle scroll event for better performance
+  let scrollTimeout = null;
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (scrollTimeout) {
+        return; // Skip if already scheduled
       }
-      scrollTimeout = null;
-    }, 100); // Throttle to every 100ms
-  });
+
+      scrollTimeout = setTimeout(() => {
+        update();
+        scrollTimeout = null;
+      }, 100); // Throttle to every 100ms
+    },
+    { passive: true }
+  );
 }
 
 function loadHomepageManagerAdminScript() {
