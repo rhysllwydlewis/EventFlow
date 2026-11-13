@@ -14,7 +14,7 @@
           if (user) {
             return false;
           } // authenticated but not admin
-        } catch (_) {
+        } catch {
           // try next endpoint
         }
       }
@@ -395,8 +395,8 @@
       const safeCaption = photo.caption ? escapeHtml(photo.caption) : '';
 
       const badgeHtml = autoApprove
-        ? `<span class="photo-queue__badge photo-queue__badge--approved">In library</span>`
-        : `<span class="photo-queue__badge photo-queue__badge--pending">Pending</span>`;
+        ? '<span class="photo-queue__badge photo-queue__badge--approved">In library</span>'
+        : '<span class="photo-queue__badge photo-queue__badge--pending">Pending</span>';
 
       const sizeHtml = photo.size
         ? `<span class="photo-queue__badge">${formatFileSize(photo.size)}</span>`
@@ -551,7 +551,7 @@
         return;
       }
       started = true;
-      return startPhotos();
+      startPhotos();
     },
   };
 })();

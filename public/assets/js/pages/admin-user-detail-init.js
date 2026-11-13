@@ -175,7 +175,7 @@
               user.supplierProfile
                 ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-secondary btn-sm">Supplier Profile →</a>`
                 : user.role === 'supplier'
-                  ? `<button id="provisionProfileBtn" class="btn btn-warning btn-sm" title="Create missing supplier profile for this user">Provision Profile</button>`
+                  ? '<button id="provisionProfileBtn" class="btn btn-warning btn-sm" title="Create missing supplier profile for this user">Provision Profile</button>'
                   : ''
             }
           </div>

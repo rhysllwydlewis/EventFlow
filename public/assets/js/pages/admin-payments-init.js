@@ -103,9 +103,7 @@
       activeSubscriptions: 0,
     };
     const useStripe =
-      stripeAnalytics &&
-      stripeAnalytics.available &&
-      typeof stripeAnalytics.netRevenueLast30Days === 'number';
+      stripeAnalytics?.available && typeof stripeAnalytics.netRevenueLast30Days === 'number';
 
     const setText = (elementId, text) => {
       const element = document.getElementById(elementId);
@@ -192,7 +190,7 @@
           y: {
             beginAtZero: true,
             ticks: {
-              callback: function (value) {
+              callback(value) {
                 return `£${value.toFixed(0)}`;
               },
             },
@@ -243,10 +241,10 @@
     plansChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: labels,
+        labels,
         datasets: [
           {
-            data: data,
+            data,
             backgroundColor: colors,
           },
         ],
@@ -350,7 +348,7 @@
     // Update Stripe status indicator
     const stripeStatusEl = document.getElementById('stripeStatus');
     if (stripeStatusEl) {
-      if (stripeAnalytics && stripeAnalytics.available) {
+      if (stripeAnalytics?.available) {
         stripeStatusEl.textContent = '✓ Connected';
         stripeStatusEl.style.background = '#dcfce7';
         stripeStatusEl.style.color = '#166534';

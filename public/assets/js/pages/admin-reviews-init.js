@@ -24,9 +24,9 @@
     const adminSharedReady = await waitForAdminShared();
     if (!adminSharedReady) {
       console.error('[admin-reviews] AdminShared not available — page cannot initialise');
-      const q = document.getElementById('reviewQueue');
-      if (q) {
-        q.innerHTML =
+      const queueEl = document.getElementById('reviewQueue');
+      if (queueEl) {
+        queueEl.innerHTML =
           '<div class="card card-mt"><p class="text-danger">Admin utilities failed to load. Please reload the page.</p></div>';
       }
       return;
@@ -52,7 +52,7 @@
           if (user) {
             return false;
           }
-        } catch (_) {
+        } catch {
           // try next endpoint
         }
       }
@@ -259,17 +259,16 @@
         const text = review.text || review.comment || '';
         const { supplierId, authorId } = reviewParties(review);
         const createdAt = review.createdAt ? formatDate(review.createdAt) : '—';
-        const moderationState =
-          (review.moderation && review.moderation.state) || review.status || 'pending';
-        const moderationReason = (review.moderation && review.moderation.reason) || '';
+        const moderationState = review.moderation?.state || review.status || 'pending';
+        const moderationReason = review.moderation?.reason || '';
         const flagged = review.flagged ? ' <span class="badge badge-warning">Reported</span>' : '';
         const reportInfo = reviewReportInfo(review);
 
         card.innerHTML =
-          `<div style="display:flex;align-items:flex-start;gap:12px;">` +
+          '<div style="display:flex;align-items:flex-start;gap:12px;">' +
           `<input type="checkbox" class="review-checkbox table-checkbox" data-id="${escapeHtml(id)}" aria-label="Select review ${escapeHtml(id)}">` +
-          `<div style="flex:1;">` +
-          `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">` +
+          '<div style="flex:1;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
           `<span class="rating-stars" aria-label="${escapeHtml(String(rating))} out of 5 stars">${escapeHtml(stars)}</span>${
             title ? `<strong>${escapeHtml(title)}</strong>` : ''
           }${
@@ -286,8 +285,8 @@
               ? `<p class="small" style="color:#566176;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>`
               : ''
           }${reportInfo}<div class="review-action-btns">${reviewActionButtons(review, id)}</div>` +
-          `</div>` +
-          `</div>`;
+          '</div>' +
+          '</div>';
 
         fragment.appendChild(card);
       });
@@ -496,7 +495,7 @@
         return;
       }
       started = true;
-      return startReviews();
+      startReviews();
     },
   };
 })();

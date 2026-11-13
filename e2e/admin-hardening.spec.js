@@ -253,7 +253,10 @@ test.describe('Admin Page Loading - Admin User', () => {
     await expect(navbar).toBeVisible({ timeout: 5000 });
   });
 
-  test('admin-analytics page (with the Payments tab) should load', async ({ page, browserName }) => {
+  test('admin-analytics page (with the Payments tab) should load', async ({
+    page,
+    browserName,
+  }) => {
     // Mock payments list
     await page.route('**/api/admin/payments*', route => {
       route.fulfill({

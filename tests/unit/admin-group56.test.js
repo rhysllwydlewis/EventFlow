@@ -448,7 +448,7 @@ describe('shared admin styling', () => {
   it('Partners row buttons and badges, and the Payments captions, use readable text', () => {
     const partners = read('public/admin-partners.html');
     expect(partners).toContain('.ap-action-btn--view { color: #4338ca; }');
-    expect(partners).toContain('.p-badge--success { color: #047857; }');
+    expect(partners).toContain('.p-badge--success { color: #065f46; }');
     expect(read('public/admin-analytics.html')).toContain('.payments-stats-grid .stat-card h3');
   });
 });

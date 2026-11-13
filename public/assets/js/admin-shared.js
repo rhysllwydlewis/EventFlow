@@ -1478,7 +1478,7 @@ const AdminShared = (function () {
     }
 
     const retryButtonHtml = onRetry
-      ? `<button class="ef-cta btn btn-primary" id="retry-btn" style="margin-top: 12px;">Retry</button>`
+      ? '<button class="ef-cta btn btn-primary" id="retry-btn" style="margin-top: 12px;">Retry</button>'
       : '';
 
     element.innerHTML = `

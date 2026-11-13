@@ -292,7 +292,7 @@
     const overview = document.getElementById('panel-overview');
     if (overview) {
       overview.prepend(section);
-    } else if (header && header.nextSibling) {
+    } else if (header?.nextSibling) {
       main.insertBefore(section, header.nextSibling);
     } else {
       main.prepend(section);
