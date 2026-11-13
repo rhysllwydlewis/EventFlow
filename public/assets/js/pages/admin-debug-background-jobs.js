@@ -232,7 +232,7 @@
 })();
 
 (function loadAdminDebugMobileImprovements() {
-  const version = '18.6.2';
+  const version = '18.7.0';
   const stylesheetPath = `/assets/css/admin-debug-mobile-improvements.css?v=${version}`;
   const scriptPath = `/assets/js/pages/admin-debug-mobile-improvements.js?v=${version}`;
 

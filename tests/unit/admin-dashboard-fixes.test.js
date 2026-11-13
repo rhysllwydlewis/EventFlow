@@ -533,10 +533,14 @@ describe('click-through pass on /admin', () => {
       .map(name => read(`public/${name}`))
       .filter(page => page.includes('admin-navbar.css'));
     expect(pages.length).toBeGreaterThan(20);
-    for (const page of pages) {
-      expect(page).toContain('admin-navbar.css?v=18.4.1');
-    }
-    expect(read('scripts/generate-community-pages.mjs')).toContain('admin-navbar.css?v=18.4.1');
+    // Every page asks for the same version of the stylesheet, and the community generator agrees.
+    const versions = new Set(
+      pages.map(page => (page.match(/admin-navbar\.css\?v=([\d.]+)/) || [])[1])
+    );
+    expect(versions.size).toBe(1);
+    const [version] = [...versions];
+    expect(version).toBeTruthy();
+    expect(read('scripts/generate-community-pages.mjs')).toContain(`admin-navbar.css?v=${version}`);
   });
 
   test('the dashboard keeps its warm background against the admin workspace grey', () => {
