@@ -5,7 +5,7 @@ body.has-admin-navbar.admin main.admin-main,
 body.has-admin-navbar.admin main.admin-main-content { width: 100%; max-width: 1440px; box-sizing: border-box; margin: 0 auto; padding: 24px clamp(16px, 2.5vw, 36px) 56px; }
 body.has-admin-navbar.admin .dashboard-header:not(.email-centre-hero):not(.email-preview-hero) { background: #fff; border: 1px solid #e2e9e9; box-shadow: none; border-radius: 13px; padding: 22px 26px; margin-bottom: 18px; }
 body.has-admin-navbar.admin .dashboard-title { color: #163239; font-size: clamp(23px, 2.5vw, 31px); letter-spacing: -.035em; line-height: 1.2; margin: 0; }
-body.has-admin-navbar.admin .dashboard-subtitle { color: #62777d; font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
+body.has-admin-navbar.admin .dashboard-subtitle { color: #4f6168; font-size: 13px; line-height: 1.5; margin: 6px 0 0; }
 body.has-admin-navbar.admin .section-header { margin: 24px 0 12px; gap: 8px 20px; }
 body.has-admin-navbar.admin .section-title { color: #19343b; font-size: 18px; letter-spacing: -.02em; }
 body.has-admin-navbar.admin .section-description { color: #5f6673; font-size: 12px; }
@@ -137,3 +137,10 @@ body.has-admin-navbar.admin .footer,
 body.has-admin-navbar.admin .footer .small,
 body.has-admin-navbar.admin .footer .version { color: #5f6673; }
 body.has-admin-navbar.admin .footer a { color: #0a7569; }
+
+/* Muted and secondary text: the shared "muted" grey and the small stat labels sat just under 4.5:1
+   on the grey page background. Links inside small print use the darker brand teal. */
+body.has-admin-navbar.admin { --color-text-muted: #5f6673; }
+body.has-admin-navbar.admin .stat-label,
+body.has-admin-navbar.admin .stat-card-mini .stat-label { color: #4b5563; opacity: 1; }
+body.has-admin-navbar.admin :is(.small, .section-description) > a:not([class*="btn"]):not(.ef-cta) { color: #0a7569 !important; }
