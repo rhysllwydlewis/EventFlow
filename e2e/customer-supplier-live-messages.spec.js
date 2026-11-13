@@ -33,26 +33,16 @@ test.describe('Customer and supplier messages arrive live @backend', () => {
       { name: 'eventflow_cookie_consent', value: 'rejected', url: baseURL },
     ]);
     const page = await context.newPage();
-    // The widget only receives a push once its socket has said who it is and the server has put it
-    // on the user's channel (`auth:success`). A message sent before that is missed, and the widget's
-    // fallback poll is a minute away, so wait for the acknowledgement before anything is sent.
-    let socketReady = false;
-    page.on('websocket', socket => {
-      socket.on('framereceived', ({ payload }) => {
-        if (String(payload).includes('"auth:success"')) {
-          socketReady = true;
-        }
-      });
-    });
     await loginAs(page, user);
     await page.goto(path);
     await expect(page.locator(widget)).toBeAttached({ timeout: 20000 });
-    await expect
-      .poll(() => socketReady, {
-        message: `the ${path} socket never confirmed it was signed in`,
-        timeout: 20000,
-      })
-      .toBe(true);
+    // The widget only receives a push once its own socket has said who it is and the server has put
+    // it on the user's channel. A message sent before that is missed, and the widget's fallback poll
+    // is a minute away, so wait for the widget to report that before anything is sent. (The page's
+    // notification socket authenticates separately and says nothing about the widget's.)
+    await expect(page.locator(widget)).toHaveAttribute('data-socket-ready', 'true', {
+      timeout: 20000,
+    });
     return { context, page, widget };
   }
 

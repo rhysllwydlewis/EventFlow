@@ -112,6 +112,22 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   }
   log.authAfterConnect = log.emitted.filter(entry => entry.event === 'auth');
 
+  // The container says its socket is on the user's channel only once the server has confirmed it,
+  // and stops saying so when the connection drops (then confirms again after reconnecting).
+  const container = window.document.querySelector('#w');
+  log.readyBeforeAuth = container.dataset.socketReady || null;
+  if (handlers['auth:success']) {
+    handlers['auth:success']({ userId: 'u1' });
+  }
+  log.readyAfterAuth = container.dataset.socketReady || null;
+  if (handlers.disconnect) {
+    handlers.disconnect();
+  }
+  log.readyAfterDisconnect = container.dataset.socketReady || null;
+  if (handlers['auth:success']) {
+    handlers['auth:success']({ userId: 'u1' });
+  }
+
   // A message arrives for the supplier on their own channel.
   unread = 1;
   const before = log.fetches;

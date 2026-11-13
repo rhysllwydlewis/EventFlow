@@ -491,8 +491,14 @@
             this._socket.emit('auth', { userId });
           }
         });
+        // `data-socket-ready` is true only while this widget's own socket is on the user's channel,
+        // i.e. when a push will reach it. Other sockets on the page (notifications) do not count.
+        this._socket.on('auth:success', () => {
+          this.container.dataset.socketReady = 'true';
+        });
         this._socket.on('disconnect', () => {
           this.wsConnected = false;
+          delete this.container.dataset.socketReady;
         });
       } catch {
         // Socket.IO unavailable – polling below is unaffected
