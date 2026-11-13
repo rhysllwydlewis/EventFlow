@@ -6,8 +6,9 @@
  * The CSS under public/assets is hand-written and heavily commented, about 2.6 MB
  * across 111 files, and a page loads 20-30 of them before it can paint. Minified
  * it is about a third smaller on the wire (Brotli: 530 -> 351 KiB across the
- * site, about 50 KiB less on the homepage), and the saving is mostly comments,
- * which compress poorly.
+ * site, about 50 KiB less on the homepage). About 85% of that is the comments,
+ * which compress poorly (removing only them gives 530 -> 378 KiB); the rest is
+ * whitespace, which also takes 17% off the raw CSS the browser has to parse.
  *
  * This repo has no build step, so the minifying is done on the way out and cached
  * in memory, keyed by the file's mtime and size. There are no generated files to
@@ -41,14 +42,20 @@ const logger = require('../utils/logger');
 
 const MAX_ENTRIES = 400;
 
-// A double- or single-quoted string (with escapes), or whitespace. Strings are
-// matched first so whitespace inside them is never touched.
+// Text whose whitespace must be left exactly as it is: a double- or single-quoted
+// string (with escapes), or a CSS escape. An escape is a backslash followed by up
+// to six hex digits and ONE optional whitespace character that terminates it
+// (`\31 0` is "10"), or by any single character (`\,` is a literal comma, `\ ` a
+// literal space). Collapsing or trimming around either would change what the
+// selector or value means, so they are matched first and passed through untouched.
 const STRING = '"(?:\\\\[\\s\\S]|[^"\\\\])*"|\'(?:\\\\[\\s\\S]|[^\'\\\\])*\'';
-const COLLAPSE = new RegExp(`(${STRING})|\\s+`, 'g');
-const AROUND_COMMA = new RegExp(`(${STRING})|\\s*,\\s*`, 'g');
+const ESCAPE = '\\\\(?:[0-9a-fA-F]{1,6}\\s?|[\\s\\S])';
+const COLLAPSE = new RegExp(`(${STRING}|${ESCAPE})|\\s+`, 'g');
+const AROUND_COMMA = new RegExp(`(${STRING}|${ESCAPE})|\\s*,\\s*`, 'g');
 
 /**
- * Collapse whitespace outside strings to one space, and drop it around commas.
+ * Collapse whitespace outside strings and escapes to one space, and drop it around
+ * commas.
  * @param {string} text Selector, value or at-rule parameters.
  * @returns {string} Tightened text.
  */
@@ -218,21 +225,29 @@ function createCssMinifyMiddleware({ root, enabled } = {}) {
     if (!file) {
       return next();
     }
+
+    let stat = null;
+    let css = null;
     try {
-      const stat = await fs.promises.stat(file);
-      if (!stat.isFile()) {
-        return next();
-      }
-      const css = await load(file, stat);
-      if (css === null) {
-        return next();
-      }
+      stat = await fs.promises.stat(file);
+      css = stat.isFile() ? await load(file, stat) : null;
+    } catch {
+      // Missing file, or a read error (not remembered, so a later request retries):
+      // let express.static answer, which is a 404 or the file as it is.
+      css = null;
+    }
+    if (css === null) {
+      return next();
+    }
+
+    try {
       res.set('Last-Modified', stat.mtime.toUTCString());
       res.type('text/css');
       return res.send(css);
-    } catch {
-      // Missing file, or a read error: let express.static answer (404 or the file).
-      return next();
+    } catch (error) {
+      // Express 4 does not route a rejection from an async handler anywhere, which
+      // would leave the request hanging; hand it to the error handler instead.
+      return next(error);
     }
   };
   middleware.resetCache = () => {

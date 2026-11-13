@@ -128,6 +128,8 @@ describe('minifyCss: what it must NOT change', () => {
     expect(css).toContain('--a:1px   2px');
     expect(css).toContain('--json:{ "a" :  1 }');
     expect(css).toContain('--f:A ,  B');
+    // even a comment inside one: it is part of the value script reads back
+    expect(css).toContain('--c:red /* kept */');
   });
 
   test('keeps at-rule structure: nesting, params, empty-parameter rules', () => {
@@ -179,6 +181,25 @@ describe('minifyCss: when it declines (the file is then served as it is)', () =>
 describe('tighten', () => {
   test('collapses outside strings only, and never touches the inside of one', () => {
     expect(tighten('  a   b ,  "x   ,  y"  ,c ')).toBe('a b,"x   ,  y",c');
+  });
+
+  test('leaves CSS escapes alone: an escaped comma is not a separator, a hex escape owns one space', () => {
+    // `\,` is a literal comma inside the identifier, so the space after it is a
+    // descendant combinator and must survive (".a\,.b" would be a different selector).
+    expect(tighten('.a\\,  .b')).toBe('.a\\, .b');
+    expect(tighten('.a  \\,  .b')).toBe('.a \\, .b');
+    // `\31 ` is "1" terminated by one space; a second space is a real combinator.
+    expect(tighten('.a\\31  .b')).toBe('.a\\31  .b');
+    expect(tighten('.a\\31   .b')).toBe('.a\\31  .b');
+    // an escaped space is a literal space in the identifier
+    expect(tighten('.a\\  b')).toBe('.a\\  b');
+    // an escaped slash (as in utility classes) next to a real comma
+    expect(tighten('.w-1\\/2 , .b')).toBe('.w-1\\/2,.b');
+  });
+
+  test('minifyCss keeps those selectors intact', () => {
+    const css = minified('.a\\,  .b { color : red }\n.w-1\\/2 ,  .c\\31  .d { top : 0 }');
+    expect(css).toBe('.a\\, .b{color:red}.w-1\\/2,.c\\31  .d{top:0}');
   });
 });
 
@@ -436,6 +457,49 @@ describe('createCssMinifyMiddleware', () => {
     expect((await request(build()).get('/assets/css/site.css')).text).toBe(SOURCE);
     delete process.env.EF_MINIFY_CSS;
     expect((await request(build()).get('/assets/css/site.css')).text).toBe('a{color:red;margin:0}');
+  });
+
+  test('a read error falls through to express.static and is not remembered, so a later request retries', async () => {
+    const app = build();
+    readSpy.mockRejectedValueOnce(Object.assign(new Error('EIO'), { code: 'EIO' }));
+    const failed = await request(app).get('/assets/css/site.css');
+    expect(failed.status).toBe(200);
+    expect(failed.text).toBe(SOURCE); // the file as it is on disk
+
+    const retried = await request(app).get('/assets/css/site.css');
+    expect(retried.text).toBe('a{color:red;margin:0}');
+  });
+
+  test('a directory named like a stylesheet is left to express.static', async () => {
+    fs.mkdirSync(path.join(dir, 'assets/css/odd.css'), { recursive: true });
+    const res = await request(build()).get('/assets/css/odd.css');
+    expect(res.status).not.toBe(500);
+    expect(res.text || '').not.toContain('a{');
+    expect(cssReads()).toBe(0);
+  });
+
+  test('a failure while sending goes to the error handler, once, instead of hanging the request', async () => {
+    build();
+    const boom = new Error('boom');
+    const res = {
+      set: jest.fn(),
+      type: jest.fn(),
+      send: jest.fn(() => {
+        throw boom;
+      }),
+    };
+    const next = jest.fn();
+    await server({ method: 'GET', path: '/assets/css/site.css' }, res, next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith(boom);
+  });
+
+  test('calls next exactly once when it declines (missing file)', async () => {
+    build();
+    const next = jest.fn();
+    await server({ method: 'GET', path: '/assets/css/nope.css' }, {}, next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith();
   });
 
   test('resetCache forgets what it has minified', async () => {
