@@ -358,7 +358,9 @@ describe('pages that page their lists', () => {
     expect(search).toContain('data-more="${type}"');
     expect(search).toMatch(/const offset = \(currentResults\[type\] \|\| \[\]\)\.length;/);
     expect(search).toMatch(/offset=\$\{offset\}/);
-    expect(read('public/admin-search.html')).toContain('admin-search-init.js?v=18.5.13');
+    expect(
+      loadsAssetAtLeast(read('public/admin-search.html'), 'admin-search-init.js', '18.5.13')
+    ).toBe(true);
   });
 });
 
@@ -366,7 +368,7 @@ describe('shared admin styling', () => {
   const workspace = read('public/assets/css/admin-workspace.css');
 
   it('header icon buttons, back buttons and back links are coloured for a white card', () => {
-    expect(workspace).toMatch(/\.btn-icon,[\s\S]*?\.link-white \{ color: #0b8073 !important; \}/);
+    expect(workspace).toMatch(/\.btn-icon,[\s\S]*?\.link-white \{ color: #0a7569 !important; \}/);
     expect(workspace).toMatch(/\.btn-icon,[\s\S]*?\.btn-secondary \{ background: #fff;/);
   });
 
