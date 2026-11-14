@@ -174,6 +174,14 @@ the policy above.
 
 ## Session log
 
+### 2026-11-14 — session 44
+
+Branch restarted onto `main` (`1f955906`, #1893 merged; session 43's docs-only log carried over). No open PRs at all. Backlog empty; no code changes this run, nothing to merge. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth` all 200. No decisions needed.
+
+### 2026-11-13 — session 43
+
+Branch caught up with `main` (`697bc12c`, #1884 merged) via a merge, since the branch only carried earlier docs-only handoff commits. Open PRs: #1885 (owner's homepage perf PR), Dependabot #1875 and #1886 — all left for the owner. Backlog empty. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff, nothing to merge.
+
 ### 2026-11-12 — session 42
 
 Branch restarted onto `main` (`c655dd31`, #1879 merged). Only open PRs are the same three Dependabot PRs (production-patches, playwright 1.65.0 x2), left for the owner. Backlog empty. `/api/ready` 200 (mongodb connected, Redis queue and worker healthy); `/`, `/suppliers`, `/marketplace`, `/pricing`, `/faq`, `/auth`, `/community`, `/contact`, `/terms`, `/privacy`, `/guides` all 200. No defect found, no code changed. Docs-only handoff. Note: a force-with-lease push was denied by the permission classifier, so the log was pushed as a normal fast-forward on top of the old branch tip instead.
