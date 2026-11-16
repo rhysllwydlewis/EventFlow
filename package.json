@@ -150,7 +150,7 @@
     "lint-staged": "^15.5.2",
     "mongodb-memory-server": "^11.0.1",
     "playwright": "^1.59.1",
-    "prettier": "3.9.10",
+    "prettier": "3.10.1",
     "socket.io-client": "^4.8.3",
     "stylelint": "^17.14.1",
     "supertest": "^6.3.4",
