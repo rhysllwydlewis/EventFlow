@@ -156,4 +156,48 @@ describe('supplier gallery backend invariants', () => {
 
     expect(catalogCache.invalidate).toHaveBeenCalledTimes(1);
   });
+
+  test('delete removes exactly the targeted photo by its id', async () => {
+    const existingSupplier = {
+      id: 'sup_4',
+      ownerUserId: 'user_4',
+      photosGallery: [
+        { id: 'photo_a', url: '/api/photos/a' },
+        { id: 'photo_b', url: '/api/photos/b' },
+      ],
+    };
+    const { app, dbUnified } = createApp(existingSupplier);
+
+    const res = await request(app).delete('/api/me/suppliers/sup_4/photos/photo_a').expect(200);
+
+    expect(res.body.remainingPhotos).toBe(1);
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup_4' },
+      { $pull: { photosGallery: { id: 'photo_a' } }, $set: { updatedAt: expect.any(String) } }
+    );
+  });
+
+  test('delete of one of several id-less legacy photos sharing a URL writes the edited array', async () => {
+    // $pull by URL would remove every record with that address, so the identity is ambiguous and
+    // the route must keep the other legacy record by writing the edited array back.
+    const existingSupplier = {
+      id: 'sup_5',
+      ownerUserId: 'user_5',
+      photosGallery: [{ url: '/uploads/shared.jpg' }, { url: '/uploads/shared.jpg' }],
+    };
+    const { app, dbUnified } = createApp(existingSupplier);
+
+    const res = await request(app)
+      .delete(`/api/me/suppliers/sup_5/photos/${encodeURIComponent('/uploads/shared.jpg')}`)
+      .expect(200);
+
+    expect(res.body.remainingPhotos).toBe(1);
+    expect(dbUnified.updateOne).toHaveBeenCalledTimes(1);
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup_5' },
+      { $set: { photosGallery: [{ url: '/uploads/shared.jpg' }], updatedAt: expect.any(String) } }
+    );
+  });
 });
