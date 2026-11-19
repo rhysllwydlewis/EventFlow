@@ -44,10 +44,10 @@ describe('scheduled test audit policy', () => {
 
     test('the audit script exits non-zero through the shared policy, not a hard-coded mode', () => {
       const source = fs.readFileSync(AUDIT_SCRIPT, 'utf8');
-      expect(source).toContain('shouldFailRun(mode, counts.fail)');
+      expect(source).toContain('shouldFailRun(mode, summary.counts.fail)');
       // Regression: `full` mode used to be exempt, so the Sunday run reported
       // success with red checks and closed the open failure issue.
-      expect(source).not.toMatch(/mode === 'ci' && counts\.fail/);
+      expect(source).not.toMatch(/mode === 'ci' && (summary\.)?counts\.fail/);
     });
   });
 
