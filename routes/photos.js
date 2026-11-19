@@ -261,6 +261,416 @@ function classifyUploadError(error) {
 }
 
 // ---------- Photo Upload Routes ----------
+//
+// POST /photos/upload (one image, or several for a marketplace listing) and POST
+// /photos/upload/batch share these small steps. Each step either answers the request itself or
+// hands back what the next one needs, so the two route handlers read as the sequence they run.
+// tests/integration/photos-upload-characterization.test.js pins every response, database call,
+// photo pipeline call and log line of both routes.
+
+/** A response to send instead of carrying on. */
+function failure(status, body) {
+  return { failure: { status, body } };
+}
+
+function sendFailure(res, { status, body }) {
+  return res.status(status).json(body);
+}
+
+/** Log the arrival of an upload request (the same fields for single and batch). */
+function logUploadRequest(message, req) {
+  logger.info(message, {
+    type: req.query.type,
+    id: req.query.id,
+    filesCount: req.files?.length || 0,
+    fileNames: req.files?.map(f => f.originalname) || [],
+    userId: req.user?.id,
+    userRole: req.user?.role,
+  });
+}
+
+/**
+ * Check what every upload needs: at least one file, and a type and id in the query.
+ * @returns {{failure: Object}|{type: *, id: *, normalizedId: *}}
+ */
+function readUploadTarget(req, noFilesMessage) {
+  if (!req.files || req.files.length === 0) {
+    return failure(400, { error: noFilesMessage });
+  }
+
+  const { type, id } = req.query;
+  const normalizedId = Array.isArray(id) ? id[0] : id;
+  if (!type || !normalizedId) {
+    return failure(400, { error: 'Missing type or id parameter' });
+  }
+  return { type, id, normalizedId };
+}
+
+function buildPhotoRecord(images, metadata, userId) {
+  return {
+    url: images.optimized,
+    thumbnail: images.thumbnail,
+    large: images.large,
+    original: images.original,
+    approved: true,
+    uploadedAt: new Date().toISOString(),
+    uploadedBy: userId,
+    metadata: metadata,
+  };
+}
+
+/** What to tell the user about one image that could not be processed. */
+function describeProcessingError(error) {
+  if (error.name === 'ValidationError') {
+    return `Invalid image: ${error.message}`;
+  }
+  if (error.message.includes('MongoDB')) {
+    return 'Storage error - image could not be saved';
+  }
+  return error.message;
+}
+
+function logProcessingFailure(message, error, file, context) {
+  logger.error(message, {
+    error: error.message,
+    errorName: error.name,
+    stack: error.stack,
+    filename: file.originalname,
+    fileSize: file.size,
+    mimeType: file.mimetype,
+    ...context,
+  });
+}
+
+/** Log, classify and answer an error thrown anywhere in an upload. */
+function respondWithUploadError(req, res, message, error) {
+  logger.error(message, {
+    error: error.message,
+    stack: error.stack,
+    errorName: error.name,
+    type: req.query.type,
+    id: req.query.id,
+    userId: req.user?.id,
+    fileCount: req.files?.length || 0,
+  });
+
+  const { statusCode, userMessage, errorType } = classifyUploadError(error);
+
+  res.status(statusCode).json({
+    error: userMessage,
+    details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    errorType: errorType,
+  });
+}
+
+function canManageSupplier(supplier, user) {
+  return supplier.ownerUserId === user.id || user.role === 'admin';
+}
+
+/**
+ * Find a supplier the user may upload to and check it has room for `count` more photos.
+ * @returns {Promise<{failure: Object}|{supplier: Object}>}
+ */
+async function loadSupplierWithAllowance(supplierId, user, count) {
+  const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
+  if (!supplier) {
+    return failure(404, { error: 'Supplier not found' });
+  }
+  if (!canManageSupplier(supplier, user)) {
+    return failure(403, { error: 'Not authorized' });
+  }
+
+  const allowance = await checkPhotoAllowance(supplier, count);
+  if (!allowance.allowed) {
+    return failure(403, photoLimitError(allowance.limit, allowance.current));
+  }
+  return { supplier };
+}
+
+/**
+ * Find a package whose supplier the user may upload to.
+ * @returns {Promise<{failure: Object}|{pkg: Object}>}
+ */
+async function loadPackageForOwner(packageId, user) {
+  const pkg = await dbUnified.findOne('packages', { id: packageId });
+  if (!pkg) {
+    return failure(404, { error: 'Package not found' });
+  }
+
+  const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
+  if (!supplier || !canManageSupplier(supplier, user)) {
+    return failure(403, { error: 'Not authorized' });
+  }
+  return { pkg };
+}
+
+async function photoAutoApproveEnabled() {
+  const flags = await getFeatureFlags();
+  return flags.photoAutoApprove !== false;
+}
+
+/** A photo waiting for a moderator, as stored in the `photos` collection. */
+function toPendingRecord(photoRecord, supplier) {
+  return {
+    ...photoRecord,
+    id: `photo_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
+    status: 'pending',
+    approved: false,
+    supplierId: supplier.id,
+    supplierName: supplier.name,
+  };
+}
+
+/** Add photos to a package's gallery, and make the first the cover if it has no real image. */
+async function appendToPackageGallery(pkg, photos) {
+  if (!pkg.gallery) {
+    pkg.gallery = [];
+  }
+  pkg.gallery.push(...photos);
+
+  const updateFields = { gallery: pkg.gallery };
+  if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE) {
+    updateFields.image = photos[0].url;
+  }
+  await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
+
+  suppliersRouter.invalidatePackageCaches();
+}
+
+/** Save a listing's images, capped at 5 in total. */
+async function saveMarketplaceImages(listing, existingImages, uploadedUrls) {
+  listing.images = existingImages.concat(uploadedUrls).slice(0, 5);
+  listing.updatedAt = new Date().toISOString();
+
+  await dbUnified.updateOne(
+    'marketplace_listings',
+    { id: listing.id },
+    { $set: { images: listing.images, updatedAt: listing.updatedAt } }
+  );
+}
+
+// ----- Single upload: POST /photos/upload -----
+
+/** Why one file of a marketplace upload cannot be processed, or null if it can. */
+function marketplaceFileProblem(file, listingId, userId) {
+  if (!file.buffer || file.buffer.length === 0) {
+    logger.error('Empty file buffer received', {
+      filename: file.originalname,
+      listingId,
+      userId,
+    });
+    return {
+      filename: file.originalname || 'unknown',
+      error: 'Empty file - please try re-uploading this image',
+    };
+  }
+
+  // Validate file.originalname to prevent indexOf errors
+  if (!file.originalname || typeof file.originalname !== 'string') {
+    logger.error('Invalid file.originalname received', {
+      originalname: file.originalname,
+      type: typeof file.originalname,
+      listingId,
+      userId,
+    });
+    return {
+      filename: 'unknown',
+      error: 'Invalid file name - please try re-uploading this image',
+    };
+  }
+  return null;
+}
+
+/** Process every file for a listing; order is the existing image count plus those done so far. */
+async function processMarketplaceFiles(req, listingId, existingCount) {
+  const uploadedUrls = [];
+  const errors = [];
+
+  for (const file of req.files) {
+    const problem = marketplaceFileProblem(file, listingId, req.user.id);
+    if (problem) {
+      errors.push(problem);
+      continue;
+    }
+
+    try {
+      const images = await photoUpload.processAndSaveMarketplaceImage(
+        file.buffer,
+        file.originalname,
+        listingId,
+        req.user.id,
+        existingCount + uploadedUrls.length
+      );
+      uploadedUrls.push(images.optimized);
+    } catch (error) {
+      logProcessingFailure('Marketplace photo processing failed', error, file, {
+        listingId,
+        userId: req.user.id,
+      });
+      errors.push({ filename: file.originalname, error: describeProcessingError(error) });
+    }
+  }
+  return { uploadedUrls, errors };
+}
+
+function marketplaceUploadMessage(uploaded, failed) {
+  if (uploaded === 0) {
+    return 'No images were uploaded.';
+  }
+  return `${uploaded} image(s) uploaded successfully${failed > 0 ? `, ${failed} failed` : ''}.`;
+}
+
+/** Several images for a marketplace listing. */
+async function uploadMarketplaceImages(req, res, { normalizedId }) {
+  const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
+
+  if (!listing) {
+    return res.status(404).json({
+      error: 'Listing not found',
+      errorType: 'NotFoundError',
+      details: `No listing found with ID: ${normalizedId}`,
+    });
+  }
+
+  if (!isMarketplaceOwner(listing, req.user)) {
+    return res.status(403).json({
+      error: 'Not authorized',
+      errorType: 'AuthorizationError',
+      details: 'You do not have permission to upload photos to this listing',
+    });
+  }
+
+  const existingImages = normalizeMarketplaceImageUrls(listing.images);
+  const { uploadedUrls, errors } = await processMarketplaceFiles(
+    req,
+    normalizedId,
+    existingImages.length
+  );
+
+  if (uploadedUrls.length === 0 && errors.length > 0) {
+    logger.error('All marketplace photos failed to upload', {
+      listingId: normalizedId,
+      userId: req.user.id,
+      errorCount: errors.length,
+      errors: errors,
+    });
+
+    return res.status(500).json({
+      success: false,
+      error: 'All photo uploads failed',
+      errorType: 'UploadError',
+      details: errors,
+      uploaded: 0,
+    });
+  }
+
+  await saveMarketplaceImages(listing, existingImages, uploadedUrls);
+
+  logger.info('Marketplace images uploaded', {
+    listingId: normalizedId,
+    userId: req.user.id,
+    count: uploadedUrls.length,
+    errors: errors.length,
+  });
+
+  return res.json({
+    success: true,
+    urls: uploadedUrls,
+    errors: errors.length > 0 ? errors : undefined,
+    message: marketplaceUploadMessage(uploadedUrls.length, errors.length),
+  });
+}
+
+async function uploadSingleSupplierPhoto(res, { id }, user, photoRecord) {
+  const loaded = await loadSupplierWithAllowance(id, user, 1);
+  if (loaded.failure) {
+    return sendFailure(res, loaded.failure);
+  }
+  const { supplier } = loaded;
+
+  if (await photoAutoApproveEnabled()) {
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: supplier.id },
+      galleryAppendUpdate(supplier, photoRecord)
+    );
+
+    return res.json({
+      success: true,
+      photo: photoRecord,
+      message: 'Photo uploaded successfully.',
+    });
+  }
+
+  // Auto-approve OFF: store as pending for moderation
+  const pendingRecord = toPendingRecord(photoRecord, supplier);
+  const photoInserted = await dbUnified.insertOne('photos', pendingRecord);
+  if (!photoInserted) {
+    logger.error('[PHOTOS] insertOne failed for pending record', {
+      photoId: pendingRecord.id,
+    });
+    return res.status(500).json({ error: 'Failed to save photo record. Please try again.' });
+  }
+
+  return res.json({
+    success: true,
+    photo: pendingRecord,
+    pending: true,
+    message: 'Photo uploaded and is awaiting moderation approval.',
+  });
+}
+
+async function uploadSinglePackagePhoto(res, { id }, user, photoRecord) {
+  const loaded = await loadPackageForOwner(id, user);
+  if (loaded.failure) {
+    return sendFailure(res, loaded.failure);
+  }
+
+  await appendToPackageGallery(loaded.pkg, [photoRecord]);
+
+  return res.json({
+    success: true,
+    photo: photoRecord,
+    message: 'Photo uploaded successfully.',
+  });
+}
+
+/** One image for a supplier or a package. */
+async function uploadSingleImage(req, res, target) {
+  const file = req.files[0];
+
+  const images = await photoUpload.processAndSaveImage(file.buffer, file.originalname, target.type);
+  const metadata = await photoUpload.getImageMetadata(file.buffer);
+  const photoRecord = buildPhotoRecord(images, metadata, req.user.id);
+
+  if (target.type === 'supplier') {
+    return uploadSingleSupplierPhoto(res, target, req.user, photoRecord);
+  }
+  if (target.type === 'package') {
+    return uploadSinglePackagePhoto(res, target, req.user, photoRecord);
+  }
+  return res
+    .status(400)
+    .json({ error: 'Invalid type. Must be supplier, package, or marketplace.' });
+}
+
+async function handleSingleUpload(req, res) {
+  logUploadRequest('Photo upload request received', req);
+
+  try {
+    const target = readUploadTarget(req, 'No file uploaded');
+    if (target.failure) {
+      return sendFailure(res, target.failure);
+    }
+
+    if (target.type === 'marketplace') {
+      return await uploadMarketplaceImages(req, res, target);
+    }
+    return await uploadSingleImage(req, res, target);
+  } catch (error) {
+    return respondWithUploadError(req, res, 'Photo upload error', error);
+  }
+}
 
 /**
  * Upload photos for supplier, package, or marketplace listing
@@ -276,313 +686,300 @@ router.post(
     { name: 'photos', maxCount: 5 },
   ]), // Accept both multipart field names used across clients
   applyCsrfProtection,
-  async (req, res) => {
-    // Add diagnostic logging
-    logger.info('Photo upload request received', {
-      type: req.query.type,
-      id: req.query.id,
-      filesCount: req.files?.length || 0,
-      fileNames: req.files?.map(f => f.originalname) || [],
-      userId: req.user?.id,
-      userRole: req.user?.role,
-    });
+  handleSingleUpload
+);
 
-    try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ error: 'No file uploaded' });
-      }
+// ----- Batch upload: POST /photos/upload/batch -----
 
-      const { type, id } = req.query;
-      const normalizedId = Array.isArray(id) ? id[0] : id;
-      if (!type || !normalizedId) {
-        return res.status(400).json({ error: 'Missing type or id parameter' });
-      }
+function logBatchFile(file, listingId, userId) {
+  logger.info('Processing file in batch upload', {
+    hasFile: !!file,
+    hasOriginalname: !!file?.originalname,
+    originalnameType: typeof file?.originalname,
+    originalnameValue: file?.originalname,
+    hasBuffer: !!file?.buffer,
+    bufferLength: file?.buffer?.length,
+    mimetype: file?.mimetype,
+    size: file?.size,
+    listingId,
+    userId,
+  });
+}
 
-      // Handle marketplace type with multiple files
-      if (type === 'marketplace') {
-        const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
+function notABufferProblem(file, { listingId, userId }) {
+  if (file.buffer && Buffer.isBuffer(file.buffer)) {
+    return null;
+  }
+  logger.error('Invalid file buffer received', {
+    filename: file.originalname || 'unknown',
+    hasBuffer: !!file.buffer,
+    isBuffer: file.buffer ? Buffer.isBuffer(file.buffer) : false,
+    listingId,
+    userId,
+  });
+  return {
+    filename: file.originalname || 'unknown',
+    error: 'Invalid file data - please try re-uploading this image',
+  };
+}
 
-        if (!listing) {
-          return res.status(404).json({
-            error: 'Listing not found',
-            errorType: 'NotFoundError',
-            details: `No listing found with ID: ${normalizedId}`,
-          });
-        }
+function emptyBufferProblem(file, { listingId, userId }) {
+  if (file.buffer.length !== 0) {
+    return null;
+  }
+  logger.error('Empty file buffer received', {
+    filename: file.originalname,
+    listingId,
+    userId,
+  });
+  return {
+    filename: file.originalname || 'unknown',
+    error: 'Empty file - please try re-uploading this image',
+  };
+}
 
-        // Verify ownership
-        if (!isMarketplaceOwner(listing, req.user)) {
-          return res.status(403).json({
-            error: 'Not authorized',
-            errorType: 'AuthorizationError',
-            details: 'You do not have permission to upload photos to this listing',
-          });
-        }
+// Validate file.originalname to prevent indexOf errors
+function badFileNameProblem(file, { listingId, userId }) {
+  if (file.originalname && typeof file.originalname === 'string') {
+    return null;
+  }
+  logger.error('Invalid file.originalname received', {
+    originalname: file.originalname,
+    type: typeof file.originalname,
+    listingId,
+    userId,
+    fileKeys: file ? Object.keys(file) : [],
+    mimetype: file?.mimetype,
+    size: file?.size,
+  });
+  return {
+    filename: 'unknown',
+    error: 'Invalid file name - the file may be corrupted. Please try selecting it again.',
+  };
+}
 
-        // Get existing images for order tracking
-        const existingImages = normalizeMarketplaceImageUrls(listing.images);
+// Checked in this order; the first problem found is the one reported.
+const BATCH_FILE_CHECKS = [notABufferProblem, emptyBufferProblem, badFileNameProblem];
 
-        // Process and append URLs with enhanced error handling
-        const uploadedUrls = [];
-        const errors = [];
-        for (let i = 0; i < req.files.length; i++) {
-          const file = req.files[i];
-          // Validate file buffer exists
-          if (!file.buffer || file.buffer.length === 0) {
-            logger.error('Empty file buffer received', {
-              filename: file.originalname,
-              listingId: normalizedId,
-              userId: req.user.id,
-            });
-            errors.push({
-              filename: file.originalname || 'unknown',
-              error: 'Empty file - please try re-uploading this image',
-            });
-            continue;
-          }
-
-          // Validate file.originalname to prevent indexOf errors
-          if (!file.originalname || typeof file.originalname !== 'string') {
-            logger.error('Invalid file.originalname received', {
-              originalname: file.originalname,
-              type: typeof file.originalname,
-              listingId: normalizedId,
-              userId: req.user.id,
-            });
-            errors.push({
-              filename: 'unknown',
-              error: 'Invalid file name - please try re-uploading this image',
-            });
-            continue;
-          }
-
-          try {
-            // Use dedicated marketplace image processing
-            // Order is calculated as: existing image count + already uploaded images
-            const images = await photoUpload.processAndSaveMarketplaceImage(
-              file.buffer,
-              file.originalname,
-              normalizedId,
-              req.user.id,
-              existingImages.length + uploadedUrls.length // order
-            );
-            uploadedUrls.push(images.optimized);
-          } catch (error) {
-            logger.error('Marketplace photo processing failed', {
-              error: error.message,
-              errorName: error.name,
-              stack: error.stack,
-              filename: file.originalname,
-              fileSize: file.size,
-              mimeType: file.mimetype,
-              listingId: normalizedId,
-              userId: req.user.id,
-            });
-
-            // Provide user-friendly error messages
-            let userMessage = error.message;
-            if (error.name === 'ValidationError') {
-              userMessage = `Invalid image: ${error.message}`;
-            } else if (error.message.includes('MongoDB')) {
-              userMessage = 'Storage error - image could not be saved';
-            }
-
-            errors.push({
-              filename: file.originalname,
-              error: userMessage,
-            });
-          }
-        }
-
-        // Check if all uploads failed
-        if (uploadedUrls.length === 0 && errors.length > 0) {
-          logger.error('All marketplace photos failed to upload', {
-            listingId: normalizedId,
-            userId: req.user.id,
-            errorCount: errors.length,
-            errors: errors,
-          });
-
-          return res.status(500).json({
-            success: false,
-            error: 'All photo uploads failed',
-            errorType: 'UploadError',
-            details: errors,
-            uploaded: 0,
-          });
-        }
-
-        // Cap at 5 images total (existingImages already defined earlier)
-        listing.images = existingImages.concat(uploadedUrls).slice(0, 5);
-        listing.updatedAt = new Date().toISOString();
-
-        await dbUnified.updateOne(
-          'marketplace_listings',
-          { id: listing.id },
-          { $set: { images: listing.images, updatedAt: listing.updatedAt } }
-        );
-
-        logger.info('Marketplace images uploaded', {
-          listingId: normalizedId,
-          userId: req.user.id,
-          count: uploadedUrls.length,
-          errors: errors.length,
-        });
-
-        return res.json({
-          success: true,
-          urls: uploadedUrls,
-          errors: errors.length > 0 ? errors : undefined,
-          message:
-            uploadedUrls.length > 0
-              ? `${uploadedUrls.length} image(s) uploaded successfully${errors.length > 0 ? `, ${errors.length} failed` : ''}.`
-              : 'No images were uploaded.',
-        });
-      }
-
-      // Handle single file for supplier/package types
-      const file = req.files[0];
-
-      // Process and save image
-      const images = await photoUpload.processAndSaveImage(file.buffer, file.originalname, type);
-
-      // Get metadata
-      const metadata = await photoUpload.getImageMetadata(file.buffer);
-
-      // Create photo record
-      const photoRecord = {
-        url: images.optimized,
-        thumbnail: images.thumbnail,
-        large: images.large,
-        original: images.original,
-        approved: true,
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: req.user.id,
-        metadata: metadata,
-      };
-
-      // Update supplier or package with new photo
-      if (type === 'supplier') {
-        const supplier = await dbUnified.findOne('suppliers', { id });
-
-        if (!supplier) {
-          return res.status(404).json({ error: 'Supplier not found' });
-        }
-
-        // Check if user owns this supplier
-        if (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin') {
-          return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        const allowance = await checkPhotoAllowance(supplier, 1);
-        if (!allowance.allowed) {
-          return res.status(403).json(photoLimitError(allowance.limit, allowance.current));
-        }
-
-        // Check photo auto-approve feature flag
-        const flags = await getFeatureFlags();
-        if (flags.photoAutoApprove !== false) {
-          // Auto-approve ON: add directly to gallery
-          await dbUnified.updateOne(
-            'suppliers',
-            { id: supplier.id },
-            galleryAppendUpdate(supplier, photoRecord)
-          );
-
-          return res.json({
-            success: true,
-            photo: photoRecord,
-            message: 'Photo uploaded successfully.',
-          });
-        } else {
-          // Auto-approve OFF: store as pending for moderation
-          const pendingRecord = {
-            ...photoRecord,
-            id: `photo_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
-            status: 'pending',
-            approved: false,
-            supplierId: supplier.id,
-            supplierName: supplier.name,
-          };
-
-          const photoInserted = await dbUnified.insertOne('photos', pendingRecord);
-          if (!photoInserted) {
-            logger.error('[PHOTOS] insertOne failed for pending record', {
-              photoId: pendingRecord.id,
-            });
-            return res
-              .status(500)
-              .json({ error: 'Failed to save photo record. Please try again.' });
-          }
-
-          return res.json({
-            success: true,
-            photo: pendingRecord,
-            pending: true,
-            message: 'Photo uploaded and is awaiting moderation approval.',
-          });
-        }
-      } else if (type === 'package') {
-        const pkg = await dbUnified.findOne('packages', { id });
-
-        if (!pkg) {
-          return res.status(404).json({ error: 'Package not found' });
-        }
-
-        // Check if user owns this package's supplier
-        const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
-
-        if (!supplier || (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin')) {
-          return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        // Add to gallery
-        if (!pkg.gallery) {
-          pkg.gallery = [];
-        }
-        pkg.gallery.push(photoRecord);
-
-        const updateFields = { gallery: pkg.gallery };
-        if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '') {
-          updateFields.image = photoRecord.url;
-        }
-        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
-
-        suppliersRouter.invalidatePackageCaches();
-
-        return res.json({
-          success: true,
-          photo: photoRecord,
-          message: 'Photo uploaded successfully.',
-        });
-      } else {
-        return res
-          .status(400)
-          .json({ error: 'Invalid type. Must be supplier, package, or marketplace.' });
-      }
-    } catch (error) {
-      // Enhanced error logging for single uploads
-      logger.error('Photo upload error', {
-        error: error.message,
-        stack: error.stack,
-        errorName: error.name,
-        type: req.query.type,
-        id: req.query.id,
-        userId: req.user?.id,
-        fileCount: req.files?.length || 0,
-      });
-
-      // Use helper function to classify error and get appropriate response
-      const { statusCode, userMessage, errorType } = classifyUploadError(error);
-
-      res.status(statusCode).json({
-        error: userMessage,
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        errorType: errorType,
-      });
+/** Why one file of a batch cannot be processed, or null if it can. */
+function batchFileProblem(file, context) {
+  for (const check of BATCH_FILE_CHECKS) {
+    const problem = check(file, context);
+    if (problem) {
+      return problem;
     }
   }
-);
+  return null;
+}
+
+async function processBatchFile(file, { type, normalizedId }, userId, order) {
+  // Marketplace images go through their own processing, with a position in the listing
+  const images =
+    type === 'marketplace'
+      ? await photoUpload.processAndSaveMarketplaceImage(
+          file.buffer,
+          file.originalname,
+          normalizedId,
+          userId,
+          order
+        )
+      : await photoUpload.processAndSaveImage(file.buffer, file.originalname, type);
+  const metadata = await photoUpload.getImageMetadata(file.buffer);
+
+  return buildPhotoRecord(images, metadata, userId);
+}
+
+/** Process every file, collecting the photo records that worked and an entry for each that did not. */
+async function processBatchFiles(req, target, existingImagesCount) {
+  const { type, normalizedId } = target;
+  const uploadedPhotos = [];
+  const errors = [];
+
+  for (const file of req.files) {
+    logBatchFile(file, normalizedId, req.user?.id);
+
+    const problem = batchFileProblem(file, { listingId: normalizedId, userId: req.user.id });
+    if (problem) {
+      errors.push(problem);
+      continue;
+    }
+
+    try {
+      const order = existingImagesCount + uploadedPhotos.length;
+      uploadedPhotos.push(await processBatchFile(file, target, req.user.id, order));
+    } catch (error) {
+      logProcessingFailure('Batch photo processing failed', error, file, {
+        type: type,
+        id: normalizedId,
+        userId: req.user.id,
+      });
+      errors.push({ filename: file.originalname, error: describeProcessingError(error) });
+    }
+  }
+  return { uploadedPhotos, errors };
+}
+
+async function countExistingMarketplaceImages(target) {
+  if (target.type !== 'marketplace') {
+    return 0;
+  }
+  const listing = await dbUnified.findOne('marketplace_listings', { id: target.normalizedId });
+  return listing ? normalizeMarketplaceImageUrls(listing.images).length : 0;
+}
+
+/** Each finisher saves the photos for its type; it returns true if it already answered. */
+async function finishMarketplaceBatch(req, res, { normalizedId }, uploadedPhotos, errors) {
+  const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
+
+  if (!listing) {
+    res.status(404).json({ error: 'Listing not found' });
+    return true;
+  }
+
+  if (!isMarketplaceOwner(listing, req.user)) {
+    res.status(403).json({ error: 'Not authorized' });
+    return true;
+  }
+
+  const uploadedUrls = uploadedPhotos.map(p => p.url);
+
+  if (uploadedUrls.length === 0 && errors.length > 0) {
+    logger.error('All marketplace photos failed to upload (batch)', {
+      listingId: normalizedId,
+      userId: req.user.id,
+      errorCount: errors.length,
+      errors: errors,
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'All photo uploads failed',
+      details: errors,
+      uploaded: 0,
+    });
+    return true;
+  }
+
+  await saveMarketplaceImages(listing, normalizeMarketplaceImageUrls(listing.images), uploadedUrls);
+
+  logger.info('Marketplace images uploaded (batch)', {
+    listingId: normalizedId,
+    userId: req.user.id,
+    count: uploadedUrls.length,
+  });
+
+  res.json({
+    success: true,
+    uploaded: uploadedUrls.length,
+    urls: uploadedUrls,
+    errors: errors,
+    message: `${uploadedUrls.length} photo(s) uploaded successfully to marketplace listing.`,
+  });
+  return true;
+}
+
+/** Store every photo as a pending record; answers with those that were saved. */
+async function savePendingSupplierPhotos(res, supplier, uploadedPhotos, errors) {
+  const pendingRecords = uploadedPhotos.map(p => toPendingRecord(p, supplier));
+
+  const insertResults = await Promise.all(
+    pendingRecords.map(r => dbUnified.insertOne('photos', r))
+  );
+  const failedInserts = insertResults.filter(r => !r).length;
+  if (failedInserts > 0) {
+    logger.error('[PHOTOS] bulk insertOne: some records failed', {
+      total: pendingRecords.length,
+      failed: failedInserts,
+    });
+  }
+  const savedPhotos = pendingRecords.filter((_, i) => insertResults[i]);
+
+  res.json({
+    success: true,
+    uploaded: savedPhotos.length,
+    photos: savedPhotos,
+    pending: true,
+    errors: errors,
+    message: `${savedPhotos.length} photo(s) uploaded and awaiting moderation approval.`,
+  });
+}
+
+async function finishSupplierBatch(req, res, { normalizedId }, uploadedPhotos, errors) {
+  const loaded = await loadSupplierWithAllowance(normalizedId, req.user, uploadedPhotos.length);
+  if (loaded.failure) {
+    sendFailure(res, loaded.failure);
+    return true;
+  }
+  const { supplier } = loaded;
+
+  if (!(await photoAutoApproveEnabled())) {
+    await savePendingSupplierPhotos(res, supplier, uploadedPhotos, errors);
+    return true;
+  }
+
+  // Auto-approve ON: add directly to gallery
+  await dbUnified.updateOne(
+    'suppliers',
+    { id: supplier.id },
+    galleryAppendUpdate(supplier, uploadedPhotos)
+  );
+  return false;
+}
+
+async function finishPackageBatch(req, res, { normalizedId }, uploadedPhotos) {
+  const loaded = await loadPackageForOwner(normalizedId, req.user);
+  if (loaded.failure) {
+    sendFailure(res, loaded.failure);
+    return true;
+  }
+
+  await appendToPackageGallery(loaded.pkg, uploadedPhotos);
+  return false;
+}
+
+function finishBatchUpload(req, res, target, uploadedPhotos, errors) {
+  switch (target.type) {
+    case 'marketplace':
+      return finishMarketplaceBatch(req, res, target, uploadedPhotos, errors);
+    case 'supplier':
+      return finishSupplierBatch(req, res, target, uploadedPhotos, errors);
+    case 'package':
+      return finishPackageBatch(req, res, target, uploadedPhotos);
+    default:
+      res.status(400).json({ error: 'Invalid type' });
+      return true;
+  }
+}
+
+async function handleBatchUpload(req, res) {
+  logUploadRequest('Batch photo upload request received', req);
+
+  try {
+    const target = readUploadTarget(req, 'No files uploaded');
+    if (target.failure) {
+      return sendFailure(res, target.failure);
+    }
+
+    // Images are processed before the target is looked up or checked
+    const existingImagesCount = await countExistingMarketplaceImages(target);
+    const { uploadedPhotos, errors } = await processBatchFiles(req, target, existingImagesCount);
+
+    const answered = await finishBatchUpload(req, res, target, uploadedPhotos, errors);
+    if (answered) {
+      return undefined;
+    }
+
+    return res.json({
+      success: true,
+      uploaded: uploadedPhotos.length,
+      photos: uploadedPhotos,
+      errors: errors,
+      message: `${uploadedPhotos.length} photo(s) uploaded successfully.`,
+    });
+  } catch (error) {
+    return respondWithUploadError(req, res, 'Batch upload error', error);
+  }
+}
 
 /**
  * Upload multiple photos (batch upload)
@@ -601,330 +998,7 @@ router.post(
     { name: 'files', maxCount: 10 },
   ]),
   applyCsrfProtection,
-  async (req, res) => {
-    // Add diagnostic logging
-    logger.info('Batch photo upload request received', {
-      type: req.query.type,
-      id: req.query.id,
-      filesCount: req.files?.length || 0,
-      fileNames: req.files?.map(f => f.originalname) || [],
-      userId: req.user?.id,
-      userRole: req.user?.role,
-    });
-
-    try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ error: 'No files uploaded' });
-      }
-
-      const { type, id } = req.query;
-      const normalizedId = Array.isArray(id) ? id[0] : id;
-      if (!type || !normalizedId) {
-        return res.status(400).json({ error: 'Missing type or id parameter' });
-      }
-
-      // Process all images
-      const uploadedPhotos = [];
-      const errors = [];
-
-      // Get existing images count for marketplace listings (for order calculation)
-      let existingImagesCount = 0;
-      if (type === 'marketplace') {
-        const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
-        if (listing) {
-          existingImagesCount = normalizeMarketplaceImageUrls(listing.images).length;
-        }
-      }
-
-      for (let i = 0; i < req.files.length; i++) {
-        const file = req.files[i];
-
-        // **NEW: Enhanced diagnostic logging BEFORE validation**
-        logger.info('Processing file in batch upload', {
-          hasFile: !!file,
-          hasOriginalname: !!file?.originalname,
-          originalnameType: typeof file?.originalname,
-          originalnameValue: file?.originalname,
-          hasBuffer: !!file?.buffer,
-          bufferLength: file?.buffer?.length,
-          mimetype: file?.mimetype,
-          size: file?.size,
-          listingId: normalizedId,
-          userId: req.user?.id,
-        });
-
-        // Validate buffer
-        if (!file.buffer || !Buffer.isBuffer(file.buffer)) {
-          logger.error('Invalid file buffer received', {
-            filename: file.originalname || 'unknown',
-            hasBuffer: !!file.buffer,
-            isBuffer: file.buffer ? Buffer.isBuffer(file.buffer) : false,
-            listingId: normalizedId,
-            userId: req.user.id,
-          });
-          errors.push({
-            filename: file.originalname || 'unknown',
-            error: 'Invalid file data - please try re-uploading this image',
-          });
-          continue;
-        }
-
-        if (file.buffer.length === 0) {
-          logger.error('Empty file buffer received', {
-            filename: file.originalname,
-            listingId: normalizedId,
-            userId: req.user.id,
-          });
-          errors.push({
-            filename: file.originalname || 'unknown',
-            error: 'Empty file - please try re-uploading this image',
-          });
-          continue;
-        }
-
-        // Validate file.originalname to prevent indexOf errors
-        if (!file.originalname || typeof file.originalname !== 'string') {
-          logger.error('Invalid file.originalname received', {
-            originalname: file.originalname,
-            type: typeof file.originalname,
-            listingId: normalizedId,
-            userId: req.user.id,
-            // **NEW: Log the entire file object structure for debugging**
-            fileKeys: file ? Object.keys(file) : [],
-            mimetype: file?.mimetype,
-            size: file?.size,
-          });
-          errors.push({
-            filename: 'unknown',
-            error: 'Invalid file name - the file may be corrupted. Please try selecting it again.',
-          });
-          continue;
-        }
-
-        try {
-          let images;
-          // Use marketplace-specific processing for marketplace type
-          if (type === 'marketplace') {
-            images = await photoUpload.processAndSaveMarketplaceImage(
-              file.buffer,
-              file.originalname,
-              normalizedId,
-              req.user.id,
-              existingImagesCount + uploadedPhotos.length // order
-            );
-          } else {
-            images = await photoUpload.processAndSaveImage(file.buffer, file.originalname, type);
-          }
-          const metadata = await photoUpload.getImageMetadata(file.buffer);
-
-          const photoRecord = {
-            url: images.optimized,
-            thumbnail: images.thumbnail,
-            large: images.large,
-            original: images.original,
-            approved: true,
-            uploadedAt: new Date().toISOString(),
-            uploadedBy: req.user.id,
-            metadata: metadata,
-          };
-
-          uploadedPhotos.push(photoRecord);
-        } catch (error) {
-          logger.error('Batch photo processing failed', {
-            error: error.message,
-            errorName: error.name,
-            stack: error.stack,
-            filename: file.originalname,
-            fileSize: file.size,
-            mimeType: file.mimetype,
-            type: type,
-            id: normalizedId,
-            userId: req.user.id,
-          });
-
-          // Provide user-friendly error messages
-          let userMessage = error.message;
-          if (error.name === 'ValidationError') {
-            userMessage = `Invalid image: ${error.message}`;
-          } else if (error.message.includes('MongoDB')) {
-            userMessage = 'Storage error - image could not be saved';
-          }
-
-          errors.push({ filename: file.originalname, error: userMessage });
-        }
-      }
-
-      // Update supplier, package, or marketplace listing with new photos
-      if (type === 'marketplace') {
-        const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
-
-        if (!listing) {
-          return res.status(404).json({ error: 'Listing not found' });
-        }
-
-        // Verify ownership
-        if (!isMarketplaceOwner(listing, req.user)) {
-          return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        // Process and append URLs (cap at 5 images total)
-        const uploadedUrls = uploadedPhotos.map(p => p.url);
-
-        // Check if all uploads failed
-        if (uploadedUrls.length === 0 && errors.length > 0) {
-          logger.error('All marketplace photos failed to upload (batch)', {
-            listingId: normalizedId,
-            userId: req.user.id,
-            errorCount: errors.length,
-            errors: errors,
-          });
-
-          return res.status(500).json({
-            success: false,
-            error: 'All photo uploads failed',
-            details: errors,
-            uploaded: 0,
-          });
-        }
-
-        const existingImages = normalizeMarketplaceImageUrls(listing.images);
-        listing.images = existingImages.concat(uploadedUrls).slice(0, 5);
-        listing.updatedAt = new Date().toISOString();
-
-        await dbUnified.updateOne(
-          'marketplace_listings',
-          { id: listing.id },
-          { $set: { images: listing.images, updatedAt: listing.updatedAt } }
-        );
-
-        logger.info('Marketplace images uploaded (batch)', {
-          listingId: normalizedId,
-          userId: req.user.id,
-          count: uploadedUrls.length,
-        });
-
-        return res.json({
-          success: true,
-          uploaded: uploadedUrls.length,
-          urls: uploadedUrls,
-          errors: errors,
-          message: `${uploadedUrls.length} photo(s) uploaded successfully to marketplace listing.`,
-        });
-      } else if (type === 'supplier') {
-        const supplier = await dbUnified.findOne('suppliers', { id: normalizedId });
-
-        if (!supplier) {
-          return res.status(404).json({ error: 'Supplier not found' });
-        }
-
-        if (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin') {
-          return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        const allowance = await checkPhotoAllowance(supplier, uploadedPhotos.length);
-        if (!allowance.allowed) {
-          return res.status(403).json(photoLimitError(allowance.limit, allowance.current));
-        }
-
-        // Check photo auto-approve feature flag
-        const flags = await getFeatureFlags();
-        if (flags.photoAutoApprove !== false) {
-          // Auto-approve ON: add directly to gallery
-          await dbUnified.updateOne(
-            'suppliers',
-            { id: supplier.id },
-            galleryAppendUpdate(supplier, uploadedPhotos)
-          );
-        } else {
-          // Auto-approve OFF: store all as pending records
-          const pendingRecords = uploadedPhotos.map(p => ({
-            ...p,
-            id: `photo_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
-            status: 'pending',
-            approved: false,
-            supplierId: supplier.id,
-            supplierName: supplier.name,
-          }));
-
-          const insertResults = await Promise.all(
-            pendingRecords.map(r => dbUnified.insertOne('photos', r))
-          );
-          const failedInserts = insertResults.filter(r => !r).length;
-          if (failedInserts > 0) {
-            logger.error('[PHOTOS] bulk insertOne: some records failed', {
-              total: pendingRecords.length,
-              failed: failedInserts,
-            });
-          }
-          const savedPhotos = pendingRecords.filter((_, i) => insertResults[i]);
-
-          return res.json({
-            success: true,
-            uploaded: savedPhotos.length,
-            photos: savedPhotos,
-            pending: true,
-            errors: errors,
-            message: `${savedPhotos.length} photo(s) uploaded and awaiting moderation approval.`,
-          });
-        }
-      } else if (type === 'package') {
-        const pkg = await dbUnified.findOne('packages', { id: normalizedId });
-
-        if (!pkg) {
-          return res.status(404).json({ error: 'Package not found' });
-        }
-
-        const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
-
-        if (!supplier || (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin')) {
-          return res.status(403).json({ error: 'Not authorized' });
-        }
-
-        if (!pkg.gallery) {
-          pkg.gallery = [];
-        }
-        pkg.gallery.push(...uploadedPhotos);
-
-        const updateFields = { gallery: pkg.gallery };
-        if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '') {
-          updateFields.image = uploadedPhotos[0].url;
-        }
-        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
-
-        suppliersRouter.invalidatePackageCaches();
-      } else {
-        return res.status(400).json({ error: 'Invalid type' });
-      }
-
-      res.json({
-        success: true,
-        uploaded: uploadedPhotos.length,
-        photos: uploadedPhotos,
-        errors: errors,
-        message: `${uploadedPhotos.length} photo(s) uploaded successfully.`,
-      });
-    } catch (error) {
-      // Enhanced error logging for batch uploads
-      logger.error('Batch upload error', {
-        error: error.message,
-        stack: error.stack,
-        errorName: error.name,
-        type: req.query.type,
-        id: req.query.id,
-        userId: req.user?.id,
-        fileCount: req.files?.length || 0,
-      });
-
-      // Use helper function to classify error and get appropriate response
-      const { statusCode, userMessage, errorType } = classifyUploadError(error);
-
-      res.status(statusCode).json({
-        error: userMessage,
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        errorType: errorType,
-      });
-    }
-  }
+  handleBatchUpload
 );
 
 // ---------- Photo Management Routes ----------
