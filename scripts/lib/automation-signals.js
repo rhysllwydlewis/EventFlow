@@ -107,7 +107,7 @@ function buildDegradedReviewComment(signals) {
 
 const DO_NOT_MERGE_PATTERNS = [
   /\bdo not merge\b/i,
-  /\bdon['’]t merge\b/i,
+  /\bdon['’]t merge\b/iu,
   /\bnot (?:yet )?(?:ready|safe) to merge\b/i,
   /\b(?:this )?(?:pr|pull request) will stay open\b/i,
   /\bkeep (?:this )?(?:pr |pull request )?open\b/i,
@@ -123,7 +123,7 @@ const ABOUT_THE_PHRASE_PATTERN =
 // "Add a check that rejects docs-only descriptions", "calls itself documentation-only") are
 // mentions or denials, not claims about this pull request.
 const DOCS_ONLY_CLAIM_PATTERNS = [
-  /^(?:(?:this|it)\s+(?:is|['’]s)\s+)?(?:an?\s+)?(?:docs?|documentation|markdown)[\s-]*only\b(?:\s+(?:pr|pull request|change|changes|update|commit|handoff|fix))?\s*(?:[.:;,!—–-]|$)/i,
+  /^(?:(?:this|it)\s+(?:is|['’]s)\s+)?(?:an?\s+)?(?:docs?|documentation|markdown)[\s-]*only\b(?:\s+(?:pr|pull request|change|changes|update|commit|handoff|fix))?\s*(?:[.:;,!—–-]|$)/iu,
   /^no code (?:changes?|changed)\b/i,
   /^(?:it|this)\s+(?:touches|changes)\s+(?:just\s+|only\s+)?(?:one|a single)\s+(?:markdown|doc(?:umentation)?)\s+file\b/i,
 ];
@@ -223,7 +223,10 @@ function checkPullRequestDescription({ body = '', files = [], draft = false } = 
  * @param {{owner: string, repo: string, pullNumber: number, log?: Function}} target
  * @returns {Promise<{flagged: boolean, signals: Array<{source: string, summary: string}>, reason?: string}>}
  */
-async function flagDegradedReview(github, { owner, repo, pullNumber, log = () => undefined }) {
+async function flagDegradedReview(
+  github,
+  { owner, repo, pullNumber, log = _message => undefined }
+) {
   const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: pullNumber });
   if (pull.state !== 'open') {
     return { flagged: false, signals: [], reason: 'not open' };
