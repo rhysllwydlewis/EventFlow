@@ -115,11 +115,11 @@ function applyPhotoUploadFields(fields) {
           field: err.field,
           storageErrors: err.storageErrors,
           userId: req.user?.id,
-          endpoint: endpoint,
+          endpoint,
         });
 
         // Check for file type rejection (not a MulterError)
-        if (err.message && err.message.includes('Invalid file type')) {
+        if (err.message?.includes('Invalid file type')) {
           return res.status(415).json({
             error: 'Unsupported file type',
             details: process.env.NODE_ENV !== 'production' ? err.message : undefined,
@@ -315,7 +315,7 @@ function buildPhotoRecord(images, metadata, userId) {
     approved: true,
     uploadedAt: new Date().toISOString(),
     uploadedBy: userId,
-    metadata: metadata,
+    metadata,
   };
 }
 
@@ -359,7 +359,7 @@ function respondWithUploadError(req, res, message, error) {
   res.status(statusCode).json({
     error: userMessage,
     details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-    errorType: errorType,
+    errorType,
   });
 }
 
@@ -552,7 +552,7 @@ async function uploadMarketplaceImages(req, res, { normalizedId }) {
       listingId: normalizedId,
       userId: req.user.id,
       errorCount: errors.length,
-      errors: errors,
+      errors,
     });
 
     return res.status(500).json({
@@ -693,11 +693,11 @@ router.post(
 
 function logBatchFile(file, listingId, userId) {
   logger.info('Processing file in batch upload', {
-    hasFile: !!file,
-    hasOriginalname: !!file?.originalname,
+    hasFile: Boolean(file),
+    hasOriginalname: Boolean(file?.originalname),
     originalnameType: typeof file?.originalname,
     originalnameValue: file?.originalname,
-    hasBuffer: !!file?.buffer,
+    hasBuffer: Boolean(file?.buffer),
     bufferLength: file?.buffer?.length,
     mimetype: file?.mimetype,
     size: file?.size,
@@ -712,7 +712,7 @@ function notABufferProblem(file, { listingId, userId }) {
   }
   logger.error('Invalid file buffer received', {
     filename: file.originalname || 'unknown',
-    hasBuffer: !!file.buffer,
+    hasBuffer: Boolean(file.buffer),
     isBuffer: file.buffer ? Buffer.isBuffer(file.buffer) : false,
     listingId,
     userId,
@@ -809,7 +809,7 @@ async function processBatchFiles(req, target, existingImagesCount) {
       uploadedPhotos.push(await processBatchFile(file, target, req.user.id, order));
     } catch (error) {
       logProcessingFailure('Batch photo processing failed', error, file, {
-        type: type,
+        type,
         id: normalizedId,
         userId: req.user.id,
       });
@@ -848,7 +848,7 @@ async function finishMarketplaceBatch(req, res, { normalizedId }, uploadedPhotos
       listingId: normalizedId,
       userId: req.user.id,
       errorCount: errors.length,
-      errors: errors,
+      errors,
     });
 
     res.status(500).json({
@@ -872,7 +872,7 @@ async function finishMarketplaceBatch(req, res, { normalizedId }, uploadedPhotos
     success: true,
     uploaded: uploadedUrls.length,
     urls: uploadedUrls,
-    errors: errors,
+    errors,
     message: `${uploadedUrls.length} photo(s) uploaded successfully to marketplace listing.`,
   });
   return true;
@@ -899,7 +899,7 @@ async function savePendingSupplierPhotos(res, supplier, uploadedPhotos, errors) 
     uploaded: savedPhotos.length,
     photos: savedPhotos,
     pending: true,
-    errors: errors,
+    errors,
     message: `${savedPhotos.length} photo(s) uploaded and awaiting moderation approval.`,
   });
 }
@@ -973,7 +973,7 @@ async function handleBatchUpload(req, res) {
       success: true,
       uploaded: uploadedPhotos.length,
       photos: uploadedPhotos,
-      errors: errors,
+      errors,
       message: `${uploadedPhotos.length} photo(s) uploaded successfully.`,
     });
   } catch (error) {
