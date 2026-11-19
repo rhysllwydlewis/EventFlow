@@ -5,7 +5,7 @@
  *
  *   - the greeting line and the single most useful next action
  *   - the verification strip and the email verification banner
- *   - the summary row (unread messages, profile completeness, rating, plan, visits, replies)
+ *   - the summary row (unread messages, profile health, rating, plan, visits, replies)
  *   - the Next steps checklist
  *   - the profile visits chart, tips, plan and review requests
  *
@@ -1267,7 +1267,7 @@
     );
   }
 
-  /** Summary tile: profile completeness as a percentage, with the next thing to do. */
+  /** Summary tile: the profile health score (the same number admins see), with the next thing to do. */
   function profileTile(model) {
     const profile = model?.profile;
     if (!profile || profile.score === null) {
@@ -1285,8 +1285,8 @@
       ? `Next: <a class="sdh-link" href="#profile-card"${stepAttrs({ key: nextKey })}>${esc(stepLabel(nextKey, String(nextCheck.label || 'Complete your profile'), false).toLowerCase())}</a>`
       : 'Everything on your profile is filled in.';
     return tile(
-      'Profile complete',
-      `<p class="sdh-tile__value">${profile.score}<span class="sdh-tile__unit">%</span></p>${bar(profile.score, `Profile ${profile.score}% complete`)}<p class="sdh-tile__sub">${sub}</p>`
+      'Profile health',
+      `<p class="sdh-tile__value">${profile.score}<span class="sdh-tile__unit">%</span></p>${bar(profile.score, `Profile health ${profile.score}%`)}<p class="sdh-tile__sub">${sub}</p>`
     );
   }
 
@@ -1421,7 +1421,7 @@
     if (isNoProfile()) {
       grid.className = 'sdh-summary__grid sdh-summary__grid--empty';
       grid.innerHTML =
-        '<p class="sdh-note">Once you have a profile, your messages, profile completeness, rating and plan appear here.</p>';
+        '<p class="sdh-note">Once you have a profile, your messages, profile health, rating and plan appear here.</p>';
       return;
     }
     if (!state.model) {

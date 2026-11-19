@@ -1191,7 +1191,7 @@ describe('supplier dashboard home: rendered page', () => {
     );
     expect(page.tiles.map(tile => tile.label)).toEqual([
       'Unread messages',
-      'Profile complete',
+      'Profile health',
       'Rating',
       'Plan',
     ]);
