@@ -169,7 +169,7 @@ function selectedChecks() {
   return checks;
 }
 
-async function gitInfo(cmd) {
+function gitInfo(cmd) {
   return new Promise(resolve => {
     const child = spawn('git', cmd, { cwd: ROOT });
     let out = '';
@@ -232,7 +232,7 @@ function esc(s = '') {
 }
 
 function csvEscape(value = '') {
-  return `"${String(value).replaceAll('\"', '\"\"')}"`;
+  return `"${String(value).replaceAll('"', '""')}"`;
 }
 
 function excerpt(text) {
@@ -344,11 +344,11 @@ async function workflowFindings() {
     );
   }
   const visual = await readFile('.github/workflows/visual-regression.yml', 'utf8').catch(() => '');
-  const m = visual.match(/CONTINUE_ON_ERROR_UNTIL:\s*['"]?(\d{4}-\d{2}-\d{2})/);
-  if (m) {
-    const expired = new Date(`${m[1]}T23:59:59Z`) < new Date();
+  const expiryMatch = visual.match(/CONTINUE_ON_ERROR_UNTIL:\s*['"]?(\d{4}-\d{2}-\d{2})/);
+  if (expiryMatch) {
+    const expired = new Date(`${expiryMatch[1]}T23:59:59Z`) < new Date();
     findings.push(
-      `- Visual regression soft-fail expiry: ${m[1]} (${expired ? 'expired — Workflow policy issue' : 'active'}).`
+      `- Visual regression soft-fail expiry: ${expiryMatch[1]} (${expired ? 'expired — Workflow policy issue' : 'active'}).`
     );
   }
   return findings;
