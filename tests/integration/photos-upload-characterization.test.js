@@ -72,7 +72,7 @@ function freshDb() {
         id: 'P-placeholder',
         supplierId: 'S1',
         gallery: [],
-        image: '/assets/images/placeholders/package.svg',
+        image: '/assets/images/package-placeholder.webp',
       },
       { id: 'P-nogallery', supplierId: 'S1', image: '' },
       { id: 'P-orphan', supplierId: 'S-missing', gallery: [], image: '' },
@@ -255,6 +255,21 @@ add('marketplace: a file whose buffer is not a Buffer', {
   type: 'marketplace',
   id: 'L1',
   files: [file('a.jpg'), file('str.jpg', { buffer: 'not-a-buffer' })],
+});
+add('marketplace: an empty file that also has no name', {
+  type: 'marketplace',
+  id: 'L1',
+  files: [file(undefined, { buffer: Buffer.alloc(0) }), file('c.jpg')],
+});
+add('marketplace: a file with no buffer', {
+  type: 'marketplace',
+  id: 'L1',
+  files: [file('a.jpg'), file('nobuf.jpg', { buffer: undefined })],
+});
+add('supplier: a file with no buffer, and one with a bad name', {
+  type: 'supplier',
+  id: 'S1',
+  files: [file('nobuf.jpg', { buffer: undefined }), file(undefined), file('c.jpg')],
 });
 add('marketplace: one file fails validation, one succeeds', {
   type: 'marketplace',

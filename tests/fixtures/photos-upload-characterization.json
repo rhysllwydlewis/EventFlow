@@ -500,6 +500,110 @@
     ],
     "cacheInvalidations": 0
   },
+  "/upload :: marketplace: an empty file that also has no name": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "urls": ["/api/photos/mk_c.jpg_1"],
+      "errors": [
+        {
+          "filename": "unknown",
+          "error": "Empty file - please try re-uploading this image"
+        }
+      ],
+      "message": "1 image(s) uploaded successfully, 1 failed."
+    },
+    "db": [
+      [
+        "findOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        }
+      ],
+      [
+        "updateOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        },
+        {
+          "$set": {
+            "images": ["/api/photos/old1", "/api/photos/mk_c.jpg_1"],
+            "updatedAt": "<TS>"
+          }
+        }
+      ]
+    ],
+    "uploads": [["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 1, 10]],
+    "logs": [
+      ["info", "Multer parsed files"],
+      ["info", "Photo upload request received"],
+      ["error", "Empty file buffer received"],
+      ["info", "Marketplace images uploaded"]
+    ],
+    "cacheInvalidations": 0
+  },
+  "/upload :: marketplace: a file with no buffer": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "urls": ["/api/photos/mk_a.jpg_1"],
+      "errors": [
+        {
+          "filename": "nobuf.jpg",
+          "error": "Empty file - please try re-uploading this image"
+        }
+      ],
+      "message": "1 image(s) uploaded successfully, 1 failed."
+    },
+    "db": [
+      [
+        "findOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        }
+      ],
+      [
+        "updateOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        },
+        {
+          "$set": {
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
+            "updatedAt": "<TS>"
+          }
+        }
+      ]
+    ],
+    "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
+    "logs": [
+      ["info", "Multer parsed files"],
+      ["info", "Photo upload request received"],
+      ["error", "Empty file buffer received"],
+      ["info", "Marketplace images uploaded"]
+    ],
+    "cacheInvalidations": 0
+  },
+  "/upload :: supplier: a file with no buffer, and one with a bad name": {
+    "status": 500,
+    "body": {
+      "error": "Failed to upload photo",
+      "details": "Cannot read properties of undefined (reading 'length')",
+      "errorType": "TypeError"
+    },
+    "db": [],
+    "uploads": [],
+    "logs": [
+      ["info", "Multer parsed files"],
+      ["info", "Photo upload request received"],
+      ["error", "Photo upload error"]
+    ],
+    "cacheInvalidations": 0
+  },
   "/upload :: marketplace: one file fails validation, one succeeds": {
     "status": 200,
     "body": {
@@ -1704,7 +1808,8 @@
                   "format": "jpeg"
                 }
               }
-            ]
+            ],
+            "image": "/api/photos/opt_a.jpg"
           }
         }
       ]
@@ -2884,6 +2989,206 @@
       ["info", "Processing file in batch upload"],
       ["error", "Invalid file buffer received"],
       ["info", "Marketplace images uploaded (batch)"]
+    ],
+    "cacheInvalidations": 0
+  },
+  "/upload/batch :: marketplace: an empty file that also has no name": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "uploaded": 1,
+      "urls": ["/api/photos/mk_c.jpg_1"],
+      "errors": [
+        {
+          "filename": "unknown",
+          "error": "Empty file - please try re-uploading this image"
+        }
+      ],
+      "message": "1 photo(s) uploaded successfully to marketplace listing."
+    },
+    "db": [
+      [
+        "findOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        }
+      ],
+      [
+        "findOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        }
+      ],
+      [
+        "updateOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        },
+        {
+          "$set": {
+            "images": ["/api/photos/old1", "/api/photos/mk_c.jpg_1"],
+            "updatedAt": "<TS>"
+          }
+        }
+      ]
+    ],
+    "uploads": [
+      ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
+    ],
+    "logs": [
+      ["info", "Multer parsed files"],
+      ["info", "Batch photo upload request received"],
+      ["info", "Processing file in batch upload"],
+      ["error", "Empty file buffer received"],
+      ["info", "Processing file in batch upload"],
+      ["info", "Marketplace images uploaded (batch)"]
+    ],
+    "cacheInvalidations": 0
+  },
+  "/upload/batch :: marketplace: a file with no buffer": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "uploaded": 1,
+      "urls": ["/api/photos/mk_a.jpg_1"],
+      "errors": [
+        {
+          "filename": "nobuf.jpg",
+          "error": "Invalid file data - please try re-uploading this image"
+        }
+      ],
+      "message": "1 photo(s) uploaded successfully to marketplace listing."
+    },
+    "db": [
+      [
+        "findOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        }
+      ],
+      [
+        "findOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        }
+      ],
+      [
+        "updateOne",
+        "marketplace_listings",
+        {
+          "id": "L1"
+        },
+        {
+          "$set": {
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
+            "updatedAt": "<TS>"
+          }
+        }
+      ]
+    ],
+    "uploads": [
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
+    ],
+    "logs": [
+      ["info", "Multer parsed files"],
+      ["info", "Batch photo upload request received"],
+      ["info", "Processing file in batch upload"],
+      ["info", "Processing file in batch upload"],
+      ["error", "Invalid file buffer received"],
+      ["info", "Marketplace images uploaded (batch)"]
+    ],
+    "cacheInvalidations": 0
+  },
+  "/upload/batch :: supplier: a file with no buffer, and one with a bad name": {
+    "status": 200,
+    "body": {
+      "success": true,
+      "uploaded": 1,
+      "photos": [
+        {
+          "url": "/api/photos/opt_c.jpg",
+          "thumbnail": "/api/photos/thumb_c.jpg",
+          "large": "/api/photos/large_c.jpg",
+          "original": "/api/photos/orig_c.jpg",
+          "approved": true,
+          "uploadedAt": "<TS>",
+          "uploadedBy": "u1",
+          "metadata": {
+            "width": 100,
+            "height": 80,
+            "format": "jpeg"
+          }
+        }
+      ],
+      "errors": [
+        {
+          "filename": "nobuf.jpg",
+          "error": "Invalid file data - please try re-uploading this image"
+        },
+        {
+          "filename": "unknown",
+          "error": "Invalid file name - the file may be corrupted. Please try selecting it again."
+        }
+      ],
+      "message": "1 photo(s) uploaded successfully."
+    },
+    "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
+      [
+        "updateOne",
+        "suppliers",
+        {
+          "id": "S1"
+        },
+        {
+          "$push": {
+            "photosGallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_c.jpg",
+                  "thumbnail": "/api/photos/thumb_c.jpg",
+                  "large": "/api/photos/large_c.jpg",
+                  "original": "/api/photos/orig_c.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    ],
+    "uploads": [
+      ["processAndSaveImage", "c.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
+    ],
+    "logs": [
+      ["info", "Multer parsed files"],
+      ["info", "Batch photo upload request received"],
+      ["info", "Processing file in batch upload"],
+      ["error", "Invalid file buffer received"],
+      ["info", "Processing file in batch upload"],
+      ["error", "Invalid file.originalname received"],
+      ["info", "Processing file in batch upload"]
     ],
     "cacheInvalidations": 0
   },
@@ -4425,7 +4730,8 @@
                   "format": "jpeg"
                 }
               }
-            ]
+            ],
+            "image": "/api/photos/opt_a.jpg"
           }
         }
       ]
