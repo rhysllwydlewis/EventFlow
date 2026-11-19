@@ -499,6 +499,29 @@ function getDueBadgeText(daysUntil) {
 }
 
 /**
+ * Load Chart.js library (lazy, from vendor bundle or CDN fallback).
+ * @returns {Promise<void>}
+ */
+function loadChartJS() {
+  if (window.Chart) {
+    return;
+  }
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '/assets/vendor/chart.umd.js';
+    script.onload = resolve;
+    script.onerror = () => {
+      const cdn = document.createElement('script');
+      cdn.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js';
+      cdn.onload = resolve;
+      cdn.onerror = reject;
+      document.head.appendChild(cdn);
+    };
+    document.head.appendChild(script);
+  });
+}
+
+/**
  * Create a Chart.js budget allocation pie chart showing spending by category.
  * Falls back gracefully to the existing HTML budget tracker if Chart.js fails to load.
  *

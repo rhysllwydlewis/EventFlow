@@ -11,7 +11,7 @@ const { uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const { getFeatureFlags } = require('../middleware/features');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
-const { galleryAppendUpdate } = require('../utils/supplierGalleryUpdate');
+const { galleryAppendIfUrlAbsent, galleryAppendUpdate } = require('../utils/supplierGalleryUpdate');
 const photoVariants = require('../utils/photo-variants');
 const suppliersRouter = require('./suppliers');
 
@@ -1464,15 +1464,14 @@ router.post(
       const currentGallery = approvedSupplier.photosGallery || [];
       const alreadyInGallery = currentGallery.some(p => p.url === photo.url);
       if (!alreadyInGallery) {
-        await dbUnified.updateOne(
-          'suppliers',
-          { id: approvedSupplier.id },
-          galleryAppendUpdate(approvedSupplier, {
-            url: photo.url,
-            approved: true,
-            uploadedAt: photo.uploadedAt || new Date().toISOString(),
-          })
-        );
+        // Conditional on the URL still being absent, so two overlapping approvals of the same
+        // photo cannot both insert it.
+        const { filter, update } = galleryAppendIfUrlAbsent(approvedSupplier, {
+          url: photo.url,
+          approved: true,
+          uploadedAt: photo.uploadedAt || new Date().toISOString(),
+        });
+        await dbUnified.updateOne('suppliers', filter, update);
       }
     }
 

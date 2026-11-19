@@ -7,7 +7,11 @@
  * earlier one: a photo reported as uploaded vanished.
  */
 
-const { galleryAppendUpdate, galleryRemoveUpdate } = require('../../utils/supplierGalleryUpdate');
+const {
+  galleryAppendIfUrlAbsent,
+  galleryAppendUpdate,
+  galleryRemoveUpdate,
+} = require('../../utils/supplierGalleryUpdate');
 
 describe('galleryAppendUpdate', () => {
   it('pushes only the new record when the gallery is an array', () => {
@@ -36,6 +40,47 @@ describe('galleryAppendUpdate', () => {
         $set: { photosGallery: [{ id: 'a' }], updatedAt: 'now' },
       }
     );
+  });
+});
+
+describe('galleryAppendIfUrlAbsent', () => {
+  it('pairs the append with a filter that matches only while the URL is absent', () => {
+    const record = { url: '/api/photos/new', approved: true };
+    expect(galleryAppendIfUrlAbsent({ id: 's1', photosGallery: [] }, record)).toEqual({
+      filter: { id: 's1', 'photosGallery.url': { $ne: '/api/photos/new' } },
+      update: { $push: { photosGallery: { $each: [record] } } },
+    });
+  });
+
+  it('keeps the legacy null-gallery fallback and extra fields', () => {
+    const record = { url: '/u' };
+    expect(
+      galleryAppendIfUrlAbsent({ id: 's1', photosGallery: null }, record, { updatedAt: 't' })
+    ).toEqual({
+      filter: { id: 's1', 'photosGallery.url': { $ne: '/u' } },
+      update: { $set: { photosGallery: [record], updatedAt: 't' } },
+    });
+  });
+
+  it('does not stop the first approval on the local store, where the read decides', async () => {
+    jest.resetModules();
+    const storeData = { suppliers: [{ id: 's1', photosGallery: [] }] };
+    const mockStore = {
+      uid: jest.fn(p => `${p}_1`),
+      read: jest.fn(name => (storeData[name] || []).map(d => ({ ...d }))),
+      write: jest.fn((name, data) => {
+        storeData[name] = data.map(d => ({ ...d }));
+      }),
+    };
+    jest.doMock('../../db', () => ({ isMongoAvailable: jest.fn(() => false), connect: jest.fn() }));
+    jest.doMock('../../store', () => mockStore);
+    const dbUnified = require('../../db-unified');
+    await dbUnified.initializeDatabase();
+    const { filter, update } = galleryAppendIfUrlAbsent(storeData.suppliers[0], { url: '/u' });
+    expect(await dbUnified.updateOne('suppliers', filter, update)).toBe(true);
+    expect(storeData.suppliers[0].photosGallery).toEqual([{ url: '/u' }]);
+    jest.dontMock('../../db');
+    jest.dontMock('../../store');
   });
 });
 

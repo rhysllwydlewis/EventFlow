@@ -69,4 +69,26 @@ function galleryRemoveUpdate(supplier, photo, extraSet = {}) {
   };
 }
 
-module.exports = { galleryAppendUpdate, galleryRemoveUpdate };
+/**
+ * Append a record only when no gallery entry already has its URL, with the database deciding
+ * that in the same operation as the write.
+ *
+ * Checking the array that was read earlier is not enough: two requests that overlap (two
+ * admins approving the same photo) both read a gallery without the URL, both pass the check,
+ * and an unconditional `$push` then inserts it twice. The filter makes the second one match
+ * nothing instead. (The local file store cannot evaluate the filter against array elements and
+ * treats it as matching, so there the earlier read still decides, as it always did.)
+ *
+ * @param {Object} supplier The supplier as last read.
+ * @param {Object} record The gallery record to add (must have a `url`).
+ * @param {Object} [extraSet] Further fields to `$set` in the same write.
+ * @returns {{filter: Object, update: Object}} The filter and update for `dbUnified.updateOne`.
+ */
+function galleryAppendIfUrlAbsent(supplier, record, extraSet = {}) {
+  return {
+    filter: { id: supplier.id, 'photosGallery.url': { $ne: record.url } },
+    update: galleryAppendUpdate(supplier, record, extraSet),
+  };
+}
+
+module.exports = { galleryAppendIfUrlAbsent, galleryAppendUpdate, galleryRemoveUpdate };
