@@ -144,7 +144,8 @@ describe('profile customisation theme modes', () => {
           visiblePanels,
           note: document.getElementById('pc-theme-auto-note').textContent,
           bannerMatchesCategoryArtwork: document.getElementById('preview-banner').style.background === paint(core.CATEGORY_HERO_GRADIENTS.photography),
-          tagColourMatches: document.querySelector('.pc-preview-tag').style.color === paintColour('#1A3A5C'),
+          // Tags use the profile's shade for text (strong), not the raw accent: see supplier-profile-theme.css
+          tagColourMatches: document.querySelector('.pc-preview-tag').style.color === paintColour(core.createAccentPalette('#1A3A5C').strong),
         };
       `
     );
