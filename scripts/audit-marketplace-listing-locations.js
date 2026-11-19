@@ -59,7 +59,9 @@ function parseArgs(argv) {
     apply: false,
     limit: Infinity,
     json: null,
-    requireMongodb: false,
+    // A scheduled routine cannot pass flags per run, so the environment can ask for
+    // the same guarantee: refuse to report "0 findings" against local fallback storage.
+    requireMongodb: process.env.AUDIT_REQUIRE_MONGODB === 'true',
     confirmProduction: false,
   };
 
