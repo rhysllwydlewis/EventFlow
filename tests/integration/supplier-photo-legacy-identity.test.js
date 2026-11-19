@@ -64,10 +64,9 @@ describe('supplier gallery legacy URL identity compatibility', () => {
       'suppliers',
       { id: 'sup_1' },
       {
-        $set: expect.objectContaining({
-          photosGallery: [{ id: 'photo_keep', url: '/api/photos/keep' }],
-          updatedAt: expect.any(String),
-        }),
+        // The legacy record has no id, so it is pulled by its URL.
+        $pull: { photosGallery: { url: legacyUrl } },
+        $set: { updatedAt: expect.any(String) },
       }
     );
     expect(photoUpload.deleteImage).toHaveBeenCalledWith(legacyUrl);

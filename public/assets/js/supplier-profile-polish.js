@@ -4,9 +4,6 @@ export * from './supplier-profile-polish-base.js?v=2';
 const PROFILE_THEME_STYLESHEET_ID = 'supplier-profile-theme-styles';
 const PROFILE_THEME_STYLESHEET_HREF = '/assets/css/supplier-profile-theme.css?v=20.1.0';
 
-const INK = '#0b1220';
-const WHITE = '#ffffff';
-
 // Preset, category and mode definitions and the effective-theme resolver are
 // shared with the server and the other editors (shared/supplier-theme-core.js,
 // loaded as a classic script before this module).
@@ -62,70 +59,16 @@ function normaliseHex(value) {
 
 const normaliseThemeMode = sharedTheme.normaliseThemeMode;
 
-function hexToRgb(hex) {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return { r: value >> 16, g: (value >> 8) & 255, b: value & 255 };
-}
-
-function rgbToHex({ r, g, b }) {
-  return `#${[r, g, b]
-    .map(channel =>
-      Math.max(0, Math.min(255, Math.round(channel)))
-        .toString(16)
-        .padStart(2, '0')
-    )
-    .join('')}`;
-}
-
-function mixHex(first, second, firstWeight) {
-  const a = hexToRgb(first);
-  const b = hexToRgb(second);
-  const weight = Math.max(0, Math.min(1, firstWeight));
-  return rgbToHex({
-    r: a.r * weight + b.r * (1 - weight),
-    g: a.g * weight + b.g * (1 - weight),
-    b: a.b * weight + b.b * (1 - weight),
-  });
-}
-
-function rgba(hex, alpha) {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 // Lower-case accent, matching how this module has always emitted colours.
 function resolveSupplierTheme(supplier = {}) {
   const theme = sharedTheme.resolveSupplierTheme(supplier);
   return { accent: theme.accent.toLowerCase(), source: theme.source };
 }
 
-function createSupplierPalette(accent) {
-  return {
-    accent,
-    strong: mixHex(accent, INK, 0.4),
-    hover: mixHex(accent, INK, 0.32),
-    light: mixHex(accent, WHITE, 0.76),
-    soft: mixHex(accent, WHITE, 0.08),
-    subtle: mixHex(accent, WHITE, 0.15),
-    border: mixHex(accent, WHITE, 0.32),
-    borderStrong: mixHex(accent, WHITE, 0.5),
-    shadow: rgba(accent, 0.24),
-  };
-}
-
 function setThemeVariables(root, palette) {
-  const values = {
-    '--sp-profile-accent': palette.accent,
-    '--sp-profile-accent-strong': palette.strong,
-    '--sp-profile-accent-hover': palette.hover,
-    '--sp-profile-accent-light': palette.light,
-    '--sp-profile-accent-soft': palette.soft,
-    '--sp-profile-accent-subtle': palette.subtle,
-    '--sp-profile-accent-border': palette.border,
-    '--sp-profile-accent-border-strong': palette.borderStrong,
-    '--sp-profile-accent-shadow': palette.shadow,
-  };
-  Object.entries(values).forEach(([name, value]) => root.style.setProperty(name, value));
+  Object.entries(sharedTheme.ACCENT_PALETTE_VARIABLES).forEach(([name, key]) =>
+    root.style.setProperty(name, palette[key])
+  );
 }
 
 function applyAvatarTheme(accent) {
@@ -133,7 +76,7 @@ function applyAvatarTheme(accent) {
   if (!avatar || avatar.classList.contains('has-profile-photo')) {
     return;
   }
-  avatar.style.background = `linear-gradient(135deg, ${accent} 0%, ${mixHex(accent, WHITE, 0.7)} 100%)`;
+  avatar.style.background = `linear-gradient(135deg, ${accent} 0%, ${sharedTheme.createAccentPalette(accent).avatarEnd} 100%)`;
 }
 
 const HERO_MODE_BY_VISUAL_KIND = Object.freeze({
@@ -301,7 +244,7 @@ function applySupplierProfileTheme(supplier = window.__supplierData) {
     return null;
   }
   const theme = resolveSupplierTheme(supplier);
-  const palette = createSupplierPalette(theme.accent);
+  const palette = sharedTheme.createAccentPalette(theme.accent);
   setThemeVariables(document.documentElement, palette);
   applyAvatarTheme(theme.accent);
   updateHeroThemeState(supplier, theme);
@@ -321,7 +264,6 @@ function initSupplierProfileTheme() {
 
 window.SupplierProfileTheme = {
   applySupplierProfileTheme,
-  createSupplierPalette,
   formatResponseMessage,
   normaliseHex,
   normaliseThemeMode,
@@ -337,7 +279,6 @@ if (document.readyState === 'loading') {
 
 export {
   applySupplierProfileTheme,
-  createSupplierPalette,
   formatResponseMessage,
   normaliseHex,
   normaliseThemeMode,

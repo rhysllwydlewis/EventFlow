@@ -19,37 +19,15 @@
   }
   window.__spOwnerEditLoaded = true;
 
-  // ── Hero preset definitions ──────────────────────────────────────────────
+  // ── Category list ────────────────────────────────────────────────────────
 
-  // Shared with the server and the other theme editors
-  // (shared/supplier-theme-core.js, loaded as a classic script before this one).
-  const HERO_PRESETS = window.EFSupplierTheme.HERO_PRESETS;
-
-  // Mirrors models/Supplier.js VALID_CATEGORIES (and the canonical dropdown in
-  // dashboard-supplier.html) — a free-text category input can no longer be
-  // saved, since the server now rejects any value outside this list.
-  const VALID_CATEGORIES = [
-    'Venues',
-    'Catering',
-    'Photography',
-    'Videography',
-    'Entertainment',
-    'Music/DJ',
-    'Florist',
-    'Decor',
-    'Transport',
-    'Cake',
-    'Stationery',
-    'Hair & Makeup',
-    'Beauty',
-    'Bridalwear',
-    'Jewellery',
-    'Celebrant',
-    'Event Planner',
-    'Wedding Fayre',
-    'Planning',
-    'Other',
-  ];
+  // The shared registry (utils/category-link.js, loaded before this script) is pinned to
+  // models/Supplier.js VALID_CATEGORIES by tests/unit/category-canonical-flow.test.js, so this
+  // dropdown cannot drift from the categories the server accepts. It used to be a hand-kept
+  // copy of that list.
+  const VALID_CATEGORIES = window.EventFlowCategoryLink.CATEGORY_DEFINITIONS.map(
+    category => category.name
+  );
 
   // ── Utilities ────────────────────────────────────────────────────────────
 
@@ -62,10 +40,6 @@
 
   function pencilSvg() {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-  }
-
-  function checkSvg() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   }
 
   function closeSvg() {
@@ -221,7 +195,6 @@
   // Re-inject every owner-edit affordance after a full section rerender
   // (window.__spRerender.all()) replaces their DOM.
   function reinjectOwnerControls(supplierId) {
-    addHeroEditButton(supplierId);
     addNameEditButton(supplierId);
     addAboutEditButton(supplierId);
     addGalleryEditButton();
@@ -250,217 +223,6 @@
     } else {
       document.body.prepend(bar);
     }
-  }
-
-  // ── Hero edit ─────────────────────────────────────────────────────────────
-
-  function addHeroEditButton(supplierId) {
-    const heroMedia = document.querySelector('.hero-media');
-    if (!heroMedia || heroMedia.querySelector('.sp-hero-edit-btn')) {
-      return;
-    }
-
-    const btn = document.createElement('button');
-    btn.className = 'sp-hero-edit-btn';
-    btn.setAttribute('aria-label', 'Edit hero banner');
-    btn.innerHTML = `${pencilSvg()} Edit hero`;
-    btn.addEventListener('click', () => openHeroModal(supplierId));
-    heroMedia.appendChild(btn);
-  }
-
-  function openHeroModal(supplierId) {
-    const supplier = window.__supplierData || {};
-    const currentPreset = supplier.heroPreset || 'ef-teal';
-    const currentBanner = supplier.bannerUrl || '';
-    const currentColor = supplier.themeColor || '#0B8073';
-
-    const swatches = HERO_PRESETS.map(
-      p => `
-      <button
-        class="sp-preset-swatch${currentPreset === p.id && !currentBanner ? ' is-selected' : ''}"
-        data-preset="${esc(p.id)}"
-        style="background:${p.gradient};"
-        title="${esc(p.label)}"
-        aria-label="${esc(p.label)} theme${currentPreset === p.id && !currentBanner ? ' — currently selected' : ''}"
-        type="button"
-      >
-        <span class="sp-preset-swatch__check">${checkSvg()}</span>
-        <span class="sp-preset-swatch__label">${esc(p.label)}</span>
-      </button>
-    `
-    ).join('');
-
-    const bodyHtml = `
-      <p class="sp-preset-section-label">Choose a theme</p>
-      <div class="sp-preset-grid" id="spPresetGrid">${swatches}</div>
-
-      <div class="sp-color-row" style="margin-top:14px;">
-        <label for="spThemeColor">Custom colour</label>
-        <input type="color" id="spThemeColor" class="sp-color-input" value="${esc(currentColor)}" />
-        <input type="text" id="spThemeColorHex" class="sp-color-hex-input" value="${esc(currentColor)}" maxlength="7" placeholder="#0B8073" />
-      </div>
-
-      <p class="sp-preset-section-label" style="margin-top:20px;">Custom banner image</p>
-      <div class="sp-field">
-        <input
-          type="url"
-          id="spBannerUrl"
-          class="sp-field__input"
-          value="${esc(currentBanner)}"
-          placeholder="https://your-image-url.com/banner.jpg"
-        />
-        <p class="sp-field__hint">Paste a direct image URL — JPG, PNG or WebP, min 1200×400px recommended.</p>
-      </div>
-      <div class="sp-banner-preview${currentBanner ? ' has-image' : ''}" id="spBannerPreview">
-        ${currentBanner ? `<img src="${esc(currentBanner)}" alt="Banner preview" id="spBannerImg">` : ''}
-        <button class="sp-banner-preview__remove" id="spBannerRemove" title="Remove banner" type="button">✕</button>
-      </div>
-
-      <p class="sp-preset-section-label" style="margin-top:20px;">Tagline</p>
-      <div class="sp-field">
-        <input
-          type="text"
-          id="spTagline"
-          class="sp-field__input"
-          value="${esc(supplier.tagline || '')}"
-          maxlength="200"
-          placeholder="A short, catchy description of what you do"
-        />
-        <span class="sp-field__char-count" id="spTaglineCount">${(supplier.tagline || '').length}/200</span>
-      </div>
-    `;
-
-    const { overlay, closeModal } = buildModal({
-      title: 'Edit hero banner',
-      subtitle: 'Choose a theme, custom colour or upload your own image',
-      wide: true,
-      bodyHtml,
-    });
-
-    // Swatch selection
-    let selectedPreset = currentBanner ? null : currentPreset || 'ef-teal';
-    const grid = overlay.querySelector('#spPresetGrid');
-    grid.querySelectorAll('.sp-preset-swatch').forEach(sw => {
-      sw.addEventListener('click', () => {
-        selectedPreset = sw.dataset.preset;
-        // Deselect banner URL when a preset is chosen
-        const bannerInput = overlay.querySelector('#spBannerUrl');
-        if (bannerInput) {
-          bannerInput.value = '';
-        }
-        const preview = overlay.querySelector('#spBannerPreview');
-        if (preview) {
-          preview.classList.remove('has-image');
-          preview.innerHTML = '';
-        }
-        grid.querySelectorAll('.sp-preset-swatch').forEach(s => s.classList.remove('is-selected'));
-        sw.classList.add('is-selected');
-      });
-    });
-
-    // Colour picker sync
-    const colorInput = overlay.querySelector('#spThemeColor');
-    const hexInput = overlay.querySelector('#spThemeColorHex');
-
-    colorInput.addEventListener('input', () => {
-      hexInput.value = colorInput.value;
-      selectedPreset = null;
-      grid.querySelectorAll('.sp-preset-swatch').forEach(s => s.classList.remove('is-selected'));
-    });
-
-    hexInput.addEventListener('input', () => {
-      if (/^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) {
-        colorInput.value = hexInput.value;
-      }
-    });
-
-    // Banner URL preview
-    const bannerInput = overlay.querySelector('#spBannerUrl');
-    const bannerPreview = overlay.querySelector('#spBannerPreview');
-    const bannerRemove = overlay.querySelector('#spBannerRemove');
-
-    let bannerPreviewTimer;
-    bannerInput.addEventListener('input', () => {
-      clearTimeout(bannerPreviewTimer);
-      bannerPreviewTimer = setTimeout(() => {
-        const url = bannerInput.value.trim();
-        if (url) {
-          selectedPreset = null;
-          grid
-            .querySelectorAll('.sp-preset-swatch')
-            .forEach(s => s.classList.remove('is-selected'));
-          bannerPreview.innerHTML = `<img src="${esc(url)}" alt="Banner preview" id="spBannerImg"><button class="sp-banner-preview__remove" id="spBannerRemove" title="Remove" type="button">✕</button>`;
-          bannerPreview.classList.add('has-image');
-          // Re-wire remove btn after innerHTML replacement
-          bannerPreview.querySelector('#spBannerRemove').addEventListener('click', removeBanner);
-        } else {
-          bannerPreview.classList.remove('has-image');
-          bannerPreview.innerHTML = '';
-        }
-      }, 500);
-    });
-
-    function removeBanner() {
-      bannerInput.value = '';
-      bannerPreview.classList.remove('has-image');
-      bannerPreview.innerHTML = '';
-      // Re-select the current preset
-      const firstSwatch =
-        grid.querySelector(`[data-preset="${esc(currentPreset)}"]`) ||
-        grid.querySelector('.sp-preset-swatch');
-      if (firstSwatch) {
-        firstSwatch.classList.add('is-selected');
-        selectedPreset = firstSwatch.dataset.preset;
-      }
-    }
-
-    if (bannerRemove) {
-      bannerRemove.addEventListener('click', removeBanner);
-    }
-
-    // Tagline char count
-    const taglineInput = overlay.querySelector('#spTagline');
-    const taglineCount = overlay.querySelector('#spTaglineCount');
-    taglineInput.addEventListener('input', () => {
-      taglineCount.textContent = `${taglineInput.value.length}/200`;
-    });
-
-    // Save
-    overlay.querySelector('.js-modal-save').addEventListener('click', async () => {
-      setSaving(overlay, true);
-      try {
-        const patch = {};
-        const newBanner = bannerInput.value.trim();
-        const newTagline = taglineInput.value.trim();
-        const newColor = hexInput.value.trim();
-
-        if (newBanner) {
-          patch.bannerUrl = newBanner;
-          patch.heroPreset = ''; // custom image — no preset
-        } else {
-          patch.bannerUrl = '';
-          // null means custom colour was chosen (colour picker used), so clear the
-          // preset so the renderer falls back to themeColor. Otherwise use the
-          // selected preset, defaulting to 'ef-teal' only when nothing was changed.
-          patch.heroPreset = selectedPreset !== null ? selectedPreset || 'ef-teal' : '';
-        }
-
-        if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) {
-          patch.themeColor = newColor;
-        }
-        patch.tagline = newTagline;
-
-        const result = await patchSupplier(supplierId, patch);
-        mergeData(result.supplier);
-        window.__spRerender?.hero();
-        addHeroEditButton(supplierId); // Re-inject after rerender
-        showToast('Hero updated ✓');
-        closeModal();
-      } catch (err) {
-        showToast(err.message, 'error');
-        setSaving(overlay, false);
-      }
-    });
   }
 
   // ── About section edit ───────────────────────────────────────────────────
@@ -833,7 +595,6 @@
     }
 
     injectOwnerBar();
-    addHeroEditButton(supplierId);
     addNameEditButton(supplierId);
     addAboutEditButton(supplierId);
     addGalleryEditButton();
