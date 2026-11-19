@@ -652,7 +652,7 @@ async function uploadSinglePackagePhoto(req, res, { id, type }) {
  * one stores nothing; the route takes up to five files for marketplace listings, but a supplier or
  * package gets exactly one, so more than one is refused rather than the rest being dropped.
  */
-async function uploadSingleImage(req, res, target) {
+function uploadSingleImage(req, res, target) {
   if (target.type !== 'supplier' && target.type !== 'package') {
     return res
       .status(400)
@@ -968,7 +968,7 @@ async function finishPackageBatch({ pkg }, uploadedPhotos) {
 }
 
 /** @returns {Promise<boolean>} true when the request has been answered */
-async function finishBatchUpload(req, res, target, prepared, uploadedPhotos, errors) {
+function finishBatchUpload(req, res, target, prepared, uploadedPhotos, errors) {
   switch (target.type) {
     case 'marketplace':
       return finishMarketplaceBatch(req, res, target, uploadedPhotos, errors);
