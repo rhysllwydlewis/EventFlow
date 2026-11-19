@@ -581,12 +581,23 @@ async function uploadMarketplaceImages(req, res, { normalizedId }) {
   });
 }
 
-async function uploadSingleSupplierPhoto(res, { id }, user, photoRecord) {
-  const loaded = await loadSupplierWithAllowance(id, user, 1);
+/** Process the one uploaded file and describe it as a gallery record. */
+async function processSingleImage(file, type, userId) {
+  const images = await photoUpload.processAndSaveImage(file.buffer, file.originalname, type);
+  const metadata = await photoUpload.getImageMetadata(file.buffer);
+  return buildPhotoRecord(images, metadata, userId);
+}
+
+// For a supplier or a package the target is looked up and authorised before the file is processed,
+// so a request for a record that is missing, someone else's or over its allowance stores nothing.
+
+async function uploadSingleSupplierPhoto(req, res, { id, type }) {
+  const loaded = await loadSupplierWithAllowance(id, req.user, 1);
   if (loaded.failure) {
     return sendFailure(res, loaded.failure);
   }
   const { supplier } = loaded;
+  const photoRecord = await processSingleImage(req.files[0], type, req.user.id);
 
   if (await photoAutoApproveEnabled()) {
     await dbUnified.updateOne(
@@ -620,11 +631,12 @@ async function uploadSingleSupplierPhoto(res, { id }, user, photoRecord) {
   });
 }
 
-async function uploadSinglePackagePhoto(res, { id }, user, photoRecord) {
-  const loaded = await loadPackageForOwner(id, user);
+async function uploadSinglePackagePhoto(req, res, { id, type }) {
+  const loaded = await loadPackageForOwner(id, req.user);
   if (loaded.failure) {
     return sendFailure(res, loaded.failure);
   }
+  const photoRecord = await processSingleImage(req.files[0], type, req.user.id);
 
   await appendToPackageGallery(loaded.pkg, [photoRecord]);
 
@@ -635,23 +647,26 @@ async function uploadSinglePackagePhoto(res, { id }, user, photoRecord) {
   });
 }
 
-/** One image for a supplier or a package. */
+/**
+ * One image for a supplier or a package. The type is checked before anything else, so an unknown
+ * one stores nothing; the route takes up to five files for marketplace listings, but a supplier or
+ * package gets exactly one, so more than one is refused rather than the rest being dropped.
+ */
 async function uploadSingleImage(req, res, target) {
-  const file = req.files[0];
-
-  const images = await photoUpload.processAndSaveImage(file.buffer, file.originalname, target.type);
-  const metadata = await photoUpload.getImageMetadata(file.buffer);
-  const photoRecord = buildPhotoRecord(images, metadata, req.user.id);
-
+  if (target.type !== 'supplier' && target.type !== 'package') {
+    return res
+      .status(400)
+      .json({ error: 'Invalid type. Must be supplier, package, or marketplace.' });
+  }
+  if (req.files.length > 1) {
+    return res.status(400).json({
+      error: `Only one file can be uploaded at a time for a ${target.type}. Use the batch upload for several.`,
+    });
+  }
   if (target.type === 'supplier') {
-    return uploadSingleSupplierPhoto(res, target, req.user, photoRecord);
+    return uploadSingleSupplierPhoto(req, res, target);
   }
-  if (target.type === 'package') {
-    return uploadSinglePackagePhoto(res, target, req.user, photoRecord);
-  }
-  return res
-    .status(400)
-    .json({ error: 'Invalid type. Must be supplier, package, or marketplace.' });
+  return uploadSinglePackagePhoto(req, res, target);
 }
 
 async function handleSingleUpload(req, res) {
@@ -819,12 +834,41 @@ async function processBatchFiles(req, target, existingImagesCount) {
   return { uploadedPhotos, errors };
 }
 
-async function countExistingMarketplaceImages(target) {
-  if (target.type !== 'marketplace') {
-    return 0;
+/** The 404 or 403 for a listing the user may not upload to, or null when they may. */
+function marketplaceListingFailure(listing, user) {
+  if (!listing) {
+    return failure(404, { error: 'Listing not found' });
   }
-  const listing = await dbUnified.findOne('marketplace_listings', { id: target.normalizedId });
-  return listing ? normalizeMarketplaceImageUrls(listing.images).length : 0;
+  if (!isMarketplaceOwner(listing, user)) {
+    return failure(403, { error: 'Not authorized' });
+  }
+  return null;
+}
+
+/**
+ * Look up and authorise what a batch is for, before any file is processed, so a request for a
+ * record that is missing, someone else's, over its allowance or of an unknown type stores nothing.
+ * @returns {Promise<{failure: Object}|{existingImagesCount: number, supplier?: Object, pkg?: Object}>}
+ */
+async function prepareBatchTarget(req, { type, normalizedId }) {
+  if (type === 'marketplace') {
+    const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
+    return (
+      marketplaceListingFailure(listing, req.user) || {
+        existingImagesCount: normalizeMarketplaceImageUrls(listing.images).length,
+      }
+    );
+  }
+  if (type === 'supplier') {
+    // Every file counts towards the allowance, since which ones will process is not yet known
+    const loaded = await loadSupplierWithAllowance(normalizedId, req.user, req.files.length);
+    return loaded.failure ? loaded : { existingImagesCount: 0, supplier: loaded.supplier };
+  }
+  if (type === 'package') {
+    const loaded = await loadPackageForOwner(normalizedId, req.user);
+    return loaded.failure ? loaded : { existingImagesCount: 0, pkg: loaded.pkg };
+  }
+  return failure(400, { error: 'Invalid type' });
 }
 
 // After processing, one finisher per type saves the photos. Each returns true when it has already
@@ -832,15 +876,11 @@ async function countExistingMarketplaceImages(target) {
 
 /** Save photos to a marketplace listing and answer (always answers). */
 async function finishMarketplaceBatch(req, res, { normalizedId }, uploadedPhotos, errors) {
+  // Read again, so the save builds on the listing as it is now rather than before processing
   const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
-
-  if (!listing) {
-    res.status(404).json({ error: 'Listing not found' });
-    return true;
-  }
-
-  if (!isMarketplaceOwner(listing, req.user)) {
-    res.status(403).json({ error: 'Not authorized' });
+  const problem = marketplaceListingFailure(listing, req.user);
+  if (problem) {
+    sendFailure(res, problem.failure);
     return true;
   }
 
@@ -907,14 +947,7 @@ async function savePendingSupplierPhotos(res, supplier, uploadedPhotos, errors) 
   });
 }
 
-async function finishSupplierBatch(req, res, { normalizedId }, uploadedPhotos, errors) {
-  const loaded = await loadSupplierWithAllowance(normalizedId, req.user, uploadedPhotos.length);
-  if (loaded.failure) {
-    sendFailure(res, loaded.failure);
-    return true;
-  }
-  const { supplier } = loaded;
-
+async function finishSupplierBatch(res, { supplier }, uploadedPhotos, errors) {
   if (!(await photoAutoApproveEnabled())) {
     await savePendingSupplierPhotos(res, supplier, uploadedPhotos, errors);
     return true;
@@ -929,29 +962,20 @@ async function finishSupplierBatch(req, res, { normalizedId }, uploadedPhotos, e
   return false;
 }
 
-async function finishPackageBatch(req, res, { normalizedId }, uploadedPhotos) {
-  const loaded = await loadPackageForOwner(normalizedId, req.user);
-  if (loaded.failure) {
-    sendFailure(res, loaded.failure);
-    return true;
-  }
-
-  await appendToPackageGallery(loaded.pkg, uploadedPhotos);
+async function finishPackageBatch({ pkg }, uploadedPhotos) {
+  await appendToPackageGallery(pkg, uploadedPhotos);
   return false;
 }
 
-/** @returns {Promise<boolean>|boolean} true when the request has been answered */
-function finishBatchUpload(req, res, target, uploadedPhotos, errors) {
+/** @returns {Promise<boolean>} true when the request has been answered */
+async function finishBatchUpload(req, res, target, prepared, uploadedPhotos, errors) {
   switch (target.type) {
     case 'marketplace':
       return finishMarketplaceBatch(req, res, target, uploadedPhotos, errors);
     case 'supplier':
-      return finishSupplierBatch(req, res, target, uploadedPhotos, errors);
-    case 'package':
-      return finishPackageBatch(req, res, target, uploadedPhotos);
+      return finishSupplierBatch(res, prepared, uploadedPhotos, errors);
     default:
-      res.status(400).json({ error: 'Invalid type' });
-      return true;
+      return finishPackageBatch(prepared, uploadedPhotos);
   }
 }
 
@@ -964,11 +988,19 @@ async function handleBatchUpload(req, res) {
       return sendFailure(res, target.failure);
     }
 
-    // Images are processed before the target is looked up or checked
-    const existingImagesCount = await countExistingMarketplaceImages(target);
-    const { uploadedPhotos, errors } = await processBatchFiles(req, target, existingImagesCount);
+    // The target is looked up and authorised first, so nothing is processed for one that is refused
+    const prepared = await prepareBatchTarget(req, target);
+    if (prepared.failure) {
+      return sendFailure(res, prepared.failure);
+    }
 
-    const answered = await finishBatchUpload(req, res, target, uploadedPhotos, errors);
+    const { uploadedPhotos, errors } = await processBatchFiles(
+      req,
+      target,
+      prepared.existingImagesCount
+    );
+
+    const answered = await finishBatchUpload(req, res, target, prepared, uploadedPhotos, errors);
     if (answered) {
       return undefined;
     }
