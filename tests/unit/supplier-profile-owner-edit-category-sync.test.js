@@ -91,6 +91,7 @@ describe('supplier profile owner-edit: category save', () => {
         throw new Error('unexpected fetch: ' + url);
       };
 
+      dom.window.eval(fs.readFileSync('public/assets/js/utils/category-link.js', 'utf8'));
       dom.window.eval(fs.readFileSync('public/assets/js/shared/supplier-theme-core.js', 'utf8'));
       dom.window.eval(script);
 

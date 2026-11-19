@@ -182,6 +182,7 @@ describe('supplier profile owner-edit modal', () => {
         throw new Error('unexpected fetch: ' + url);
       };
       window.eval(fs.readFileSync('public/assets/js/utils/modal-a11y.js', 'utf8'));
+      window.eval(fs.readFileSync('public/assets/js/utils/category-link.js', 'utf8'));
       window.eval(fs.readFileSync('public/assets/js/shared/supplier-theme-core.js', 'utf8'));
       window.eval(fs.readFileSync('public/assets/js/supplier-profile-owner-edit.js', 'utf8'));
 
@@ -250,6 +251,7 @@ describe('supplier profile owner-edit modal', () => {
         throw new Error('unexpected fetch: ' + url);
       };
       window.eval(fs.readFileSync('public/assets/js/utils/modal-a11y.js', 'utf8'));
+      window.eval(fs.readFileSync('public/assets/js/utils/category-link.js', 'utf8'));
       window.eval(fs.readFileSync('public/assets/js/shared/supplier-theme-core.js', 'utf8'));
       window.eval(fs.readFileSync('public/assets/js/supplier-profile-owner-edit.js', 'utf8'));
 
