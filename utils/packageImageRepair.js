@@ -33,6 +33,26 @@ function findPackageDataUriCandidates(pkg) {
   return listPackageImageCandidates(pkg).filter(candidate => candidate.reason === 'data-uri');
 }
 
+const UNSAFE_REASONS = Object.freeze(['javascript-url', 'html-payload']);
+
+/**
+ * Stored values that are never a legitimate image: `javascript:` URLs and values carrying
+ * HTML or script. Rendering is protected by the carousel escaping (#1884) and new writes
+ * are rejected (#1884, #1887), but a value saved before that is still in the database.
+ *
+ * Only the path and the reason are reported, never the value, so a report cannot itself
+ * carry a payload into a terminal or a log. This tool does not clear them: which field
+ * to blank is a decision for a person reading the report.
+ *
+ * @param {Object} pkg Package record.
+ * @returns {Array<{source: string, reason: string}>} Where the unsafe values are.
+ */
+function findUnsafePackageImageValues(pkg) {
+  return listPackageImageCandidates(pkg)
+    .filter(candidate => UNSAFE_REASONS.includes(candidate.reason))
+    .map(candidate => ({ source: candidate.source, reason: candidate.reason }));
+}
+
 function buildStoredGalleryEntry(stored) {
   const url = extractGalleryItemUrl(stored || {});
   if (!url) {
@@ -136,6 +156,7 @@ async function repairPackageImages(packages, opts = {}) {
   const results = [];
   for (const pkg of packages || []) {
     const result = await buildPackageImageRepair(pkg, opts);
+    result.unsafe = findUnsafePackageImageValues(pkg);
     results.push(result);
     if (result.changed && opts.dbUnified && typeof opts.dbUnified.updateOne === 'function') {
       await opts.dbUnified.updateOne('packages', { id: pkg.id }, { $set: result.update });
@@ -148,14 +169,51 @@ async function repairPackageImages(packages, opts = {}) {
     dryRun: opts.dryRun !== false,
     scanned: (packages || []).length,
     changed: results.filter(result => result.changed).length,
+    unsafePackages: results.filter(result => result.unsafe.length > 0).length,
     placeholderFallback: PLACEHOLDER_PACKAGE_IMAGE,
     results,
+  };
+}
+
+/**
+ * A report small enough to read for a whole catalogue. The full report embeds each
+ * package's `before` state, which for a data-URI image is the entire image as text.
+ *
+ * @param {Object} report The result of repairPackageImages.
+ * @returns {Object} Counts, plus one short line per package that needs attention.
+ */
+function summariseRepairReport(report) {
+  const count = reason => report.results.filter(result => result.reason === reason).length;
+  return {
+    dryRun: report.dryRun,
+    scanned: report.scanned,
+    changed: report.changed,
+    wouldConvertDataUri: count('would-convert-data-uri'),
+    convertedDataUri: count('converted-data-uri'),
+    alreadyHasUsableImage: count('already-has-usable-image'),
+    noUsableImageAndNothingToConvert: count('no-data-uri-candidate'),
+    unsafePackages: report.unsafePackages,
+    needsAttention: report.results
+      .filter(
+        result =>
+          result.reason === 'would-convert-data-uri' ||
+          result.reason === 'converted-data-uri' ||
+          result.unsafe.length > 0
+      )
+      .map(result => ({
+        id: result.id,
+        reason: result.reason,
+        ...(result.source ? { source: result.source } : {}),
+        ...(result.unsafe.length > 0 ? { unsafe: result.unsafe } : {}),
+      })),
   };
 }
 
 module.exports = {
   dataUriToUploadFile,
   findPackageDataUriCandidates,
+  findUnsafePackageImageValues,
   buildPackageImageRepair,
   repairPackageImages,
+  summariseRepairReport,
 };

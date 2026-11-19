@@ -45,17 +45,17 @@ Changed files:
 - [x] Persist server-generated gallery photo IDs.
 - [x] Enforce the gallery maximum on the server.
 - [x] Add gallery timestamps and cache invalidation on every mutation.
-- [ ] Atomic mutation hardening (still read-modify-write; not yet using `$push`/`$pull`).
+- [x] Atomic mutation hardening (upload and delete now use `$push`/`$pull` through `utils/supplierGalleryUpdate.js`; the file-store fallback gained real `$push`/`$pull`/`$addToSet`/`$inc` support in `utils/localStoreUpdate.js`; reorder remains a whole-array `$set` by nature; see "Remaining backend implementation").
 - [x] Merge canonical supplier responses in every inline editor.
 - [x] Refresh all category-dependent views after category changes.
 - [x] Consolidate dialog behaviour (legacy owner-edit modals now use `EFModalA11y.enhance`, which gained `lockScroll`/`onEscape`; covered by `tests/unit/supplier-profile-modal-a11y.test.js`).
 - [x] Remove duplicate customisation controllers (the inline controller in `profile-customization.html` is gone; `js/profile-customization.js` is the single owner, covered by `tests/unit/profile-customization-single-controller.test.js`).
-- [ ] Remove the obsolete hero and theme editor path.
+- [x] Remove the obsolete hero and theme editor path (the "Edit hero" modal in `supplier-profile-owner-edit.js` — already removed from the page at runtime by `supplier-profile-theme-owner.js` — is deleted; `supplier-profile-theme-owner.js` and the Profile Customisation page are the two theme editors).
 - [x] Correct dashboard deep links (`#photos`/`#packages` now route to real sections via a hash router in `dashboard-supplier-actions.js`; see below).
 - [x] Add unsaved-navigation protection (Profile Customisation `beforeunload` guard).
 - [x] Align create, PATCH and UI field limits (create and PATCH share `PATCH_FIELD_MAX_LENGTHS`; dashboard `maxlength`s are pinned to it by `tests/unit/dashboard-supplier-field-limits.test.js`).
 - [x] Allow amenities to be cleared.
-- [ ] Clarify the different profile-completion measurements.
+- [x] Clarify the different profile-completion measurements (see "Completion measurements" below).
 
 ## Priority
 
@@ -304,11 +304,16 @@ Done in `routes/suppliers-v2.js`:
 
 Still remaining:
 
-- an atomic update strategy (`$push`/`$pull` instead of read-modify-write
-  with `$set` of the whole array) — deferred because the file-store
-  fallback backend (`db-unified.js`, used when `MONGODB_URI` is unset)
-  only applies `$set`/`$unset`, so switching to `$push`/`$pull` would
-  silently no-op gallery mutations outside MongoDB;
+- ~~an atomic update strategy~~ — **done.** The file-store fallback
+  (`db-unified.js`, used when `MONGODB_URI` is unset) used to apply only
+  `$set`/`$unset` and silently ignored every other operator, which is why this
+  was deferred. `utils/localStoreUpdate.js` now gives it `$push`, `$pull`,
+  `$addToSet` and `$inc` (and dotted `$unset`), so the upload and delete routes
+  use `$push`/`$pull` (`utils/supplierGalleryUpdate.js`). Two overlapping uploads
+  both persist, and a delete based on a stale read keeps a newer upload
+  (`tests/unit/supplier-gallery-update.test.js`). Legacy records whose gallery is
+  `null`, and several legacy photos sharing one URL with no id, fall back to the
+  previous whole-array write;
 - optimized/thumbnail/large/original derivative URLs are already
   returned and stored per record; no further change needed there;
 - approval state and upload timestamp are already stored per record.
@@ -560,6 +565,20 @@ Use distinct labels such as:
 - Growth checklist
 
 Do not present all three as the same percentage.
+
+### Completion measurements (done)
+
+What each number is, and what it is now called:
+
+| Where                                          | What it measures                                                                                                                                                                                            | Label                                                                            |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Supplier dashboard tile; admin supplier detail | The server's weighted score: photo, description, location, banner, gallery, social links, website. `tests/unit/supplier-profile-completeness-parity.test.js` keeps the server and the admin widget in step. | **Profile health**                                                               |
+| Profile Customisation sidebar meter            | Personal touches only: banner, tagline, highlights, services, social links.                                                                                                                                 | **Personalisation**                                                              |
+| Admin supplier list                            | Blends profile health with response rate, reviews, bookings and photos.                                                                                                                                     | **Quality score** (unchanged; its tooltip already says it is not Profile health) |
+
+A third "Profile Completeness" checklist (`createProfileChecklist` in
+`dashboard-widgets.js`: packages, verified email, first review) had no callers and was
+deleted. `tests/unit/supplier-completion-measures.test.js` keeps the labels distinct.
 
 ## Additional confirmed issue: unsaved navigation
 
