@@ -1,9 +1,9 @@
 /**
  * scripts/audit-orphaned-supplier-data.js must refuse `--apply` against
  * anything but a healthy MongoDB connection, the same rule already enforced
- * (and tested) for its sibling location-audit scripts. Unlike those scripts,
- * this one has no writes gated behind `--require-mongodb` for the dry run —
- * only `--apply` (a destructive delete) needs to be refused.
+ * (and tested) for its sibling location-audit scripts. A dry run is allowed
+ * on any backend by default; `--require-mongodb` / `AUDIT_REQUIRE_MONGODB=true`
+ * (covered in audit-require-mongodb-env.test.js) refuses it too.
  */
 
 'use strict';
