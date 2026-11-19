@@ -113,8 +113,20 @@ const DO_NOT_MERGE_PATTERNS = [
   /\bkeep (?:this )?(?:pr |pull request )?open\b/i,
 ];
 
-const DOCS_ONLY_PATTERN =
-  /\b(?:docs?|documentation|markdown)[\s-]*only\b|\bonly (?:a )?(?:docs?|documentation|markdown)\b|\bone markdown file\b|\bno code (?:changes?|changed)\b/i;
+// A sentence that is talking about the phrase rather than saying it ("removes the old do not
+// merge banner", "rejects descriptions that say ...").
+const ABOUT_THE_PHRASE_PATTERN =
+  /\b(?:remov\w*|banner|template|phrase|wording|quot\w*|detect\w*|reject\w*|flags?|says?|said|stale)\b/i;
+
+// A claim has to be the point of its sentence: "Docs-only handoff.", "This is a docs-only PR.",
+// "Docs-only: bump overrides". Words further into a sentence ("This is not a docs-only PR",
+// "Add a check that rejects docs-only descriptions", "calls itself documentation-only") are
+// mentions or denials, not claims about this pull request.
+const DOCS_ONLY_CLAIM_PATTERNS = [
+  /^(?:(?:this|it)\s+(?:is|['’]s)\s+)?(?:an?\s+)?(?:docs?|documentation|markdown)[\s-]*only\b(?:\s+(?:pr|pull request|change|changes|update|commit|handoff|fix))?\s*(?:[.:;,!—–-]|$)/i,
+  /^no code (?:changes?|changed)\b/i,
+  /^(?:it|this)\s+(?:touches|changes)\s+(?:just\s+|only\s+)?(?:one|a single)\s+(?:markdown|doc(?:umentation)?)\s+file\b/i,
+];
 
 const DEPENDENCY_FILES = new Set(['package.json', 'package-lock.json', 'npm-shrinkwrap.json']);
 const DEPENDENCY_DISCLOSURE_PATTERN =
@@ -136,6 +148,21 @@ function visibleText(body) {
     .join('\n');
 }
 
+/** The sentences of a description, without list markers, headings, bold or checkboxes. */
+function sentencesOf(text) {
+  return text
+    .split('\n')
+    .flatMap(line => line.split(/(?<=[.!?])\s+/))
+    .map(sentence =>
+      sentence
+        .replace(/^\s*(?:[-*+]|\d+[.)]|#{1,6})\s+/, '')
+        .replace(/^\[[ xX]\]\s*/, '')
+        .replace(/\*\*|__/g, '')
+        .trim()
+    )
+    .filter(Boolean);
+}
+
 /**
  * Does the description still say what the pull request does?
  *
@@ -146,10 +173,15 @@ function visibleText(body) {
  * @returns {{ok: boolean, problems: Array<{code: string, message: string}>}}
  */
 function checkPullRequestDescription({ body = '', files = [], draft = false } = {}) {
-  const text = visibleText(body);
+  const sentences = sentencesOf(visibleText(body));
   const problems = [];
 
-  if (!draft && DO_NOT_MERGE_PATTERNS.some(pattern => pattern.test(text))) {
+  const saysDoNotMerge = sentences.some(
+    sentence =>
+      !ABOUT_THE_PHRASE_PATTERN.test(sentence) &&
+      DO_NOT_MERGE_PATTERNS.some(pattern => pattern.test(sentence))
+  );
+  if (!draft && saysDoNotMerge) {
     problems.push({
       code: 'do_not_merge',
       message:
@@ -157,7 +189,9 @@ function checkPullRequestDescription({ body = '', files = [], draft = false } = 
     });
   }
 
-  if (DOCS_ONLY_PATTERN.test(text)) {
+  if (
+    sentences.some(sentence => DOCS_ONLY_CLAIM_PATTERNS.some(pattern => pattern.test(sentence)))
+  ) {
     const code = files.filter(file => !isDocumentationPath(file));
     if (code.length > 0) {
       const shown = code.slice(0, 5).join(', ');
@@ -169,7 +203,7 @@ function checkPullRequestDescription({ body = '', files = [], draft = false } = 
   }
 
   const changedDependencies = files.filter(file => DEPENDENCY_FILES.has(file));
-  if (changedDependencies.length > 0 && !DEPENDENCY_DISCLOSURE_PATTERN.test(text)) {
+  if (changedDependencies.length > 0 && !DEPENDENCY_DISCLOSURE_PATTERN.test(sentences.join(' '))) {
     problems.push({
       code: 'undisclosed_dependency_change',
       message: `This changes ${changedDependencies.join(' and ')} but the description never mentions dependencies. Say which dependencies change and why.`,
@@ -206,15 +240,22 @@ async function flagDegradedReview(github, { owner, repo, pullNumber, log = () =>
   const alreadyCommented = comments.some(comment =>
     String(comment.body || '').includes(DEGRADED_REVIEW_MARKER)
   );
-  for (const comment of comments) {
-    const signal = detectDegradedCodexReview({
-      login: comment.user && comment.user.login,
-      body: comment.body,
+  // Codex edits its summary comment in place and posts a separate notice when it hits its
+  // limit, and the notice is never deleted. Only the most recently touched Codex comment
+  // says where it stands now: an old notice followed by a completed review is recovered.
+  const touchedAt = comment => new Date(comment.updated_at || comment.created_at || 0).getTime();
+  const latestCodexComment = comments
+    .filter(comment => comment.user && comment.user.login === CODEX_REVIEW_BOT)
+    .sort((a, b) => touchedAt(a) - touchedAt(b))
+    .pop();
+  const codexSignal =
+    latestCodexComment &&
+    detectDegradedCodexReview({
+      login: latestCodexComment.user.login,
+      body: latestCodexComment.body,
     });
-    if (signal) {
-      signals.push(signal);
-      break;
-    }
+  if (codexSignal) {
+    signals.push(codexSignal);
   }
 
   const checks = await github.rest.checks.listForRef({
@@ -255,11 +296,30 @@ async function flagDegradedReview(github, { owner, repo, pullNumber, log = () =>
     }
   }
 
+  const hasLabel = (pull.labels || []).some(label => label.name === DEGRADED_REVIEW_LABEL);
+
   if (signals.length === 0) {
+    // Recovered: a passing re-run, or a completed Codex review after the notice. Leaving the
+    // label on would keep telling the merge routine that no independent review happened.
+    if (hasLabel) {
+      try {
+        await github.rest.issues.removeLabel({
+          owner,
+          repo,
+          issue_number: pullNumber,
+          name: DEGRADED_REVIEW_LABEL,
+        });
+      } catch (error) {
+        // 404: someone removed it already.
+        if (error.status !== 404) {
+          throw error;
+        }
+      }
+      return { flagged: false, signals, cleared: true };
+    }
     return { flagged: false, signals };
   }
 
-  const hasLabel = (pull.labels || []).some(label => label.name === DEGRADED_REVIEW_LABEL);
   if (!hasLabel) {
     try {
       await github.rest.issues.createLabel({

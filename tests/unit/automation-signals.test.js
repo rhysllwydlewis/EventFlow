@@ -192,6 +192,62 @@ describe('checkPullRequestDescription', () => {
     });
   });
 
+  describe('mentions and denials are not claims', () => {
+    it.each([
+      'This is not a docs-only PR: it fixes the server and updates the docs.',
+      'Add a check that rejects docs-only descriptions when JavaScript files change.',
+      '- calls itself documentation-only while changing other files (lists which);',
+      'Not docs only, despite the title.',
+      'The old wording said "no code changes" but it was wrong.',
+      'Reworded the docs-only rule in the conventions page.',
+    ])('does not treat %j as a documentation-only claim', body => {
+      expect(checkPullRequestDescription({ body, files: ['docs/a.md', ...code] }).ok).toBe(true);
+    });
+
+    it.each([
+      'Removes the old do not merge banner from the template.',
+      'Rejects descriptions that say do not merge yet.',
+      'Updates the wording of the "not ready to merge" phrase.',
+    ])('does not treat %j as saying this pull request should not be merged', body => {
+      expect(checkPullRequestDescription({ body, files: code }).ok).toBe(true);
+    });
+
+    it('still catches a real claim in a list item, a heading or bold text', () => {
+      for (const body of ['- Docs-only change.', '## Docs only', '**Docs-only handoff.**']) {
+        expect(
+          checkPullRequestDescription({ body, files: ['docs/a.md', ...code] }).problems.map(
+            p => p.code
+          )
+        ).toEqual(['docs_only_claim']);
+      }
+    });
+
+    it('still catches a real "do not merge" that happens to mention a check', () => {
+      const result = checkPullRequestDescription({
+        body: 'Do not merge until the new check passes.',
+        files: code,
+      });
+      expect(result.problems.map(p => p.code)).toEqual(['do_not_merge']);
+    });
+
+    it('catches a claim on a later line of a longer description', () => {
+      const body = 'Tidies the log.\n\nDocs-only.\n\nSee the issue.';
+      expect(checkPullRequestDescription({ body, files: code }).problems.map(p => p.code)).toEqual([
+        'docs_only_claim',
+      ]);
+    });
+
+    it('accepts this feature’s own description, which discusses every rule it enforces', () => {
+      const body = [
+        'A new check fails a ready pull request whose description:',
+        '- says it should not be merged (`do not merge yet`, `this PR will stay open`);',
+        '- calls itself documentation-only while changing other files;',
+        '- changes package.json without mentioning dependencies, such as a bump.',
+      ].join('\n');
+      expect(checkPullRequestDescription({ body, files: code }).ok).toBe(true);
+    });
+  });
+
   describe('undisclosed dependency changes', () => {
     it('flags a lockfile change the description never mentions', () => {
       const result = checkPullRequestDescription({
@@ -239,8 +295,9 @@ describe('flagDegradedReview', () => {
     logs = 'ok',
     logError = null,
     labelExists = false,
+    removeStatus = null,
   } = {}) {
-    const calls = { labels: [], createdLabels: [], comments: [] };
+    const calls = { labels: [], createdLabels: [], comments: [], removed: [] };
     const github = {
       rest: {
         pulls: {
@@ -259,6 +316,14 @@ describe('flagDegradedReview', () => {
             calls.createdLabels.push(params);
           }),
           addLabels: jest.fn(async params => calls.labels.push(params)),
+          removeLabel: jest.fn(async params => {
+            if (removeStatus) {
+              const error = new Error('gone');
+              error.status = removeStatus;
+              throw error;
+            }
+            calls.removed.push(params);
+          }),
           createComment: jest.fn(async params => calls.comments.push(params)),
         },
         checks: {
@@ -372,6 +437,97 @@ describe('flagDegradedReview', () => {
     expect(result.flagged).toBe(true);
     expect(result.signals[0].summary).toMatch(/log could not be read/);
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Resource not accessible'));
+  });
+
+  describe('recovery', () => {
+    const labelled = { labels: [DEGRADED_REVIEW_LABEL] };
+
+    it('removes the label when a passing re-run follows a crash, starting from a labelled PR', async () => {
+      const { github, calls } = fakeGithub({
+        ...labelled,
+        checkRuns: [
+          crashedScan,
+          { ...crashedScan, id: 100, conclusion: 'success', started_at: '2026-11-19T11:00:00Z' },
+        ],
+        logs: 'CAPIError',
+      });
+      const result = await flagDegradedReview(github, target);
+      expect(result).toEqual({ flagged: false, signals: [], cleared: true });
+      expect(calls.removed).toEqual([
+        { owner, repo, issue_number: 7, name: DEGRADED_REVIEW_LABEL },
+      ]);
+      expect(calls.comments).toHaveLength(0);
+    });
+
+    it('removes the label when Codex completed a review after an earlier usage-limit notice', async () => {
+      const { github, calls } = fakeGithub({
+        ...labelled,
+        comments: [
+          {
+            ...codexComment,
+            created_at: '2026-11-19T10:00:00Z',
+            updated_at: '2026-11-19T10:00:00Z',
+          },
+          {
+            user: { login: CODEX_REVIEW_BOT },
+            body: '<!-- codex-pull-request-review-summary --> Completed',
+            created_at: '2026-11-19T09:00:00Z',
+            updated_at: '2026-11-19T11:30:00Z', // edited in place after the notice
+          },
+        ],
+      });
+      const result = await flagDegradedReview(github, target);
+      expect(result.cleared).toBe(true);
+      expect(calls.removed).toHaveLength(1);
+    });
+
+    it('flags when the usage-limit notice is the latest thing Codex did', async () => {
+      const { github } = fakeGithub({
+        comments: [
+          {
+            user: { login: CODEX_REVIEW_BOT },
+            body: '<!-- codex-pull-request-review-summary --> Running',
+            created_at: '2026-11-19T09:00:00Z',
+            updated_at: '2026-11-19T09:05:00Z',
+          },
+          {
+            ...codexComment,
+            created_at: '2026-11-19T10:00:00Z',
+            updated_at: '2026-11-19T10:00:00Z',
+          },
+        ],
+      });
+      const result = await flagDegradedReview(github, target);
+      expect(result.signals.map(s => s.source)).toEqual(['codex']);
+    });
+
+    it('keeps the label while any signal remains', async () => {
+      const { github, calls } = fakeGithub({
+        ...labelled,
+        comments: [codexComment],
+        checkRuns: [{ ...crashedScan, conclusion: 'success' }],
+      });
+      const result = await flagDegradedReview(github, target);
+      expect(result.flagged).toBe(true);
+      expect(calls.removed).toHaveLength(0);
+    });
+
+    it('does nothing to a clean pull request that never had the label', async () => {
+      const { github, calls } = fakeGithub({ comments: [] });
+      expect(await flagDegradedReview(github, target)).toEqual({ flagged: false, signals: [] });
+      expect(github.rest.issues.removeLabel).not.toHaveBeenCalled();
+      expect(calls.removed).toHaveLength(0);
+    });
+
+    it('tolerates the label having already been removed', async () => {
+      const { github } = fakeGithub({ ...labelled, removeStatus: 404 });
+      expect((await flagDegradedReview(github, target)).cleared).toBe(true);
+    });
+
+    it('does not hide other failures when removing the label', async () => {
+      const { github } = fakeGithub({ ...labelled, removeStatus: 403 });
+      await expect(flagDegradedReview(github, target)).rejects.toThrow('gone');
+    });
   });
 
   it('skips a pull request that is not open', async () => {

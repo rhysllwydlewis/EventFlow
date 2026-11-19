@@ -28,7 +28,10 @@ If a pull request has the label:
 3. Say in the pull request that you did, and what it found. Do not just merge.
 4. A code scanning failure that is **not** a crash (a real finding) is not labelled. Read it.
 
-The label is informational. It does not block a merge by itself.
+The label is informational. It does not block a merge by itself. It clears itself, on the
+next sweep or event, once the reviewer has recovered: a code scanning re-run passes, or Codex
+completes a review after its usage-limit notice (the notice itself is never deleted, so what
+counts is the most recent thing Codex did).
 
 ## 2. The pull request description must match the pull request
 
@@ -42,8 +45,11 @@ request when its description:
   changing anything outside `docs/` and `*.md` / `*.txt`. List the files it really changes;
 - changes `package.json` or a lockfile without mentioning dependencies. Say which change and why.
 
-Text inside code spans, code blocks, quotations and HTML comments is ignored, so quoting an
-old description does not trip it. Bot-authored pull requests (Dependabot) are skipped.
+Only a direct claim counts. A documentation-only claim has to be the point of its sentence
+("Docs-only handoff.", "This is a docs-only PR.", "Docs-only: bump overrides"), so "This is not
+a docs-only PR", "Add a check that rejects docs-only descriptions" and "removes the old do not
+merge banner" are not flagged. Text inside code spans, code blocks, quotations and HTML
+comments is ignored too, and bot-authored pull requests (Dependabot) are skipped.
 
 This check is only advisory unless it is made a required status check in branch protection.
 That is the repository owner's decision.
