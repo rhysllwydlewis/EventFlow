@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { mkdir, rm, writeFile, readFile, cp } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { CHECK_TIMEOUTS_MS, shouldFailRun } from './lib/test-audit-policy.mjs';
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'test-audit');
@@ -54,7 +55,7 @@ const allChecks = [
     modes: ['quick', 'default', 'full', 'ci'],
     parser: 'jest',
     json: 'jest-smoke.json',
-    timeoutMs: 180000,
+    timeoutMs: CHECK_TIMEOUTS_MS['smoke'],
   },
   {
     id: 'jest-ci',
@@ -64,7 +65,7 @@ const allChecks = [
     modes: ['quick', 'default', 'full', 'ci'],
     parser: 'jest',
     json: 'jest-ci.json',
-    timeoutMs: 240000,
+    timeoutMs: CHECK_TIMEOUTS_MS['jest-ci'],
   },
   {
     id: 'full-regression',
@@ -74,7 +75,7 @@ const allChecks = [
     modes: ['default', 'full', 'ci'],
     parser: 'jest',
     json: 'jest-full.json',
-    timeoutMs: 300000,
+    timeoutMs: CHECK_TIMEOUTS_MS['full-regression'],
   },
   {
     id: 'playwright-static',
@@ -87,7 +88,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/playwright-static.json',
     artifactDirs: ['playwright-report', 'test-results'],
-    timeoutMs: 240000,
+    timeoutMs: CHECK_TIMEOUTS_MS['playwright-static'],
   },
   {
     id: 'playwright-full',
@@ -100,7 +101,7 @@ const allChecks = [
     json: 'test-results/playwright-full.json',
     artifactDirs: ['playwright-report', 'test-results'],
     safe: 'Requires a safe local/backend test environment; never uses production by this runner.',
-    timeoutMs: 420000,
+    timeoutMs: CHECK_TIMEOUTS_MS['playwright-full'],
   },
   {
     id: 'visual',
@@ -113,7 +114,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/visual-results.json',
     artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
-    timeoutMs: 300000,
+    timeoutMs: CHECK_TIMEOUTS_MS['visual'],
   },
   {
     id: 'a11y',
@@ -125,7 +126,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/a11y-results.json',
     artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
-    timeoutMs: 300000,
+    timeoutMs: CHECK_TIMEOUTS_MS['a11y'],
   },
   {
     id: 'security-headers',
@@ -598,7 +599,7 @@ async function main() {
     `# Passing Summary\n\n\`\`\`json\n${JSON.stringify(passingSummaries, null, 2)}\n\`\`\`\n`
   );
   console.log(report);
-  if (mode === 'ci' && counts.fail) {
+  if (shouldFailRun(mode, counts.fail)) {
     process.exitCode = 1;
   }
 }
