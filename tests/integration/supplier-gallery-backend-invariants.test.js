@@ -88,10 +88,10 @@ describe('supplier gallery backend invariants', () => {
       'suppliers',
       { id: 'sup_1' },
       {
-        $set: expect.objectContaining({
-          photosGallery: [expect.objectContaining({ id: res.body.photo.id })],
-          updatedAt: expect.any(String),
-        }),
+        // Appends this photo only. Writing the whole array back lost a photo when two
+        // uploads overlapped.
+        $push: { photosGallery: { $each: [expect.objectContaining({ id: res.body.photo.id })] } },
+        $set: { updatedAt: expect.any(String) },
       }
     );
     expect(catalogCache.invalidate).toHaveBeenCalledTimes(1);

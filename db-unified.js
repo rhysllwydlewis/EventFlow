@@ -11,6 +11,7 @@
 
 const db = require('./db');
 const logger = require('./utils/logger');
+const { applyLocalUpdate } = require('./utils/localStoreUpdate');
 const store = require('./store');
 
 // Connection timeout used when probing MongoDB.
@@ -691,16 +692,12 @@ async function updateOne(collectionName, id, updates, options = {}) {
       const all = store.read(collectionName);
       const index = all.findIndex(item => matchesFilter(item, filter));
       if (index >= 0) {
-        // Apply $set fields
-        const setFields = hasOperators ? updates.$set || {} : updates;
-        all[index] = applyDotPathSet(all[index], setFields);
-
-        // Apply $unset fields (remove keys)
-        if (hasOperators && updates.$unset) {
-          for (const key of Object.keys(updates.$unset)) {
-            delete all[index][key];
-          }
-        }
+        // $set, $unset, $inc, $push, $addToSet and $pull, matching MongoDB's behaviour
+        all[index] = applyLocalUpdate(
+          all[index],
+          hasOperators ? updates : { $set: updates },
+          localUpdateHelpers
+        );
 
         store.write(collectionName, all);
         return true;
@@ -847,18 +844,13 @@ async function updateMany(collectionName, filter, updates) {
 
     const all = store.read(collectionName);
     let modified = 0;
-    const setFields = hasOperators ? updates.$set || {} : updates;
-    const unsetFields = hasOperators ? updates.$unset || {} : {};
+    const update = hasOperators ? updates : { $set: updates };
     const next = all.map(item => {
       if (!matchesFilter(item, filter || {})) {
         return item;
       }
       modified += 1;
-      const updated = applyDotPathSet(item, setFields);
-      for (const key of Object.keys(unsetFields)) {
-        delete updated[key];
-      }
-      return updated;
+      return applyLocalUpdate(item, update, localUpdateHelpers);
     });
     if (modified > 0) {
       store.write(collectionName, next);
@@ -1231,6 +1223,10 @@ function matchesFilter(item, filter) {
     return itemValue === filterValue;
   });
 }
+
+// Passed to applyLocalUpdate (utils/localStoreUpdate.js) so the local store supports the same
+// update operators as MongoDB. Function declarations are hoisted, so this is safe above their use.
+const localUpdateHelpers = { applyDotPathSet, getNestedValue, matchesFilter, logger };
 
 /**
  * Run an aggregation pipeline.

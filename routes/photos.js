@@ -11,6 +11,7 @@ const { uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const { getFeatureFlags } = require('../middleware/features');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
+const { galleryAppendUpdate } = require('../utils/supplierGalleryUpdate');
 const photoVariants = require('../utils/photo-variants');
 const suppliersRouter = require('./suppliers');
 
@@ -482,15 +483,10 @@ router.post(
         const flags = await getFeatureFlags();
         if (flags.photoAutoApprove !== false) {
           // Auto-approve ON: add directly to gallery
-          if (!supplier.photosGallery) {
-            supplier.photosGallery = [];
-          }
-          supplier.photosGallery.push(photoRecord);
-
           await dbUnified.updateOne(
             'suppliers',
             { id: supplier.id },
-            { $set: { photosGallery: supplier.photosGallery } }
+            galleryAppendUpdate(supplier, photoRecord)
           );
 
           return res.json({
@@ -834,15 +830,10 @@ router.post(
         const flags = await getFeatureFlags();
         if (flags.photoAutoApprove !== false) {
           // Auto-approve ON: add directly to gallery
-          if (!supplier.photosGallery) {
-            supplier.photosGallery = [];
-          }
-          supplier.photosGallery.push(...uploadedPhotos);
-
           await dbUnified.updateOne(
             'suppliers',
             { id: supplier.id },
-            { $set: { photosGallery: supplier.photosGallery } }
+            galleryAppendUpdate(supplier, uploadedPhotos)
           );
         } else {
           // Auto-approve OFF: store all as pending records
@@ -990,10 +981,11 @@ async function deleteSupplierPhoto(user, id, url) {
   if (remaining.length === gallery.length) {
     return refusal(404, 'Photo not found');
   }
+  // Pull by URL (the same match the filter above used) so an overlapping upload is not overwritten.
   await dbUnified.updateOne(
     'suppliers',
     { id: supplier.id },
-    { $set: { photosGallery: remaining } }
+    { $pull: { photosGallery: { url } } }
   );
 
   // Delete the stored file, unless another record still shows it
@@ -1472,18 +1464,14 @@ router.post(
       const currentGallery = approvedSupplier.photosGallery || [];
       const alreadyInGallery = currentGallery.some(p => p.url === photo.url);
       if (!alreadyInGallery) {
-        const updatedGallery = [
-          ...currentGallery,
-          {
-            url: photo.url,
-            approved: true,
-            uploadedAt: photo.uploadedAt || new Date().toISOString(),
-          },
-        ];
         await dbUnified.updateOne(
           'suppliers',
           { id: approvedSupplier.id },
-          { $set: { photosGallery: updatedGallery } }
+          galleryAppendUpdate(approvedSupplier, {
+            url: photo.url,
+            approved: true,
+            uploadedAt: photo.uploadedAt || new Date().toISOString(),
+          })
         );
       }
     }
