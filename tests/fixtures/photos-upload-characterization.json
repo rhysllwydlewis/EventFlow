@@ -7,8 +7,30 @@
     "db": [],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 0,
+          "fileNames": [],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 0,
+          "fileNames": [],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -20,8 +42,29 @@
     "db": [],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -33,8 +76,29 @@
     "db": [],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -49,8 +113,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "banner",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -73,8 +159,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": ["S1", "S-other"],
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -96,8 +204,30 @@
     ],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "nope",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -119,8 +249,30 @@
     ],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -155,9 +307,41 @@
     ],
     "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L-other", "admin1", 0, 10]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "userRole": "admin",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L-other",
+          "userId": "admin1",
+          "count": 1,
+          "errors": 0,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -192,9 +376,41 @@
     ],
     "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "errors": 0,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -238,9 +454,41 @@
       ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 3, 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 3,
+          "errors": 0,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -279,9 +527,41 @@
       ["processAndSaveMarketplaceImage", "c.jpg", "L-full", "u1", 6, 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-full",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L-full",
+          "userId": "u1",
+          "count": 3,
+          "errors": 0,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -319,9 +599,41 @@
       ["processAndSaveMarketplaceImage", "b.jpg", "L-mixed", "u1", 3, 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", "b.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-mixed",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", "b.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L-mixed",
+          "userId": "u1",
+          "count": 2,
+          "errors": 0,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -365,10 +677,51 @@
       ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 2, 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Empty file buffer received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "filename": "empty.jpg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 2,
+          "errors": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -409,10 +762,51 @@
     ],
     "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Invalid file.originalname received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", null],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", null],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file.originalname received",
+        {
+          "type": "undefined",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "errors": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -453,10 +847,52 @@
     ],
     "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Invalid file.originalname received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", 42],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", 42],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file.originalname received",
+        {
+          "originalname": 42,
+          "type": "number",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "errors": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -494,9 +930,41 @@
       ["processAndSaveMarketplaceImage", "str.jpg", "L1", "u1", 2, 12]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", "str.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", "str.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 2,
+          "errors": 0,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -537,10 +1005,50 @@
     ],
     "uploads": [["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 1, 10]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Empty file buffer received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": [null, "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": [null, "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "errors": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -581,10 +1089,51 @@
     ],
     "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Empty file buffer received"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", "nobuf.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", "nobuf.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "filename": "nobuf.jpg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "errors": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -598,9 +1147,43 @@
     "db": [],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "Cannot read properties of undefined (reading 'length')",
+          "errorName": "TypeError",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 3,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -644,10 +1227,55 @@
       ["processAndSaveMarketplaceImage", "good.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Marketplace photo processing failed"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["validation.jpg", "good.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["validation.jpg", "good.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Marketplace photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "errors": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -691,10 +1319,55 @@
       ["processAndSaveMarketplaceImage", "good.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Marketplace photo processing failed"],
-      ["info", "Marketplace images uploaded"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Marketplace photo processing failed",
+        {
+          "error": "MongoDB write failed",
+          "errorName": "Error",
+          "filename": "mongo-msg.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "errors": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -730,11 +1403,78 @@
       ["processAndSaveMarketplaceImage", "boom.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Marketplace photo processing failed"],
-      ["error", "Marketplace photo processing failed"],
-      ["error", "All marketplace photos failed to upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Marketplace photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "error",
+        "Marketplace photo processing failed",
+        {
+          "error": "boom",
+          "errorName": "Error",
+          "filename": "boom.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "error",
+        "All marketplace photos failed to upload",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "errorCount": 2,
+          "errors": [
+            {
+              "filename": "validation.jpg",
+              "error": "Invalid image: File too small"
+            },
+            {
+              "filename": "boom.jpg",
+              "error": "boom"
+            }
+          ],
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -763,10 +1503,56 @@
     ],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Empty file buffer received"],
-      ["error", "All marketplace photos failed to upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "filename": "e1.jpg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "All marketplace photos failed to upload",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "errorCount": 1,
+          "errors": [
+            {
+              "filename": "e1.jpg",
+              "error": "Empty file - please try re-uploading this image"
+            }
+          ],
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -789,8 +1575,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "nope",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -813,8 +1621,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -881,8 +1711,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "userRole": "admin",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -907,8 +1759,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -975,8 +1849,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1043,8 +1939,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1109,8 +2027,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1155,9 +2095,38 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "[PHOTOS] insertOne failed for pending record"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "[PHOTOS] insertOne failed for pending record",
+        {
+          "photoId": "photo_<ID>",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1224,8 +2193,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1290,8 +2281,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1356,8 +2369,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-null",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1424,8 +2459,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-nogallery",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1492,8 +2549,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1507,9 +2586,43 @@
     "db": [],
     "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 2,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1532,8 +2645,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "nope",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1563,8 +2698,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P-orphan",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1594,8 +2751,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P-foreign",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -1668,8 +2847,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P-foreign",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "userRole": "admin",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -1745,8 +2946,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -1819,8 +3042,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P-placeholder",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -1892,8 +3137,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P-img",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -1966,8 +3233,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P-nogallery",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -2043,8 +3332,30 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -2120,8 +3431,30 @@
       ["getImageMetadata", 0]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -2135,9 +3468,43 @@
     "db": [],
     "uploads": [["processAndSaveImage", "validation.jpg", "package", 19]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P-img",
+          "filesCount": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "type": "package",
+          "id": "P-img",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2151,9 +3518,43 @@
     "db": [],
     "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2167,9 +3568,43 @@
     "db": [],
     "uploads": [["processAndSaveImage", "unavailable.jpg", "supplier", 20]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["unavailable.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["unavailable.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "no mongo",
+          "errorName": "MongoDBUnavailableError",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2183,9 +3618,43 @@
     "db": [],
     "uploads": [["processAndSaveImage", "storage.jpg", "supplier", 16]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["storage.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["storage.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "disk",
+          "errorName": "MongoDBStorageError",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2199,9 +3668,43 @@
     "db": [],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "boom",
+          "errorName": "Error",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2214,9 +3717,43 @@
     "db": [],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "boom",
+          "errorName": "Error",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2241,9 +3778,43 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "db down",
+          "errorName": "Error",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2268,9 +3839,43 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "db down",
+          "errorName": "Error",
+          "type": "package",
+          "id": "P1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2292,9 +3897,43 @@
     ],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Photo upload request received"],
-      ["error", "Photo upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Photo upload error",
+        {
+          "error": "db down",
+          "errorName": "Error",
+          "type": "marketplace",
+          "id": "L1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2306,8 +3945,30 @@
     "db": [],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 0,
+          "fileNames": [],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 0,
+          "fileNames": [],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2319,8 +3980,29 @@
     "db": [],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2332,8 +4014,29 @@
     "db": [],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2348,9 +4051,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "banner",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2421,9 +4162,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": ["S1", "S-other"],
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2453,9 +4232,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "nope",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "nope",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2485,9 +4302,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L-other",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2534,10 +4389,57 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "userRole": "admin",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L-other",
+          "userId": "admin1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L-other",
+          "userId": "admin1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2584,10 +4486,57 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2643,12 +4592,91 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "b.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 3,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2699,12 +4727,91 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-full",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L-full",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "b.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L-full",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L-full",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L-full",
+          "userId": "u1",
+          "count": 3,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2753,11 +4860,74 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", "b.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L-mixed",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", "b.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L-mixed",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "b.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L-mixed",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L-mixed",
+          "userId": "u1",
+          "count": 2,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2811,13 +4981,101 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Empty file buffer received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "empty.jpg",
+          "hasBuffer": true,
+          "bufferLength": 0,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "filename": "empty.jpg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 2,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2869,12 +5127,86 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Invalid file.originalname received"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", null],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", null],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": false,
+          "originalnameType": "undefined",
+          "hasBuffer": true,
+          "bufferLength": 14,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file.originalname received",
+        {
+          "type": "undefined",
+          "listingId": "L1",
+          "userId": "u1",
+          "fileKeys": ["originalname", "buffer", "size", "mimetype"],
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2926,12 +5258,88 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Invalid file.originalname received"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", 42],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", 42],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "number",
+          "originalnameValue": 42,
+          "hasBuffer": true,
+          "bufferLength": 7,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file.originalname received",
+        {
+          "originalname": 42,
+          "type": "number",
+          "listingId": "L1",
+          "userId": "u1",
+          "fileKeys": ["originalname", "buffer", "size", "mimetype"],
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -2983,12 +5391,86 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Invalid file buffer received"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", "str.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", "str.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "str.jpg",
+          "hasBuffer": true,
+          "bufferLength": 12,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file buffer received",
+        {
+          "filename": "str.jpg",
+          "hasBuffer": true,
+          "isBuffer": false,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3040,12 +5522,82 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Empty file buffer received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": [null, "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": [null, "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": false,
+          "originalnameType": "undefined",
+          "hasBuffer": true,
+          "bufferLength": 0,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3097,12 +5649,85 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Invalid file buffer received"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["a.jpg", "nobuf.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["a.jpg", "nobuf.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "nobuf.jpg",
+          "hasBuffer": false,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file buffer received",
+        {
+          "filename": "nobuf.jpg",
+          "hasBuffer": false,
+          "isBuffer": false,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3182,13 +5807,104 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Invalid file buffer received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Invalid file.originalname received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "nobuf.jpg",
+          "hasBuffer": false,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file buffer received",
+        {
+          "filename": "nobuf.jpg",
+          "hasBuffer": false,
+          "isBuffer": false,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": false,
+          "originalnameType": "undefined",
+          "hasBuffer": true,
+          "bufferLength": 14,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Invalid file.originalname received",
+        {
+          "type": "undefined",
+          "listingId": "S1",
+          "userId": "u1",
+          "fileKeys": ["originalname", "buffer", "size", "mimetype"],
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3241,12 +5957,89 @@
       ["getImageMetadata", 13]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["validation.jpg", "good.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["validation.jpg", "good.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "validation.jpg",
+          "hasBuffer": true,
+          "bufferLength": 19,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "marketplace",
+          "id": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "good.jpg",
+          "hasBuffer": true,
+          "bufferLength": 13,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3299,12 +6092,89 @@
       ["getImageMetadata", 13]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Marketplace images uploaded (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "mongo-msg.jpg",
+          "hasBuffer": true,
+          "bufferLength": 18,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "MongoDB write failed",
+          "errorName": "Error",
+          "filename": "mongo-msg.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "marketplace",
+          "id": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "good.jpg",
+          "hasBuffer": true,
+          "bufferLength": 13,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Marketplace images uploaded (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "count": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3346,13 +6216,114 @@
       ["processAndSaveMarketplaceImage", "boom.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"],
-      ["error", "All marketplace photos failed to upload (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "validation.jpg",
+          "hasBuffer": true,
+          "bufferLength": 19,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "marketplace",
+          "id": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "boom.jpg",
+          "hasBuffer": true,
+          "bufferLength": 13,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "boom",
+          "errorName": "Error",
+          "filename": "boom.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "marketplace",
+          "id": "L1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "error",
+        "All marketplace photos failed to upload (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "errorCount": 2,
+          "errors": [
+            {
+              "filename": "validation.jpg",
+              "error": "Invalid image: File too small"
+            },
+            {
+              "filename": "boom.jpg",
+              "error": "boom"
+            }
+          ],
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3387,11 +6358,73 @@
     ],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Empty file buffer received"],
-      ["error", "All marketplace photos failed to upload (batch)"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "e1.jpg",
+          "hasBuffer": true,
+          "bufferLength": 0,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "filename": "e1.jpg",
+          "listingId": "L1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "All marketplace photos failed to upload (batch)",
+        {
+          "listingId": "L1",
+          "userId": "u1",
+          "errorCount": 1,
+          "errors": [
+            {
+              "filename": "e1.jpg",
+              "error": "Empty file - please try re-uploading this image"
+            }
+          ],
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3414,9 +6447,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "nope",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "nope",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3439,9 +6510,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S-other",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3512,9 +6621,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-other",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "userRole": "admin",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S-other",
+          "userId": "admin1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3539,9 +6686,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3612,9 +6797,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3685,9 +6908,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3756,9 +7017,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3808,10 +7107,56 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "[PHOTOS] bulk insertOne: some records failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "[PHOTOS] bulk insertOne: some records failed",
+        {
+          "total": 1,
+          "failed": 1,
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -3942,11 +7287,81 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "b.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4099,11 +7514,81 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "b.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4172,9 +7657,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-null",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S-null",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4245,9 +7768,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S-nogallery",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S-nogallery",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4354,12 +7915,96 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "validation.jpg",
+          "hasBuffer": true,
+          "bufferLength": 19,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4409,12 +8054,94 @@
       ["processAndSaveImage", "boom.jpg", "supplier", 13]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 2,
+          "fileNames": ["validation.jpg", "boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "validation.jpg",
+          "hasBuffer": true,
+          "bufferLength": 19,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "boom.jpg",
+          "hasBuffer": true,
+          "bufferLength": 13,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "boom",
+          "errorName": "Error",
+          "filename": "boom.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4437,9 +8164,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "nope",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "nope",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4469,9 +8234,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P-orphan",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P-orphan",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4501,9 +8304,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P-foreign",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P-foreign",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -4580,9 +8421,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P-foreign",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "admin1",
+          "userRole": "admin",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P-foreign",
+          "userId": "admin1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -4662,9 +8541,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -4741,9 +8658,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P-placeholder",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P-placeholder",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -4819,9 +8774,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P-img",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P-img",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -4898,9 +8891,47 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P-nogallery",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P-nogallery",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -5040,11 +9071,81 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"],
-      ["info", "Processing file in batch upload"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 3,
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "b.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "c.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -5073,11 +9174,70 @@
     ],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Empty file buffer received"],
-      ["error", "Batch upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 1,
+          "fileNames": ["e1.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "e1.jpg",
+          "hasBuffer": true,
+          "bufferLength": 0,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Empty file buffer received",
+        {
+          "filename": "e1.jpg",
+          "listingId": "P1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch upload error",
+        {
+          "error": "Cannot read properties of undefined (reading 'url')",
+          "errorName": "TypeError",
+          "type": "package",
+          "id": "P1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5125,10 +9285,62 @@
     ],
     "uploads": [["processAndSaveImage", "validation.jpg", "package", 19]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P-img",
+          "filesCount": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "validation.jpg",
+          "hasBuffer": true,
+          "bufferLength": 19,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P-img",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "package",
+          "id": "P-img",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 1
   },
@@ -5171,10 +9383,62 @@
     ],
     "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["validation.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "validation.jpg",
+          "hasBuffer": true,
+          "bufferLength": 19,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "File too small",
+          "errorName": "ValidationError",
+          "filename": "validation.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5217,10 +9481,62 @@
     ],
     "uploads": [["processAndSaveImage", "unavailable.jpg", "supplier", 20]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["unavailable.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["unavailable.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "unavailable.jpg",
+          "hasBuffer": true,
+          "bufferLength": 20,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "no mongo",
+          "errorName": "MongoDBUnavailableError",
+          "filename": "unavailable.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5263,10 +9579,62 @@
     ],
     "uploads": [["processAndSaveImage", "storage.jpg", "supplier", 16]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["storage.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["storage.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "storage.jpg",
+          "hasBuffer": true,
+          "bufferLength": 16,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "disk",
+          "errorName": "MongoDBStorageError",
+          "filename": "storage.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5309,10 +9677,62 @@
     ],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "boom.jpg",
+          "hasBuffer": true,
+          "bufferLength": 13,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "boom",
+          "errorName": "Error",
+          "filename": "boom.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5355,10 +9775,62 @@
     ],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch photo processing failed"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["boom.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "boom.jpg",
+          "hasBuffer": true,
+          "bufferLength": 13,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch photo processing failed",
+        {
+          "error": "boom",
+          "errorName": "Error",
+          "filename": "boom.jpg",
+          "fileSize": 100,
+          "mimeType": "image/jpeg",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5383,10 +9855,60 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "supplier",
+          "id": "S1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "S1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch upload error",
+        {
+          "error": "db down",
+          "errorName": "Error",
+          "type": "supplier",
+          "id": "S1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5411,10 +9933,60 @@
       ["getImageMetadata", 10]
     ],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["info", "Processing file in batch upload"],
-      ["error", "Batch upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "package",
+          "id": "P1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Processing file in batch upload",
+        {
+          "hasFile": true,
+          "hasOriginalname": true,
+          "originalnameType": "string",
+          "originalnameValue": "a.jpg",
+          "hasBuffer": true,
+          "bufferLength": 10,
+          "mimetype": "image/jpeg",
+          "size": 100,
+          "listingId": "P1",
+          "userId": "u1",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch upload error",
+        {
+          "error": "db down",
+          "errorName": "Error",
+          "type": "package",
+          "id": "P1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   },
@@ -5436,9 +10008,43 @@
     ],
     "uploads": [],
     "logs": [
-      ["info", "Multer parsed files"],
-      ["info", "Batch photo upload request received"],
-      ["error", "Batch upload error"]
+      [
+        "info",
+        "Multer parsed files",
+        {
+          "totalFiles": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "endpoint": "/upload/batch",
+          "hasStack": false
+        }
+      ],
+      [
+        "info",
+        "Batch photo upload request received",
+        {
+          "type": "marketplace",
+          "id": "L1",
+          "filesCount": 1,
+          "fileNames": ["a.jpg"],
+          "userId": "u1",
+          "userRole": "supplier",
+          "hasStack": false
+        }
+      ],
+      [
+        "error",
+        "Batch upload error",
+        {
+          "error": "db down",
+          "errorName": "Error",
+          "type": "marketplace",
+          "id": "L1",
+          "userId": "u1",
+          "fileCount": 1,
+          "hasStack": true
+        }
+      ]
     ],
     "cacheInvalidations": 0
   }

@@ -25,7 +25,7 @@ const FIXTURE = path.join(__dirname, '../fixtures/photos-upload-characterization
 // ── Fakes the router reaches for at require time ────────────────────────────
 
 /** Mutable per-scenario state that the module mocks below read. */
-const world = { flags: { photoAutoApprove: true }, allowance: { allowed: true } };
+const mockWorld = { flags: { photoAutoApprove: true }, allowance: { allowed: true } };
 
 jest.mock('../../routes/suppliers', () => ({ invalidatePackageCaches: jest.fn() }));
 jest.mock('../../middleware/rateLimits', () => {
@@ -33,19 +33,17 @@ jest.mock('../../middleware/rateLimits', () => {
   return { uploadLimiter: pass, apiLimiter: pass };
 });
 jest.mock('../../middleware/features', () => ({
-  getFeatureFlags: jest.fn(async () => world.flags),
+  getFeatureFlags: jest.fn(async () => mockWorld.flags),
 }));
 jest.mock('../../utils/photoGalleryAllowance', () => ({
-  checkPhotoAllowance: jest.fn(async () => world.allowance),
+  checkPhotoAllowance: jest.fn(async () => mockWorld.allowance),
   photoLimitError: jest.fn((limit, current) => ({ error: 'photo limit', limit, current })),
 }));
 
 const router = require('../../routes/photos');
 const suppliersRouter = require('../../routes/suppliers');
 
-// ── The world a scenario runs in ────────────────────────────────────────────
-
-const clone = value => JSON.parse(JSON.stringify(value));
+// ── The mockWorld a scenario runs in ────────────────────────────────────────────
 
 function freshDb() {
   return {
@@ -177,7 +175,11 @@ function mount(scenario) {
     }),
   };
   const logger = ['info', 'warn', 'error', 'debug'].reduce((acc, level) => {
-    acc[level] = jest.fn(message => logs.push([level, message]));
+    // Stack traces carry machine-specific paths, so only they are left out of the comparison.
+    acc[level] = jest.fn((message, meta) => {
+      const { stack, ...fields } = meta || {};
+      logs.push([level, message, { ...fields, hasStack: stack !== undefined }]);
+    });
     return acc;
   }, {});
   const pass = (_req, _res, next) => next();
@@ -411,11 +413,12 @@ function normalise(value) {
 
 async function record(endpoint, scenario) {
   const originalEnv = process.env.NODE_ENV;
-  if (scenario.nodeEnv) {
+  const changesEnv = Boolean(scenario.nodeEnv);
+  if (changesEnv) {
     process.env.NODE_ENV = scenario.nodeEnv;
   }
-  world.flags = scenario.flags || { photoAutoApprove: true };
-  world.allowance = scenario.allowance || { allowed: true };
+  mockWorld.flags = scenario.flags || { photoAutoApprove: true };
+  mockWorld.allowance = scenario.allowance || { allowed: true };
   suppliersRouter.invalidatePackageCaches.mockClear();
   try {
     const { app, dbCalls, uploadCalls, logs } = mount(scenario);
@@ -440,7 +443,13 @@ async function record(endpoint, scenario) {
       cacheInvalidations: suppliersRouter.invalidatePackageCaches.mock.calls.length,
     });
   } finally {
-    process.env.NODE_ENV = originalEnv;
+    if (changesEnv) {
+      if (originalEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = originalEnv;
+      }
+    }
   }
 }
 

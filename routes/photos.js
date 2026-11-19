@@ -266,7 +266,7 @@ function classifyUploadError(error) {
 // /photos/upload/batch share these small steps. Each step either answers the request itself or
 // hands back what the next one needs, so the two route handlers read as the sequence they run.
 // tests/integration/photos-upload-characterization.test.js pins every response, database call,
-// photo pipeline call and log line of both routes.
+// photo pipeline call and log message with its fields (stack traces aside) of both routes.
 
 /** A response to send instead of carrying on. */
 function failure(status, body) {
@@ -827,7 +827,10 @@ async function countExistingMarketplaceImages(target) {
   return listing ? normalizeMarketplaceImageUrls(listing.images).length : 0;
 }
 
-/** Each finisher saves the photos for its type; it returns true if it already answered. */
+// After processing, one finisher per type saves the photos. Each returns true when it has already
+// answered the request, and false when the shared success response should be sent.
+
+/** Save photos to a marketplace listing and answer (always answers). */
 async function finishMarketplaceBatch(req, res, { normalizedId }, uploadedPhotos, errors) {
   const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
 
@@ -937,6 +940,7 @@ async function finishPackageBatch(req, res, { normalizedId }, uploadedPhotos) {
   return false;
 }
 
+/** @returns {Promise<boolean>|boolean} true when the request has been answered */
 function finishBatchUpload(req, res, target, uploadedPhotos, errors) {
   switch (target.type) {
     case 'marketplace':
