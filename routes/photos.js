@@ -18,13 +18,13 @@ const suppliersRouter = require('./suppliers');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
-let dbUnified;
-let authRequired;
-let roleRequired;
-let featureRequired;
-let csrfProtection;
-let photoUpload;
-let logger;
+let dbUnified = null;
+let authRequired = null;
+let roleRequired = null;
+let featureRequired = null;
+let csrfProtection = null;
+let photoUpload = null;
+let logger = null;
 
 /**
  * Initialize dependencies from server.js
@@ -1194,14 +1194,14 @@ router.post('/photos/crop', applyAuthRequired, applyCsrfProtection, async (req, 
 
     const croppedImages = await photoUpload.cropImage(imageUrl, cropData);
 
-    res.json({
+    return res.json({
       success: true,
       images: croppedImages,
       message: 'Image cropped successfully',
     });
   } catch (error) {
     logger.error('Crop image error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to crop image',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
@@ -1282,14 +1282,14 @@ router.post(
         JSON.parse(metadata || '{}')
       );
 
-      res.json({
+      return res.json({
         success: true,
         photo: result,
         message: 'Photo replaced successfully',
       });
     } catch (error) {
       logger.error('Replace photo error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to replace photo',
         details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
@@ -1313,7 +1313,7 @@ router.post('/photos/bulk-edit', applyAuthRequired, applyCsrfProtection, async (
       photos.map(photo => photoUpload.updatePhotoMetadata(photo.id, photo.metadata))
     );
 
-    res.json({
+    return res.json({
       success: true,
       updated: results.length,
       photos: results,
@@ -1321,7 +1321,7 @@ router.post('/photos/bulk-edit', applyAuthRequired, applyCsrfProtection, async (
     });
   } catch (error) {
     logger.error('Bulk edit photos error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to bulk edit photos',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
@@ -1348,14 +1348,14 @@ router.post('/photos/:id/filters', applyAuthRequired, applyCsrfProtection, async
       saturation: parseFloat(saturation) || 1,
     });
 
-    res.json({
+    return res.json({
       success: true,
       image: result,
       message: 'Filters applied successfully',
     });
   } catch (error) {
     logger.error('Apply filters error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to apply filters',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
@@ -1376,14 +1376,14 @@ router.post('/photos/reorder', applyAuthRequired, applyCsrfProtection, async (re
 
     const result = await photoUpload.updatePhotoOrder(photoOrder);
 
-    res.json({
+    return res.json({
       success: true,
       order: result,
       message: 'Photo order updated successfully',
     });
   } catch (error) {
     logger.error('Reorder photos error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to reorder photos',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
@@ -1489,7 +1489,7 @@ router.get('/admin/photos', applyAuthRequired, applyRoleRequired('admin'), async
     // Get photos from photosGallery (includes approved and unapproved)
     const photos = supplier.photosGallery || [];
 
-    res.json({
+    return res.json({
       success: true,
       photos: photos.map(p => ({
         ...p,
@@ -1499,7 +1499,7 @@ router.get('/admin/photos', applyAuthRequired, applyRoleRequired('admin'), async
     });
   } catch (error) {
     logger.error('Error fetching supplier photos:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to fetch photos',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
@@ -1553,7 +1553,7 @@ router.post(
       }
     }
 
-    res.json({ success: true, message: 'Photo approved successfully', photo });
+    return res.json({ success: true, message: 'Photo approved successfully', photo });
   }
 );
 
@@ -1595,7 +1595,7 @@ router.post(
       }
     );
 
-    res.json({ success: true, message: 'Photo rejected successfully', photo });
+    return res.json({ success: true, message: 'Photo rejected successfully', photo });
   }
 );
 
@@ -1664,10 +1664,10 @@ router.get('/photos/:id', apiLimiter, async (req, res) => {
     res.setHeader('Content-Length', imageBuffer.length);
 
     // Send the image
-    res.send(imageBuffer);
+    return res.send(imageBuffer);
   } catch (error) {
     logger.error('Error serving photo from MongoDB:', error);
-    res.status(500).json({ error: 'Failed to retrieve photo' });
+    return res.status(500).json({ error: 'Failed to retrieve photo' });
   }
 });
 
