@@ -69,7 +69,9 @@ describe('scheduled test audit policy', () => {
       const literal = source.match(/timeoutMs:\s*\d+/g);
       expect(literal).toBeNull();
       for (const id of Object.keys(timeouts())) {
-        expect(source).toContain(`timeoutMs: CHECK_TIMEOUTS_MS['${id}']`);
+        // Dot notation where the id is a valid identifier, brackets for ids like jest-ci.
+        const access = /^[A-Za-z_$][\w$]*$/.test(id) ? `.${id}` : `['${id}']`;
+        expect(source).toContain(`timeoutMs: CHECK_TIMEOUTS_MS${access}`);
       }
     });
 

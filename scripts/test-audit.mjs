@@ -55,7 +55,7 @@ const allChecks = [
     modes: ['quick', 'default', 'full', 'ci'],
     parser: 'jest',
     json: 'jest-smoke.json',
-    timeoutMs: CHECK_TIMEOUTS_MS['smoke'],
+    timeoutMs: CHECK_TIMEOUTS_MS.smoke,
   },
   {
     id: 'jest-ci',
@@ -114,7 +114,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/visual-results.json',
     artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
-    timeoutMs: CHECK_TIMEOUTS_MS['visual'],
+    timeoutMs: CHECK_TIMEOUTS_MS.visual,
   },
   {
     id: 'a11y',
@@ -126,7 +126,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/a11y-results.json',
     artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
-    timeoutMs: CHECK_TIMEOUTS_MS['a11y'],
+    timeoutMs: CHECK_TIMEOUTS_MS.a11y,
   },
   {
     id: 'security-headers',
