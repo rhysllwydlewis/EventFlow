@@ -145,10 +145,12 @@ async function main(argv = process.argv.slice(2)) {
 
 if (require.main === module) {
   main()
+    // skipcq: JS-0263 -- CLI entry point: the open database connection keeps the event loop alive, so it must exit explicitly.
     .then(() => process.exit(0))
     .catch(err => {
       // A usage mistake needs the message, not a stack trace.
-      console.error(err && err.usage ? err.message : err && err.stack ? err.stack : err);
+      console.error(err?.usage ? err.message : (err?.stack ?? err));
+      // skipcq: JS-0263 -- CLI entry point, as above.
       process.exit(1);
     });
 }

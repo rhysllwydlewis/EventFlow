@@ -14,6 +14,10 @@ const logger = require('./utils/logger');
 const { applyLocalUpdate } = require('./utils/localStoreUpdate');
 const store = require('./store');
 
+// Passed to applyLocalUpdate (utils/localStoreUpdate.js) so the local store supports the same
+// update operators as MongoDB. Function declarations are hoisted, so this is safe above their use.
+const localUpdateHelpers = { applyDotPathSet, getNestedValue, matchesFilter, logger };
+
 // Connection timeout used when probing MongoDB.
 // Must be comfortably below Jest's testTimeout (10 s) so that beforeAll/afterAll
 // hooks can fall back to local storage without hitting the hook deadline.
@@ -1223,10 +1227,6 @@ function matchesFilter(item, filter) {
     return itemValue === filterValue;
   });
 }
-
-// Passed to applyLocalUpdate (utils/localStoreUpdate.js) so the local store supports the same
-// update operators as MongoDB. Function declarations are hoisted, so this is safe above their use.
-const localUpdateHelpers = { applyDotPathSet, getNestedValue, matchesFilter, logger };
 
 /**
  * Run an aggregation pipeline.

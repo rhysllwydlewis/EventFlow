@@ -79,6 +79,82 @@ function unsetPath(target, path) {
   delete cursor[segments[segments.length - 1]];
 }
 
+function applyUnset(target, unsetSpec) {
+  if (!isPlainObject(unsetSpec)) {
+    return;
+  }
+  for (const path of Object.keys(unsetSpec)) {
+    unsetPath(target, path);
+  }
+}
+
+function applyInc(doc, incSpec, { applyDotPathSet, getNestedValue }) {
+  let next = doc;
+  for (const [path, by] of Object.entries(incSpec)) {
+    if (typeof by !== 'number' || Number.isNaN(by)) {
+      throw new TypeError(`$inc requires a numeric amount for "${path}"`);
+    }
+    const current = getNestedValue(next, path);
+    if (current !== undefined && typeof current !== 'number') {
+      throw new TypeError(`$inc requires "${path}" to be a number`);
+    }
+    next = applyDotPathSet(next, { [path]: (current === undefined ? 0 : current) + by });
+  }
+  return next;
+}
+
+function applyPush(doc, pushSpec, { applyDotPathSet, getNestedValue }) {
+  let next = doc;
+  for (const [path, value] of Object.entries(pushSpec)) {
+    const current = readArray(next, path, '$push', getNestedValue) || [];
+    next = applyDotPathSet(next, { [path]: [...current, ...valuesToAdd(value)] });
+  }
+  return next;
+}
+
+function applyAddToSet(doc, addSpec, { applyDotPathSet, getNestedValue }) {
+  let next = doc;
+  for (const [path, value] of Object.entries(addSpec)) {
+    const result = [...(readArray(next, path, '$addToSet', getNestedValue) || [])];
+    for (const candidate of valuesToAdd(value)) {
+      if (!result.some(existing => isDeepStrictEqual(existing, candidate))) {
+        result.push(candidate);
+      }
+    }
+    next = applyDotPathSet(next, { [path]: result });
+  }
+  return next;
+}
+
+/** Does an array element match a `$pull` condition (a value, a document, or operators)? */
+function pullMatches(element, condition, matchesFilter) {
+  if (isOperatorObject(condition)) {
+    return matchesFilter({ value: element }, { value: condition });
+  }
+  if (isPlainObject(condition) && isPlainObject(element)) {
+    return matchesFilter(element, condition);
+  }
+  return isDeepStrictEqual(element, condition);
+}
+
+function applyPull(doc, pullSpec, { applyDotPathSet, getNestedValue, matchesFilter }) {
+  let next = doc;
+  for (const [path, condition] of Object.entries(pullSpec)) {
+    const current = readArray(next, path, '$pull', getNestedValue);
+    if (current === null) {
+      continue; // nothing to pull from
+    }
+    const kept = current.filter(element => !pullMatches(element, condition, matchesFilter));
+    next = applyDotPathSet(next, { [path]: kept });
+  }
+  return next;
+}
+
+/** Apply one operator's spec when it is present, otherwise leave the document alone. */
+function applyWhenPresent(doc, spec, apply, helpers) {
+  return isPlainObject(spec) ? apply(doc, spec, helpers) : doc;
+}
+
 /**
  * Apply an update document to one local-store document.
  *
@@ -92,75 +168,21 @@ function unsetPath(target, path) {
  * @returns {Object} A new document.
  */
 function applyLocalUpdate(doc, updates, helpers) {
-  const { applyDotPathSet, getNestedValue, matchesFilter, logger } = helpers;
   const spec = updates || {};
 
-  // A copy first, so nothing below can mutate the stored document.
-  let next = applyDotPathSet(doc, spec.$set || {});
-
   for (const operator of Object.keys(spec)) {
-    if (!SUPPORTED_OPERATORS.includes(operator) && logger && logger.warn) {
-      logger.warn(`Unsupported update operator in local store (ignored): ${operator}`);
+    if (!SUPPORTED_OPERATORS.includes(operator) && helpers.logger && helpers.logger.warn) {
+      helpers.logger.warn(`Unsupported update operator in local store (ignored): ${operator}`);
     }
   }
 
-  if (isPlainObject(spec.$unset)) {
-    for (const path of Object.keys(spec.$unset)) {
-      unsetPath(next, path);
-    }
-  }
-
-  if (isPlainObject(spec.$inc)) {
-    for (const [path, by] of Object.entries(spec.$inc)) {
-      if (typeof by !== 'number' || Number.isNaN(by)) {
-        throw new TypeError(`$inc requires a numeric amount for "${path}"`);
-      }
-      const current = getNestedValue(next, path);
-      if (current !== undefined && typeof current !== 'number') {
-        throw new TypeError(`$inc requires "${path}" to be a number`);
-      }
-      next = applyDotPathSet(next, { [path]: (current === undefined ? 0 : current) + by });
-    }
-  }
-
-  if (isPlainObject(spec.$push)) {
-    for (const [path, value] of Object.entries(spec.$push)) {
-      const current = readArray(next, path, '$push', getNestedValue) || [];
-      next = applyDotPathSet(next, { [path]: [...current, ...valuesToAdd(value)] });
-    }
-  }
-
-  if (isPlainObject(spec.$addToSet)) {
-    for (const [path, value] of Object.entries(spec.$addToSet)) {
-      const result = [...(readArray(next, path, '$addToSet', getNestedValue) || [])];
-      for (const candidate of valuesToAdd(value)) {
-        if (!result.some(existing => isDeepStrictEqual(existing, candidate))) {
-          result.push(candidate);
-        }
-      }
-      next = applyDotPathSet(next, { [path]: result });
-    }
-  }
-
-  if (isPlainObject(spec.$pull)) {
-    for (const [path, condition] of Object.entries(spec.$pull)) {
-      const current = readArray(next, path, '$pull', getNestedValue);
-      if (current === null) {
-        continue; // nothing to pull from
-      }
-      const matches = element => {
-        if (isOperatorObject(condition)) {
-          return matchesFilter({ value: element }, { value: condition });
-        }
-        if (isPlainObject(condition) && isPlainObject(element)) {
-          return matchesFilter(element, condition);
-        }
-        return isDeepStrictEqual(element, condition);
-      };
-      next = applyDotPathSet(next, { [path]: current.filter(element => !matches(element)) });
-    }
-  }
-
+  // A copy first, so nothing below can mutate the stored document.
+  let next = helpers.applyDotPathSet(doc, spec.$set || {});
+  applyUnset(next, spec.$unset);
+  next = applyWhenPresent(next, spec.$inc, applyInc, helpers);
+  next = applyWhenPresent(next, spec.$push, applyPush, helpers);
+  next = applyWhenPresent(next, spec.$addToSet, applyAddToSet, helpers);
+  next = applyWhenPresent(next, spec.$pull, applyPull, helpers);
   return next;
 }
 

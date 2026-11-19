@@ -264,13 +264,13 @@
 
   /** `firstWeight` of `first` and the rest of `second`, as lower-case #rrggbb. */
   function mixHex(first, second, firstWeight) {
-    const a = hexToRgb(first);
-    const b = hexToRgb(second);
+    const from = hexToRgb(first);
+    const to = hexToRgb(second);
     const weight = Math.max(0, Math.min(1, firstWeight));
     return rgbToHex({
-      r: a.r * weight + b.r * (1 - weight),
-      g: a.g * weight + b.g * (1 - weight),
-      b: a.b * weight + b.b * (1 - weight),
+      r: from.r * weight + to.r * (1 - weight),
+      g: from.g * weight + to.g * (1 - weight),
+      b: from.b * weight + to.b * (1 - weight),
     });
   }
 
