@@ -1,0 +1,143 @@
+name: Review signals
+
+# Makes two silent failures visible on a pull request:
+#
+#  - the independent review did not run (Codex hit its usage limit, or GitHub code
+#    scanning crashed before reading the diff), see #1702 and #1675;
+#  - the description no longer matches the pull request ("do not merge yet" on one that
+#    merged, "docs-only" on one that changed dependencies), see #1749.
+#
+# The decisions live in scripts/lib/automation-signals.js, where they are unit tested.
+# Nothing from a comment or description is ever placed in a shell command.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review, converted_to_draft]
+  issue_comment:
+    types: [created]
+  check_run:
+    types: [completed]
+  schedule:
+    # A safety net: the events above can be missed, and the code scanning check is created
+    # by a GitHub app rather than by a workflow.
+    - cron: '23 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Pull request number to check (leave empty to check every open one)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-signals-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number || github.event.check_run.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  pr-description:
+    name: PR description matches the diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Compare the description with the diff
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { checkPullRequestDescription } = require('./scripts/lib/automation-signals.js');
+            const pull = context.payload.pull_request;
+            if (pull.user && pull.user.type === 'Bot') {
+              core.info('Bot-authored pull request: skipped.');
+              return;
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pull.number,
+              per_page: 100,
+            });
+            const result = checkPullRequestDescription({
+              body: pull.body,
+              files: files.map(file => file.filename),
+              draft: pull.draft,
+            });
+            for (const problem of result.problems) {
+              core.error(problem.message);
+            }
+            if (!result.ok) {
+              core.setFailed('The pull request description does not match the pull request.');
+            }
+
+  degraded-review:
+    name: Flag a degraded independent review
+    # Codex notices and code scanning crashes arrive as comments and check runs. Anything
+    # else is ignored here, and the scheduled run below sweeps what an event missed.
+    if: >-
+      (github.event_name == 'issue_comment'
+        && github.event.issue.pull_request
+        && github.event.comment.user.login == 'chatgpt-codex-connector[bot]')
+      || (github.event_name == 'check_run'
+        && github.event.check_run.name == 'github-advanced-security'
+        && github.event.check_run.conclusion == 'failure')
+      || github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: read
+      actions: read
+    steps:
+      # These events run with write access in the context of the default branch, so this
+      # must never check out or run code from a pull request. No `ref:` is given.
+      - name: Checkout the default branch
+        uses: actions/checkout@v7
+
+      - name: Label pull requests whose review did not run
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { flagDegradedReview } = require('./scripts/lib/automation-signals.js');
+            const { owner, repo } = context.repo;
+
+            let numbers = [];
+            if (context.eventName === 'issue_comment') {
+              numbers = [context.payload.issue.number];
+            } else if (context.eventName === 'check_run') {
+              numbers = (context.payload.check_run.pull_requests || []).map(pull => pull.number);
+            } else if (context.eventName === 'workflow_dispatch' && context.payload.inputs.pull_request) {
+              numbers = [Number(context.payload.inputs.pull_request)];
+            } else {
+              const open = await github.paginate(github.rest.pulls.list, {
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100,
+              });
+              numbers = open.map(pull => pull.number);
+            }
+
+            for (const pullNumber of numbers) {
+              if (!Number.isInteger(pullNumber)) {
+                continue;
+              }
+              const result = await flagDegradedReview(github, {
+                owner,
+                repo,
+                pullNumber,
+                log: message => core.info(message),
+              });
+              core.info(
+                `#${pullNumber}: ${result.flagged ? 'flagged (' + result.signals.map(s => s.source).join(', ') + ')' : 'nothing to flag' + (result.reason ? ' (' + result.reason + ')' : '')}`
+              );
+            }

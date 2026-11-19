@@ -37,7 +37,11 @@ is actually followed, in full, every time:
    the step that matters most. (See PR #1433 on the retired forum routine for
    what this looks like done well: its own review pass caught a dialog with
    no accessible name in three of four render states, something axe had
-   reported zero violations on.)
+   reported zero violations on.) If the pull request carries the
+   `independent-review-degraded` label, Codex or GitHub code scanning did not
+   actually run on it, so this step is the only review it gets: do it more
+   thoroughly, and say in the pull request that you did. See
+   `docs/AUTOMATION_CONVENTIONS.md`.
 4. Fix everything that review turns up and push the update.
 5. Re-run the tests. They must come back green again after the review fixes,
    not just after step 2.
@@ -50,7 +54,11 @@ is actually followed, in full, every time:
      (not just `/api/health`'s "starting" state, which is always 200 even
      mid-boot — `/ready` is the strict one, use it).
    - A steady run of 200s is success — the new deploy is live and healthy.
-     Record that in the session log and move on.
+     Record that in the session log and move on. Record evidence, not a
+     summary: link the `deploy/production` commit status on the merge commit,
+     and paste the raw `/deployment.json` and the actual `/api/ready` response
+     lines. If you cannot reach the site from this environment, say so rather
+     than writing that the deploy was verified.
    - If it stays unhealthy (persistent 503, connection failures, or 5xx)
      past that window, treat it as a bad deploy from your merge: revert the
      merge commit on `main` immediately (`git revert -m 1 <merge-sha>`),
