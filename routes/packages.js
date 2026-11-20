@@ -1285,7 +1285,7 @@ router.delete(
     const owningSupplier = deleted
       ? await dbUnified.findOne('suppliers', { id: pkg.supplierId })
       : null;
-    if (owningSupplier && owningSupplier.ownerUserId) {
+    if (owningSupplier?.ownerUserId) {
       await deleteUnusedStoredCopies({
         dbUnified,
         photoUpload,

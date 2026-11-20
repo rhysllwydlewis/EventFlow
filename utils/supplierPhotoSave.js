@@ -39,8 +39,8 @@ const { withLock } = require('./keyedLock');
  *   supplier gone, 403 no room left, 500 the save failed), or null when it was saved
  */
 const hasPhotoUrl = (supplier, url) =>
-  Array.isArray(supplier && supplier.photosGallery) &&
-  supplier.photosGallery.some(photo => photo && photo.url === url);
+  Array.isArray(supplier?.photosGallery) &&
+  supplier.photosGallery.some(photo => photo?.url === url);
 
 function saveSupplierPhotos({ dbUnified, logger, supplierId, records, extraSet, onlyIfAbsent }) {
   return withLock(`supplier-gallery:${supplierId}`, async () => {

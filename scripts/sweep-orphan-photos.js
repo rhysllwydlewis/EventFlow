@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Find, and optionally delete, stored photo images that nothing uses any more.
  *
@@ -136,7 +135,7 @@ if (require.main === module) {
       console.error('Orphan photo sweep failed:', error.message);
       process.exitCode = EXIT_CODES.failed;
     })
-    .finally(() => setTimeout(() => process.exit(process.exitCode), 200));
+    .finally(() => mongoDb.close().catch(() => undefined));
 }
 
 module.exports = { EXIT_CODES, describe, main, parseArgs };
