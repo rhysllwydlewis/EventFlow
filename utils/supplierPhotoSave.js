@@ -17,7 +17,7 @@
  */
 
 const { checkPhotoAllowance, photoLimitError } = require('./photoGalleryAllowance');
-const { galleryAppendUpdate } = require('./supplierGalleryUpdate');
+const { galleryAppendIfUrlAbsent, galleryAppendUpdate } = require('./supplierGalleryUpdate');
 const { withLock } = require('./keyedLock');
 
 /**
@@ -32,10 +32,17 @@ const { withLock } = require('./keyedLock');
  * @param {string} options.supplierId - Supplier id
  * @param {Object[]} options.records - The photo records to add (at least one)
  * @param {Object} [options.extraSet] - Further fields to `$set` in the same write
+ * @param {boolean} [options.onlyIfAbsent] - Add the one record only if no gallery photo already has
+ *   its URL (an approval, which may be repeated): when it is already there that is a success and
+ *   nothing is written, and the write itself matches only while the URL is absent
  * @returns {Promise<{failure: {status: number, body: Object}}|null>} Why nothing was saved (404
  *   supplier gone, 403 no room left, 500 the save failed), or null when it was saved
  */
-function saveSupplierPhotos({ dbUnified, logger, supplierId, records, extraSet }) {
+const hasPhotoUrl = (supplier, url) =>
+  Array.isArray(supplier && supplier.photosGallery) &&
+  supplier.photosGallery.some(photo => photo && photo.url === url);
+
+function saveSupplierPhotos({ dbUnified, logger, supplierId, records, extraSet, onlyIfAbsent }) {
   return withLock(`supplier-gallery:${supplierId}`, async () => {
     try {
       // throwOnError: a database failure is a failed save (500), not "no such supplier" (404)
@@ -47,18 +54,31 @@ function saveSupplierPhotos({ dbUnified, logger, supplierId, records, extraSet }
       if (!supplier) {
         return { failure: { status: 404, body: { error: 'Supplier not found' } } };
       }
+      if (onlyIfAbsent && hasPhotoUrl(supplier, records[0].url)) {
+        return null;
+      }
       const allowance = await checkPhotoAllowance(supplier, records.length);
       if (!allowance.allowed) {
         return {
           failure: { status: 403, body: photoLimitError(allowance.limit, allowance.current) },
         };
       }
-      const written = await dbUnified.updateOne(
-        'suppliers',
-        { id: supplier.id },
-        galleryAppendUpdate(supplier, records, extraSet)
-      );
+      const { filter, update } = onlyIfAbsent
+        ? galleryAppendIfUrlAbsent(supplier, records[0], extraSet)
+        : { filter: { id: supplier.id }, update: galleryAppendUpdate(supplier, records, extraSet) };
+      const written = await dbUnified.updateOne('suppliers', filter, update);
       if (written === false) {
+        // Another server process may have added the same photo between the read and the write
+        if (onlyIfAbsent) {
+          const now = await dbUnified.findOne(
+            'suppliers',
+            { id: supplierId },
+            { throwOnError: true }
+          );
+          if (hasPhotoUrl(now, records[0].url)) {
+            return null;
+          }
+        }
         throw new Error('the database did not save the photos');
       }
       return null;

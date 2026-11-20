@@ -236,6 +236,25 @@ describe('deleteUnusedStoredCopies', () => {
       expect(photoUpload.deleteImage).not.toHaveBeenCalled();
     });
 
+    test('only a pending photo record counts, even if the database returns every record', async () => {
+      // A database that ignored the status condition in the query must not make an approved or
+      // rejected record keep its images alive: the records are checked again here
+      const records = [
+        { id: 'a', status: 'approved', url: gone.url },
+        { id: 'b', status: 'rejected', thumbnail: gone.thumbnail },
+        { id: 'c', status: 'pending', large: gone.large },
+      ];
+      const dbUnified = {
+        find: jest.fn(async collection => (collection === 'photos' ? records : [])),
+      };
+      const photoUpload = { deleteImage: jest.fn(async () => undefined) };
+
+      const result = await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [gone] });
+
+      expect(result.kept).toEqual([gone.large]);
+      expect(result.deleted).toEqual([gone.url, gone.thumbnail, gone.original]);
+    });
+
     test('the supplier it was removed from, when another of its records still shows it', async () => {
       // The removed photo is gone from this gallery, but a second record here points at the same image
       const { run, photoUpload } = setup({

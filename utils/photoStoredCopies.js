@@ -64,6 +64,18 @@ const REFERENCE_FIELDS = {
   reviews: ['photos', 'photos.url'],
   // A saved item keeps the image address it was saved with
   shortlists: ['items.imageUrl'],
+  // A photo held for moderation is in no gallery yet, so this record is the only thing that uses
+  // its images (see REFERENCE_CONDITIONS: only while it is pending)
+  photos: ['url', 'thumbnail', 'large', 'original'],
+};
+
+/**
+ * Extra conditions a document must meet before it counts as a use of an image. A `photos` record
+ * is kept after it is approved or rejected, and must not keep its images alive then: an approved
+ * photo is used by the gallery it was added to, and a rejected one by nothing.
+ */
+const REFERENCE_CONDITIONS = {
+  photos: { status: 'pending' },
 };
 
 /**
@@ -141,14 +153,20 @@ function stringsAt(value, path) {
  *
  * @param {string[]} fields - The collection's reference fields
  * @param {string[]} ids - Stored photo ids
+ * @param {Object} [conditions] - Fields the document must also equal (REFERENCE_CONDITIONS)
  * @returns {Object} A filter for `dbUnified.find`
  */
-function referenceFilter(fields, ids) {
+function referenceFilter(fields, ids, conditions = {}) {
   const sources = ids.map(referenceSource);
   return {
+    ...conditions,
     $or: fields.flatMap(field => sources.map(source => ({ [field]: { $regex: source } }))),
   };
 }
+
+/** Whether a document meets every condition in `conditions` (plain equality on top-level fields). */
+const meetsConditions = (document, conditions = {}) =>
+  Object.entries(conditions).every(([field, value]) => document && document[field] === value);
 
 /**
  * Which of these ids some record still refers to.
@@ -168,13 +186,17 @@ async function idsStillReferenced(dbUnified, ids) {
   // The collections are independent, so they are searched together; one failing rejects the lot
   await Promise.all(
     Object.entries(REFERENCE_FIELDS).map(async ([collection, fields]) => {
-      const documents = await dbUnified.find(collection, referenceFilter(fields, ids), {
+      const conditions = REFERENCE_CONDITIONS[collection];
+      const documents = await dbUnified.find(collection, referenceFilter(fields, ids, conditions), {
         throwOnError: true,
       });
       if (!Array.isArray(documents)) {
         throw new Error(`Could not read ${collection} to check what still uses a photo`);
       }
       for (const document of documents) {
+        if (!meetsConditions(document, conditions)) {
+          continue;
+        }
         for (const field of fields) {
           for (const value of stringsAt(document, field.split('.'))) {
             for (const { id, pattern } of patterns) {
@@ -263,6 +285,7 @@ async function deleteUnusedStoredCopies({ dbUnified, photoUpload, records }) {
 }
 
 module.exports = {
+  REFERENCE_CONDITIONS,
   REFERENCE_FIELDS,
   deleteUnusedStoredCopies,
   idsStillReferenced,

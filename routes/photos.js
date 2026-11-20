@@ -11,7 +11,6 @@ const { uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const { getFeatureFlags } = require('../middleware/features');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
-const { galleryAppendIfUrlAbsent } = require('../utils/supplierGalleryUpdate');
 const photoVariants = require('../utils/photo-variants');
 const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
 const { saveSupplierPhotos } = require('../utils/supplierPhotoSave');
@@ -673,6 +672,7 @@ async function uploadSingleSupplierPhoto(req, res, { id, type }) {
     logger.error('[PHOTOS] insertOne failed for pending record', {
       photoId: pendingRecord.id,
     });
+    await discardUnsavedPhotos([photoRecord]);
     return res.status(500).json({ error: 'Failed to save photo record. Please try again.' });
   }
 
@@ -999,6 +999,10 @@ async function savePendingSupplierPhotos(res, supplier, uploadedPhotos, errors) 
     });
   }
   const savedPhotos = pendingRecords.filter((_, i) => insertResults[i]);
+  if (failedInserts > 0) {
+    // A record that was not saved leaves its images with nothing to use them
+    await discardUnsavedPhotos(pendingRecords.filter((_, i) => !insertResults[i]));
+  }
 
   res.json({
     success: true,
@@ -1605,8 +1609,34 @@ router.get('/admin/photos', applyAuthRequired, applyRoleRequired('admin'), async
 });
 
 /**
+ * The gallery record for a photo that has been approved: all four stored images, so that deleting
+ * the photo later can delete all four (an upload stores an original, a thumbnail, an optimised and
+ * a large copy).
+ *
+ * @param {Object} photo - The record from the `photos` collection
+ * @returns {Object} A gallery record
+ */
+function galleryRecordForApproved(photo) {
+  const record = { url: photo.url };
+  for (const field of ['thumbnail', 'large', 'original']) {
+    if (typeof photo[field] === 'string' && photo[field]) {
+      record[field] = photo[field];
+    }
+  }
+  return {
+    ...record,
+    approved: true,
+    uploadedAt: photo.uploadedAt || new Date().toISOString(),
+  };
+}
+
+/**
  * POST /api/admin/photos/:id/approve
  * Approve a photo
+ *
+ * The photo is added to the supplier's gallery first, and only marked approved once it is there, so
+ * a photo the gallery could not take (the plan has no room for it, or the save failed) stays
+ * pending instead of being "approved" and nowhere. Approving twice is safe.
  */
 router.post(
   '/admin/photos/:id/approve',
@@ -1620,35 +1650,41 @@ router.post(
     if (!photo) {
       return res.status(404).json({ error: 'Photo not found' });
     }
-    const now = new Date().toISOString();
+    if (photo.status === 'rejected') {
+      // Rejecting a photo deletes its stored images, so there is nothing left to approve
+      return res
+        .status(409)
+        .json({ error: 'This photo was rejected and its images were deleted. Upload it again.' });
+    }
 
-    // Update photo status
+    // Add photo to supplier's photosGallery if not already there, within the plan's allowance
+    const approvedSupplier = await dbUnified.findOne('suppliers', { id: photo.supplierId });
+    if (approvedSupplier) {
+      const notSaved = await saveSupplierPhotos({
+        dbUnified,
+        logger,
+        supplierId: approvedSupplier.id,
+        records: [galleryRecordForApproved(photo)],
+        onlyIfAbsent: true,
+      });
+      if (notSaved) {
+        return res.status(notSaved.failure.status).json(notSaved.failure.body);
+      }
+    }
+
     photo.status = 'approved';
-    photo.approvedAt = now;
+    photo.approvedAt = new Date().toISOString();
     photo.approvedBy = req.user.id;
 
-    await dbUnified.updateOne(
+    const marked = await dbUnified.updateOne(
       'photos',
       { id: photo.id },
       { $set: { status: photo.status, approvedAt: photo.approvedAt, approvedBy: photo.approvedBy } }
     );
-
-    // Add photo to supplier's photosGallery if not already there
-    const approvedSupplier = await dbUnified.findOne('suppliers', { id: photo.supplierId });
-
-    if (approvedSupplier) {
-      const currentGallery = approvedSupplier.photosGallery || [];
-      const alreadyInGallery = currentGallery.some(p => p.url === photo.url);
-      if (!alreadyInGallery) {
-        // Conditional on the URL still being absent, so two overlapping approvals of the same
-        // photo cannot both insert it.
-        const { filter, update } = galleryAppendIfUrlAbsent(approvedSupplier, {
-          url: photo.url,
-          approved: true,
-          uploadedAt: photo.uploadedAt || new Date().toISOString(),
-        });
-        await dbUnified.updateOne('suppliers', filter, update);
-      }
+    if (marked === false) {
+      return res.status(500).json({
+        error: 'The photo is in the gallery but could not be marked approved. Approve it again.',
+      });
     }
 
     return res.json({ success: true, message: 'Photo approved successfully', photo });
@@ -1658,6 +1694,10 @@ router.post(
 /**
  * POST /api/admin/photos/:id/reject
  * Reject a photo
+ *
+ * A photo that was still pending is in no gallery, so rejecting it deletes the images its upload
+ * stored (except any something else uses). One that was already approved is in a gallery and its
+ * images are left alone.
  */
 router.post(
   '/admin/photos/:id/reject',
@@ -1672,6 +1712,7 @@ router.post(
     if (!photo) {
       return res.status(404).json({ error: 'Photo not found' });
     }
+    const wasPending = photo.status === 'pending';
     const now = new Date().toISOString();
 
     // Update photo status
@@ -1680,7 +1721,7 @@ router.post(
     photo.rejectedBy = req.user.id;
     photo.rejectionReason = reason || 'No reason provided';
 
-    await dbUnified.updateOne(
+    const marked = await dbUnified.updateOne(
       'photos',
       { id: photo.id },
       {
@@ -1692,6 +1733,14 @@ router.post(
         },
       }
     );
+    if (marked === false) {
+      return res.status(500).json({ error: 'The photo could not be rejected. Please try again.' });
+    }
+
+    // After the status change, so this record no longer counts as a pending use of its own images
+    if (wasPending) {
+      await discardUnsavedPhotos([photo]);
+    }
 
     return res.json({ success: true, message: 'Photo rejected successfully', photo });
   }

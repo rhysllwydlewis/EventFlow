@@ -92,7 +92,8 @@ function applyUpdate(document, update) {
 /**
  * @param {Object<string, Object[]>} collections - Documents by collection name. Copied, so a test
  *   that changes them does not change the fixture it started from.
- * @returns {{collections: Object, find: Function, findOne: Function, updateOne: Function}}
+ * @returns {{collections: Object, find: Function, findOne: Function, insertOne: Function,
+ *   updateOne: Function}}
  */
 function createMongoStyleDb(collections) {
   const store = JSON.parse(JSON.stringify(collections));
@@ -106,7 +107,18 @@ function createMongoStyleDb(collections) {
     // what is stored, or its in-memory edit would be applied a second time.
     read: async name => JSON.parse(JSON.stringify(documents(name))),
     find: async (name, filter) => documents(name).filter(item => matches(item, filter)),
-    findOne: async (name, filter) => documents(name).find(item => matches(item, filter)) || null,
+    // A copy, like `read`: code that edits the record it found (setting a status before it saves)
+    // must not change what is stored until it actually saves
+    findOne: async (name, filter) => {
+      const found = documents(name).find(item => matches(item, filter));
+      return found ? JSON.parse(JSON.stringify(found)) : null;
+    },
+    // Stores a copy, as a real database does, and answers the document (a falsy answer means it
+    // was not saved)
+    insertOne: async (name, document) => {
+      documents(name).push(JSON.parse(JSON.stringify(document)));
+      return document;
+    },
     updateOne: async (name, filter, update) => {
       const document = documents(name).find(item => matches(item, filter));
       if (!document) {

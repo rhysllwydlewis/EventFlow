@@ -74,10 +74,30 @@ describe('mongo-style-db updates', () => {
     expect(await db.find('suppliers', { 'photosGallery.url': 'c' })).toHaveLength(1);
   });
 
+  test('insertOne stores a copy that a later find sees, and answers the document', async () => {
+    const db = createMongoStyleDb({ photos: [] });
+    const photo = { id: 'p1', status: 'pending' };
+
+    const answer = await db.insertOne('photos', photo);
+    photo.status = 'changed afterwards';
+
+    expect(answer).toBe(photo);
+    expect(await db.find('photos', { id: 'p1' })).toEqual([{ id: 'p1', status: 'pending' }]);
+  });
+
   test('changing the database does not change the fixture it was built from', async () => {
     const db = createMongoStyleDb(fixture);
     await db.updateOne('suppliers', { id: 's1' }, { $pull: { photosGallery: { url: 'a' } } });
     expect(fixture.suppliers[0].photosGallery).toHaveLength(2);
+  });
+
+  test('findOne answers with a copy, so editing the record found does not change what is stored', async () => {
+    const db = createMongoStyleDb({ photos: [{ id: 'p1', status: 'pending' }] });
+
+    const found = await db.findOne('photos', { id: 'p1' });
+    found.status = 'approved';
+
+    expect(db.collections.photos[0].status).toBe('pending');
   });
 
   test('read answers with copies, so editing what was read does not change what is stored', async () => {
