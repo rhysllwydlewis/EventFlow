@@ -259,6 +259,17 @@ describe('deleteUnusedStoredCopies', () => {
       expect(result.kept).toEqual([gone.url, gone.large]);
     });
 
+    test('a reference written with the versioned route, which serves the same image', async () => {
+      const id = gone.url.split('/').pop();
+      const { run } = setup({
+        packages: [{ id: 'y', image: `/api/v1/photos/${id}?w=640` }],
+      });
+
+      const result = await run([gone]);
+
+      expect(result.kept).toEqual([gone.url]);
+    });
+
     test('but not an address that only starts or ends like the image id', async () => {
       const { run } = setup({
         suppliers: [

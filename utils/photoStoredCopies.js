@@ -106,13 +106,14 @@ function photoStoredAddresses(record) {
 const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * The pattern a stored value matches when it refers to this photo: /api/photos/<id> at the end,
- * optionally followed by a query or fragment, with anything (such as a host) in front of it.
+ * The pattern a stored value matches when it refers to this photo: /api/photos/<id> (or the same
+ * route under /api/v1, which serves the same images) at the end, optionally followed by a query or
+ * fragment, with anything (such as a host) in front of it.
  *
  * @param {string} id - Stored photo id
  * @returns {string} A regular expression source
  */
-const referenceSource = id => `/api/photos/${escapeRegExp(id)}(?:[?#].*)?$`;
+const referenceSource = id => `/api/(?:v1/)?photos/${escapeRegExp(id)}(?:[?#].*)?$`;
 
 /**
  * Every string found at a dotted path, looking inside arrays at each step. Values that are not
