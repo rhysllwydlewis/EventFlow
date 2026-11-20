@@ -600,9 +600,12 @@ describe('the target is looked up and authorised before any file is processed', 
       const files = Array.from({ length: count }, (_, i) => file(`f${i}.jpg`));
       const result = await run('/upload/batch', { type: 'supplier', id: 'S1', files });
       expect(result.status).toBe(200);
-      expect(checkPhotoAllowance).toHaveBeenCalledTimes(1);
+      // Once up front for every file, and once more when the photos are saved, for the photos that
+      // were saved (here all of them): the supplier may have taken more photos in the meantime
+      expect(checkPhotoAllowance).toHaveBeenCalledTimes(2);
       expect(checkPhotoAllowance.mock.calls[0][1]).toBe(count);
-      // and that check came before the first file was processed
+      expect(checkPhotoAllowance.mock.calls[1][1]).toBe(count);
+      // and the first check came before the first file was processed
       expect(result.events.indexOf('pipeline')).toBeGreaterThan(
         result.events.indexOf('findOne:suppliers')
       );
@@ -716,13 +719,13 @@ describe('a package changed by another request while its photo is processed', ()
 
       expect(result.status).toBe(200);
       const [, , , update] = packageUpdate(result);
-      expect(update.$set.gallery.map(p => p.url)).toEqual([
-        '/pg1',
-        '/concurrent',
-        '/api/photos/opt_a.jpg',
-      ]);
+      // The write adds only the new photo to the gallery as it is when the write happens, so the
+      // photo saved in the meantime stays (it is not part of what is written; the end-to-end
+      // result is in photo-upload-saves-reliably.test.js)
+      expect(update.$push.gallery.$each.map(p => p.url)).toEqual(['/api/photos/opt_a.jpg']);
+      expect(update).not.toHaveProperty('$set');
       // P1 had no cover when it was first read, but has one now, so the upload must not replace it
-      expect(update.$set).not.toHaveProperty('image');
+      expect(JSON.stringify(update)).not.toContain('"image"');
     });
 
     test('reads the package again after processing and before writing it', async () => {

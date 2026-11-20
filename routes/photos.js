@@ -14,6 +14,7 @@ const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryA
 const { galleryAppendIfUrlAbsent, galleryAppendUpdate } = require('../utils/supplierGalleryUpdate');
 const photoVariants = require('../utils/photo-variants');
 const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
+const { withLock } = require('../utils/keyedLock');
 const suppliersRouter = require('./suppliers');
 
 const router = express.Router();
@@ -389,6 +390,61 @@ async function loadSupplierWithAllowance(supplierId, user, count) {
 }
 
 /**
+ * Add uploaded photos to a supplier's gallery, if the plan still has room for them.
+ *
+ * The allowance was checked before the files were processed, which takes seconds, and another
+ * upload to the same supplier may have been saved since. So it is checked again here, against the
+ * supplier as it is now, and one upload at a time per supplier, so the second of two overlapping
+ * uploads sees the first one's photos. (Within one server process; see utils/keyedLock.js.)
+ *
+ * @param {string} supplierId - Supplier id
+ * @param {Object[]} records - The photo records to add (at least one)
+ * @returns {Promise<{failure: Object}|null>} Why nothing was saved, or null when it was saved
+ */
+function appendSupplierPhotos(supplierId, records) {
+  return withLock(`supplier-gallery:${supplierId}`, async () => {
+    try {
+      const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
+      if (!supplier) {
+        return failure(404, { error: 'Supplier not found' });
+      }
+      const allowance = await checkPhotoAllowance(supplier, records.length);
+      if (!allowance.allowed) {
+        return failure(403, photoLimitError(allowance.limit, allowance.current));
+      }
+      // `updateOne` answers false, rather than throwing, when the write failed or matched nothing
+      const written = await dbUnified.updateOne(
+        'suppliers',
+        { id: supplier.id },
+        galleryAppendUpdate(supplier, records)
+      );
+      if (written === false) {
+        throw new Error('the database did not save the photos');
+      }
+      return null;
+    } catch (error) {
+      // Answered like any other failed save, so the caller deletes the images it stored
+      logger.error('[PHOTOS] could not save uploaded photos to the supplier gallery', {
+        supplierId,
+        count: records.length,
+        error: error.message,
+      });
+      return failure(500, { error: 'Failed to save photos. Please try again.' });
+    }
+  });
+}
+
+/**
+ * Delete the images an upload stored when its photos could not be saved to the gallery, so a
+ * refused or failed save leaves nothing behind. Keeps any image something else already uses; never
+ * throws.
+ * @param {Object[]} records - The photo records that were not saved
+ */
+async function discardUnsavedPhotos(records) {
+  await deleteUnusedStoredCopies({ dbUnified, photoUpload, records });
+}
+
+/**
  * Find a package whose supplier the user may upload to.
  * @returns {Promise<{failure: Object}|{pkg: Object}>}
  */
@@ -433,20 +489,47 @@ function toPendingRecord(photoRecord, supplier) {
   };
 }
 
-/** Add photos to a package's gallery, and make the first the cover if it has no real image. */
+/**
+ * Add photos to a package's gallery, and make the first the cover if it has no real image.
+ *
+ * Appends with `$push` rather than writing back the whole gallery as it was read: two uploads to
+ * one package at the same time would otherwise each start from the same list, and the later write
+ * would discard the earlier upload's photos. A gallery that is not a list (a legacy `null`, which
+ * `$push` cannot extend) is replaced, as it always was.
+ *
+ * @param {Object} pkg - The package as last read
+ * @param {Object[]} photos - The photo records to add (at least one)
+ * @returns {Promise<{failure: Object}|null>} Why nothing was saved, or null when it was saved
+ */
 async function appendToPackageGallery(pkg, photos) {
-  if (!pkg.gallery) {
-    pkg.gallery = [];
-  }
-  pkg.gallery.push(...photos);
+  const needsCover = !pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE;
+  const cover = needsCover ? { image: photos[0].url } : {};
+  const appendable = pkg.gallery === undefined || Array.isArray(pkg.gallery);
+  const update = appendable
+    ? {
+        $push: { gallery: { $each: photos } },
+        ...(needsCover ? { $set: cover } : {}),
+      }
+    : { $set: { gallery: photos, ...cover } };
 
-  const updateFields = { gallery: pkg.gallery };
-  if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE) {
-    updateFields.image = photos[0].url;
+  try {
+    // `updateOne` answers false, rather than throwing, when the write failed or matched nothing
+    const written = await dbUnified.updateOne('packages', { id: pkg.id }, update);
+    if (written === false) {
+      throw new Error('the database did not save the photos');
+    }
+  } catch (error) {
+    // Answered like any other failed save, so the caller deletes the images it stored
+    logger.error('[PHOTOS] could not save uploaded photos to the package gallery', {
+      packageId: pkg.id,
+      count: photos.length,
+      error: error.message,
+    });
+    return failure(500, { error: 'Failed to save photos. Please try again.' });
   }
-  await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
 
   suppliersRouter.invalidatePackageCaches();
+  return null;
 }
 
 /** Save a listing's images, capped at 5 in total. */
@@ -612,11 +695,11 @@ async function uploadSingleSupplierPhoto(req, res, { id, type }) {
   const photoRecord = await processSingleImage(req.files[0], type, req.user.id);
 
   if (await photoAutoApproveEnabled()) {
-    await dbUnified.updateOne(
-      'suppliers',
-      { id: supplier.id },
-      galleryAppendUpdate(supplier, photoRecord)
-    );
+    const notSaved = await appendSupplierPhotos(supplier.id, [photoRecord]);
+    if (notSaved) {
+      await discardUnsavedPhotos([photoRecord]);
+      return sendFailure(res, notSaved.failure);
+    }
 
     return res.json({
       success: true,
@@ -654,7 +737,11 @@ async function uploadSinglePackagePhoto(req, res, { id, type }) {
   if (current.failure) {
     return sendFailure(res, current.failure);
   }
-  await appendToPackageGallery(current.pkg, [photoRecord]);
+  const notSaved = await appendToPackageGallery(current.pkg, [photoRecord]);
+  if (notSaved) {
+    await discardUnsavedPhotos([photoRecord]);
+    return sendFailure(res, notSaved.failure);
+  }
 
   return res.json({
     success: true,
@@ -971,12 +1058,16 @@ async function finishSupplierBatch(res, { supplier }, uploadedPhotos, errors) {
     return true;
   }
 
-  // Auto-approve ON: add directly to gallery
-  await dbUnified.updateOne(
-    'suppliers',
-    { id: supplier.id },
-    galleryAppendUpdate(supplier, uploadedPhotos)
-  );
+  // Auto-approve ON: add directly to gallery. When every file failed there is nothing to add.
+  if (uploadedPhotos.length === 0) {
+    return false;
+  }
+  const notSaved = await appendSupplierPhotos(supplier.id, uploadedPhotos);
+  if (notSaved) {
+    await discardUnsavedPhotos(uploadedPhotos);
+    sendFailure(res, notSaved.failure);
+    return true;
+  }
   return false;
 }
 
@@ -991,7 +1082,12 @@ async function finishPackageBatch(res, { pkg }, uploadedPhotos) {
   // a photo that does not exist (a 500 for a package without a real cover). Answer like a supplier
   // does instead: 200 with `uploaded: 0` and the per-file errors, which the gallery page shows.
   if (uploadedPhotos.length > 0) {
-    await appendToPackageGallery(current.pkg, uploadedPhotos);
+    const notSaved = await appendToPackageGallery(current.pkg, uploadedPhotos);
+    if (notSaved) {
+      await discardUnsavedPhotos(uploadedPhotos);
+      sendFailure(res, notSaved.failure);
+      return true;
+    }
   }
   return false;
 }
