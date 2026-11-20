@@ -296,8 +296,9 @@ Requires authentication. Uploads photo for supplier, package, or marketplace lis
     "thumbnail": "https://...",
     "large": "https://...",
     "original": "https://...",
-    "approved": false,
-    "uploadedAt": 1234567890,
+    "approved": true,
+    "uploadedAt": "2026-01-01T12:00:00.000Z",
+    "uploadedBy": "usr_abc123",
     "metadata": {
       "width": 1920,
       "height": 1080,
@@ -305,7 +306,24 @@ Requires authentication. Uploads photo for supplier, package, or marketplace lis
       "size": 524288
     }
   },
-  "message": "Photo uploaded successfully. Pending admin approval."
+  "message": "Photo uploaded successfully."
+}
+```
+
+With the default settings a supplier or package photo is approved and added to the gallery straight away, as above. Only when the `photoAutoApprove` feature flag is turned off is a **supplier** photo held for moderation instead: it is stored as a pending record, not added to the gallery, and the response differs:
+
+```json
+{
+  "success": true,
+  "photo": {
+    "id": "photo_...",
+    "status": "pending",
+    "approved": false,
+    "supplierId": "sup_abc123",
+    "...": "..."
+  },
+  "pending": true,
+  "message": "Photo uploaded and is awaiting moderation approval."
 }
 ```
 
