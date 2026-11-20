@@ -282,6 +282,10 @@ Requires authentication. Uploads photo for supplier, package, or marketplace lis
 **Supported Formats:** JPEG, PNG, WebP, GIF  
 **Max Size:** 10MB per file
 
+**One file for a supplier or package:** a supplier or package takes exactly one file per request. Sending more returns `400`; use the batch endpoint below for several. A marketplace listing takes up to five files.
+
+**Checked before anything is stored:** the target is looked up and authorised before the file is processed, so a request for something that does not exist (`404`), that belongs to someone else or is over the supplier's photo allowance (`403`), or that has an unknown `type` (`400`) stores nothing.
+
 **Response:**
 
 ```json
@@ -326,6 +330,8 @@ photos: [file1, file2, file3, ...]
 ```
 
 Upload up to 10 photos at once for suppliers/packages, or up to 5 photos total for marketplace listings (capped at 5 images per listing).
+
+As with the single upload, the target is looked up and authorised before any file is processed, so a missing, foreign, over-allowance or unknown-`type` request stores nothing. For a supplier, every file in the request counts towards the photo allowance (`403`, code `PHOTO_LIMIT_REACHED`), including any that later fail to process.
 
 **Marketplace Listings:**
 
