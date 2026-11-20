@@ -6,6 +6,7 @@ const path = require('path');
 const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative), 'utf8');
 
 const themeJs = read('public/assets/js/supplier-profile-polish.js');
+const sharedThemeJs = read('public/assets/js/shared/supplier-theme-core.js');
 const sharedTheme = require('../../public/assets/js/shared/supplier-theme-core');
 const themeCss = read('public/assets/css/supplier-profile-theme.css');
 const categoryCss = read('public/assets/css/supplier-profile-v2.css');
@@ -60,8 +61,10 @@ describe('supplier profile visual overhaul contracts', () => {
   });
 
   test('derives contrast-safe tokens in JavaScript rather than relying on color-mix support', () => {
-    expect(themeJs).toContain('strong: mixHex(accent, INK, 0.4)');
-    expect(themeJs).toContain("'--sp-profile-accent-strong': palette.strong");
+    // The maths moved to the shared theme module (see supplier-accent-palette.test.js).
+    expect(sharedThemeJs).toContain('strong: mixHex(base, PALETTE_INK, 0.4)');
+    expect(sharedThemeJs).toContain("'--sp-profile-accent-strong': 'strong'");
+    expect(themeJs).toContain('sharedTheme.ACCENT_PALETTE_VARIABLES');
     expect(themeCss).not.toContain('color-mix(');
   });
 

@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
+const { galleryAppendUpdate, galleryRemoveUpdate } = require('../utils/supplierGalleryUpdate');
 const router = express.Router();
 
 /**
@@ -225,7 +226,6 @@ router.post(
     if (!s) {
       return res.status(403).json({ error: 'Not owner' });
     }
-    const photosGallery = s.photosGallery || [];
     const allowance = await checkPhotoAllowance(s, 1);
     if (!allowance.allowed) {
       return res.status(403).json(photoLimitError(allowance.limit, allowance.current));
@@ -250,11 +250,12 @@ router.post(
       approved: true,
       uploadedAt: updatedAt,
     };
-    photosGallery.push(photoRecord);
+    // Append only this photo. Writing back the whole array lost a photo whenever two
+    // uploads overlapped, because each started from the same copy.
     await dbUnified.updateOne(
       'suppliers',
       { id: req.params.id },
-      { $set: { photosGallery, updatedAt } }
+      galleryAppendUpdate(s, photoRecord, { updatedAt })
     );
 
     // Bust catalog cache — a new gallery photo affects public listing display
@@ -364,15 +365,23 @@ router.delete(
         return res.status(404).json({ error: 'Photo not found' });
       }
 
-      // Remove photo
-      const removedPhoto = supplier.photosGallery.splice(photoIndex, 1)[0];
-      await dbUnified.updateOne(
-        'suppliers',
-        { id },
-        {
-          $set: { photosGallery: supplier.photosGallery, updatedAt: new Date().toISOString() },
-        }
-      );
+      // Remove exactly this photo by its own identity, so an overlapping upload or delete is
+      // not overwritten. Falls back to writing the edited array only when the identity is
+      // ambiguous (several legacy records sharing one URL and no id).
+      const removedPhoto = supplier.photosGallery[photoIndex];
+      const updatedAt = new Date().toISOString();
+      const pullUpdate = galleryRemoveUpdate(supplier, removedPhoto, { updatedAt });
+      if (pullUpdate) {
+        await dbUnified.updateOne('suppliers', { id }, pullUpdate);
+        supplier.photosGallery.splice(photoIndex, 1);
+      } else {
+        supplier.photosGallery.splice(photoIndex, 1);
+        await dbUnified.updateOne(
+          'suppliers',
+          { id },
+          { $set: { photosGallery: supplier.photosGallery, updatedAt } }
+        );
+      }
 
       // Delete the physical file from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
       if (removedPhoto.url) {

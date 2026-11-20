@@ -159,8 +159,10 @@ describe('pricing page rebuild', () => {
 
     const photos = readAsset('routes/photos.js');
     expect(photos).toContain("require('../utils/photoGalleryAllowance')");
-    // Both upload paths in routes/photos.js are guarded, not just the single-file one.
-    expect(photos.match(/await checkPhotoAllowance\(/g)).toHaveLength(2);
+    // Both upload paths in routes/photos.js are guarded, not just the single-file one: the check
+    // lives in one shared helper, and the single and the batch route each go through it.
+    expect(photos.match(/await checkPhotoAllowance\(/g)).toHaveLength(1);
+    expect(photos.match(/await loadSupplierWithAllowance\(/g)).toHaveLength(2);
 
     const suppliersV2 = readAsset('routes/suppliers-v2.js');
     expect(suppliersV2).toContain("require('../utils/photoGalleryAllowance')");

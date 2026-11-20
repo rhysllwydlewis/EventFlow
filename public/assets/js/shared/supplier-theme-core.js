@@ -239,7 +239,81 @@
     return fallback;
   }
 
+  // ── Accent palette ───────────────────────────────────────────────────────
+  // The public profile does not paint with the accent alone: buttons, tags, borders and
+  // shadows use shades mixed from it. The maths lives here so the Profile Customisation
+  // preview shows exactly the colours the public profile will, instead of its own guess.
+
+  const PALETTE_INK = '#0b1220';
+  const PALETTE_WHITE = '#ffffff';
+
+  function hexToRgb(hex) {
+    const value = Number.parseInt(String(hex).slice(1), 16);
+    return { r: value >> 16, g: (value >> 8) & 255, b: value & 255 };
+  }
+
+  function rgbToHex({ r, g, b }) {
+    return `#${[r, g, b]
+      .map(channel =>
+        Math.max(0, Math.min(255, Math.round(channel)))
+          .toString(16)
+          .padStart(2, '0')
+      )
+      .join('')}`;
+  }
+
+  /** `firstWeight` of `first` and the rest of `second`, as lower-case #rrggbb. */
+  function mixHex(first, second, firstWeight) {
+    const from = hexToRgb(first);
+    const to = hexToRgb(second);
+    const weight = Math.max(0, Math.min(1, firstWeight));
+    return rgbToHex({
+      r: from.r * weight + to.r * (1 - weight),
+      g: from.g * weight + to.g * (1 - weight),
+      b: from.b * weight + to.b * (1 - weight),
+    });
+  }
+
+  function rgba(hex, alpha) {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  /**
+   * Every shade the public profile derives from one accent. Colours are lower-case.
+   * @param {string} accent A #rrggbb accent (any case).
+   */
+  function createAccentPalette(accent) {
+    const base = String(accent).toLowerCase();
+    return {
+      accent: base,
+      strong: mixHex(base, PALETTE_INK, 0.4),
+      hover: mixHex(base, PALETTE_INK, 0.32),
+      light: mixHex(base, PALETTE_WHITE, 0.76),
+      soft: mixHex(base, PALETTE_WHITE, 0.08),
+      subtle: mixHex(base, PALETTE_WHITE, 0.15),
+      border: mixHex(base, PALETTE_WHITE, 0.32),
+      borderStrong: mixHex(base, PALETTE_WHITE, 0.5),
+      shadow: rgba(base, 0.24),
+      avatarEnd: mixHex(base, PALETTE_WHITE, 0.7),
+    };
+  }
+
+  /** The CSS custom property each palette entry is published as on the public profile. */
+  const ACCENT_PALETTE_VARIABLES = Object.freeze({
+    '--sp-profile-accent': 'accent',
+    '--sp-profile-accent-strong': 'strong',
+    '--sp-profile-accent-hover': 'hover',
+    '--sp-profile-accent-light': 'light',
+    '--sp-profile-accent-soft': 'soft',
+    '--sp-profile-accent-subtle': 'subtle',
+    '--sp-profile-accent-border': 'border',
+    '--sp-profile-accent-border-strong': 'borderStrong',
+    '--sp-profile-accent-shadow': 'shadow',
+  });
+
   return Object.freeze({
+    ACCENT_PALETTE_VARIABLES,
     CATEGORY_ACCENTS,
     CATEGORY_HERO_GRADIENTS,
     CATEGORY_THEME_FAMILIES,
@@ -248,6 +322,8 @@
     HERO_PRESET_ACCENTS,
     HERO_PRESET_GRADIENTS,
     VALID_THEME_MODES,
+    createAccentPalette,
+    mixHex,
     normaliseHeroPreset,
     normaliseStoredSupplierTheme,
     normaliseThemeColor,

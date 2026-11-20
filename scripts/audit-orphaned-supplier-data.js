@@ -89,6 +89,16 @@ function checkPreconditions(options, backend) {
   const refusals = [];
   const healthyMongo = backend.type === REQUIRED_BACKEND && backend.connected;
 
+  // A dry run against local fallback storage reads zero records and reports "0
+  // findings", which looks like a clean result but is not one. Callers that need
+  // a real answer (scheduled routines) can refuse instead.
+  if (options.requireMongodb && !healthyMongo) {
+    refusals.push(
+      `--require-mongodb (or AUDIT_REQUIRE_MONGODB=true) was set, but the active backend is "${backend.type}" (connected: ${backend.connected}). ` +
+        'Set MONGODB_URI and make sure the database is reachable, then re-run.'
+    );
+  }
+
   if (options.apply && !healthyMongo) {
     refusals.push(
       `Refusing to --apply against backend "${backend.type}" (connected: ${backend.connected}). ` +
@@ -264,7 +274,10 @@ async function auditOrphanedSupplierData(options = {}) {
 }
 
 async function main() {
-  const options = { apply: hasFlag('--apply') };
+  const options = {
+    apply: hasFlag('--apply'),
+    requireMongodb: hasFlag('--require-mongodb') || process.env.AUDIT_REQUIRE_MONGODB === 'true',
+  };
   const backend = await resolveBackend();
   const decision = checkPreconditions(options, backend);
 

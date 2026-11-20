@@ -11,6 +11,7 @@ const profileCss = read('public/assets/css/supplier-profile-polish.css');
 const profileThemeCss = read('public/assets/css/supplier-profile-theme.css');
 const profileJs = read('public/assets/js/supplier-profile-polish-base.js');
 const profileThemeJs = read('public/assets/js/supplier-profile-polish.js');
+const sharedThemeJs = read('public/assets/js/shared/supplier-theme-core.js');
 const publicPolishJs = read('public/assets/js/pages/supplier-profile-public-polish.js');
 const packagesJs = read('public/assets/js/supplier-profile-packages-v2.js');
 
@@ -104,8 +105,12 @@ describe('supplier profile theme consistency', () => {
   });
 
   test('derives a contrast-safe colour for solid CTA surfaces', () => {
-    expect(profileThemeJs).toContain('strong: mixHex(accent, INK, 0.4)');
-    expect(profileThemeJs).toContain("'--sp-profile-accent-strong': palette.strong");
+    // The shade maths lives in the shared theme module so the Profile Customisation preview
+    // uses the same colours (see supplier-accent-palette.test.js).
+    expect(sharedThemeJs).toContain('strong: mixHex(base, PALETTE_INK, 0.4)');
+    expect(sharedThemeJs).toContain("'--sp-profile-accent-strong': 'strong'");
+    expect(profileThemeJs).toContain('sharedTheme.createAccentPalette(theme.accent)');
+    expect(profileThemeJs).toContain('sharedTheme.ACCENT_PALETTE_VARIABLES');
     expect(profileThemeCss).toMatch(/#btn-enquiry\.btn-primary,[\s\S]*\.sp-cta-card/);
     expect(profileThemeCss).toContain('color: var(--sp-profile-on-strong) !important');
   });
@@ -151,8 +156,8 @@ describe('supplier profile packages and reviews', () => {
   });
 
   test('loads the profile polish layer from the existing package module entry point', () => {
-    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=3'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.6');
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=4'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.7');
   });
 
   test('the module chain that carries polish changes shares one cache-bust: bumping the leaf modules is worthless unless every importer between them and the entry <script> tag is bumped too', () => {
@@ -162,8 +167,8 @@ describe('supplier profile packages and reviews', () => {
     // returning browser only re-fetches a module whose own import
     // specifier's URL actually changed.
     expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js?v=2'");
-    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=3'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.6');
+    expect(packagesJs).toContain("import './supplier-profile-polish.js?v=4'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.7');
   });
 
   test('collapses zero-review scaffolding into one EventFlow-specific empty state', () => {

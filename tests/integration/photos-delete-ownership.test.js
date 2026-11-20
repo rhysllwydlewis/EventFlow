@@ -76,7 +76,7 @@ const packages = [
   {
     id: 'pkg_me',
     supplierId: 'sup_me',
-    gallery: [{ url: pkgPhoto }, pkgPhoto + '_2'],
+    gallery: [{ url: pkgPhoto }, `${pkgPhoto}_2`],
     image: pkgPhoto,
   },
 ];
@@ -93,7 +93,7 @@ describe('DELETE /api/photos/delete', () => {
     expect(dbUnified.updateOne).toHaveBeenCalledWith(
       'suppliers',
       { id: 'sup_me' },
-      { $set: { photosGallery: [] } }
+      { $pull: { photosGallery: { url: mine } } }
     );
     expect(deleteImage).toHaveBeenCalledWith(mine);
   });
@@ -118,7 +118,7 @@ describe('DELETE /api/photos/delete', () => {
     expect(dbUnified.updateOne).toHaveBeenCalledWith(
       'packages',
       { id: 'pkg_me' },
-      { $set: { gallery: [pkgPhoto + '_2'], image: pkgPhoto + '_2' } }
+      { $set: { gallery: [`${pkgPhoto}_2`], image: `${pkgPhoto}_2` } }
     );
     expect(deleteImage).toHaveBeenCalledWith(pkgPhoto);
   });

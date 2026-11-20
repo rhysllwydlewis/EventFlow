@@ -2,6 +2,8 @@ import { spawn } from 'child_process';
 import { mkdir, rm, writeFile, readFile, cp } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { classify } from './lib/test-audit-classify.mjs';
+import { CHECK_TIMEOUTS_MS, shouldFailRun } from './lib/test-audit-policy.mjs';
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'test-audit');
@@ -54,7 +56,7 @@ const allChecks = [
     modes: ['quick', 'default', 'full', 'ci'],
     parser: 'jest',
     json: 'jest-smoke.json',
-    timeoutMs: 180000,
+    timeoutMs: CHECK_TIMEOUTS_MS.smoke,
   },
   {
     id: 'jest-ci',
@@ -64,7 +66,7 @@ const allChecks = [
     modes: ['quick', 'default', 'full', 'ci'],
     parser: 'jest',
     json: 'jest-ci.json',
-    timeoutMs: 240000,
+    timeoutMs: CHECK_TIMEOUTS_MS['jest-ci'],
   },
   {
     id: 'full-regression',
@@ -74,7 +76,7 @@ const allChecks = [
     modes: ['default', 'full', 'ci'],
     parser: 'jest',
     json: 'jest-full.json',
-    timeoutMs: 300000,
+    timeoutMs: CHECK_TIMEOUTS_MS['full-regression'],
   },
   {
     id: 'playwright-static',
@@ -87,7 +89,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/playwright-static.json',
     artifactDirs: ['playwright-report', 'test-results'],
-    timeoutMs: 240000,
+    timeoutMs: CHECK_TIMEOUTS_MS['playwright-static'],
   },
   {
     id: 'playwright-full',
@@ -100,7 +102,7 @@ const allChecks = [
     json: 'test-results/playwright-full.json',
     artifactDirs: ['playwright-report', 'test-results'],
     safe: 'Requires a safe local/backend test environment; never uses production by this runner.',
-    timeoutMs: 420000,
+    timeoutMs: CHECK_TIMEOUTS_MS['playwright-full'],
   },
   {
     id: 'visual',
@@ -113,7 +115,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/visual-results.json',
     artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
-    timeoutMs: 300000,
+    timeoutMs: CHECK_TIMEOUTS_MS.visual,
   },
   {
     id: 'a11y',
@@ -125,7 +127,7 @@ const allChecks = [
     parser: 'playwright',
     json: 'test-results/a11y-results.json',
     artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
-    timeoutMs: 300000,
+    timeoutMs: CHECK_TIMEOUTS_MS.a11y,
   },
   {
     id: 'security-headers',
@@ -167,7 +169,7 @@ function selectedChecks() {
   return checks;
 }
 
-async function gitInfo(cmd) {
+function gitInfo(cmd) {
   return new Promise(resolve => {
     const child = spawn('git', cmd, { cwd: ROOT });
     let out = '';
@@ -230,7 +232,7 @@ function esc(s = '') {
 }
 
 function csvEscape(value = '') {
-  return `"${String(value).replaceAll('\"', '\"\"')}"`;
+  return `"${String(value).replaceAll('"', '""')}"`;
 }
 
 function excerpt(text) {
@@ -238,56 +240,6 @@ function excerpt(text) {
     .split('\n')
     .filter(Boolean);
   return lines.slice(-12).join('\n').slice(0, 1800) || 'No error excerpt captured; see log file.';
-}
-
-function classify(check, output) {
-  const text = output.toLowerCase();
-  if (text.includes('[test audit] command timed out') || text.includes('timed out after')) {
-    return 'Audit runner timeout / incomplete result';
-  }
-  if (check.id === 'lint') {
-    return 'Code quality';
-  }
-  if (
-    check.id === 'format-check' ||
-    text.includes('prettier') ||
-    text.includes('code style issues')
-  ) {
-    return 'Formatting/style issue';
-  }
-  if (check.id.includes('visual')) {
-    return 'Snapshot/visual drift';
-  }
-  if (check.id === 'npm-audit' || text.includes('vulnerab')) {
-    return 'Dependency/security warning';
-  }
-  if (text.includes('coverage threshold')) {
-    return 'Coverage threshold issue';
-  }
-  if (
-    text.includes('unsupported node.js version') ||
-    text.includes('node 20') ||
-    text.includes('already used') ||
-    text.includes('chromium') ||
-    text.includes('browser') ||
-    text.includes('mongodb') ||
-    text.includes('econnrefused') ||
-    text.includes('missing required environment') ||
-    text.includes('environment variable') ||
-    text.includes('not set')
-  ) {
-    return 'Environment/config issue';
-  }
-  if (text.includes('expect(received)') || text.includes('expected substring')) {
-    return 'Stale test expectation';
-  }
-  if (text.includes('timeout') || text.includes('timed out')) {
-    return 'Audit runner timeout / incomplete result';
-  }
-  if (check.id.includes('security') || text.includes('csrf') || text.includes('auth')) {
-    return 'Real product regression';
-  }
-  return 'Unknown/manual review required';
 }
 
 async function copyArtifacts(check) {
@@ -392,98 +344,145 @@ async function workflowFindings() {
     );
   }
   const visual = await readFile('.github/workflows/visual-regression.yml', 'utf8').catch(() => '');
-  const m = visual.match(/CONTINUE_ON_ERROR_UNTIL:\s*['"]?(\d{4}-\d{2}-\d{2})/);
-  if (m) {
-    const expired = new Date(`${m[1]}T23:59:59Z`) < new Date();
+  const expiryMatch = visual.match(/CONTINUE_ON_ERROR_UNTIL:\s*['"]?(\d{4}-\d{2}-\d{2})/);
+  if (expiryMatch) {
+    const expired = new Date(`${expiryMatch[1]}T23:59:59Z`) < new Date();
     findings.push(
-      `- Visual regression soft-fail expiry: ${m[1]} (${expired ? 'expired — Workflow policy issue' : 'active'}).`
+      `- Visual regression soft-fail expiry: ${expiryMatch[1]} (${expired ? 'expired — Workflow policy issue' : 'active'}).`
     );
   }
   return findings;
 }
 
-async function main() {
-  await rm(OUT, { recursive: true, force: true });
-  await mkdir(LOGS, { recursive: true });
+// ── Running the checks ──────────────────────────────────────────────────────
+
+/** Runs the check's cleanup command, if it has one, and returns what to prepend to its log. */
+async function runPreCommand(check) {
+  if (!check.preCommand) {
+    return '';
+  }
+  const cleanup = await runShell(check.preCommand, 10000, check.id);
+  return `$ ${check.preCommand}  # audit cleanup only\n${cleanup.stdout}${cleanup.stderr}\n`;
+}
+
+/** Runs one check's command and writes its log. */
+async function executeCheck(check) {
+  const cleanupNote = await runPreCommand(check);
+  const start = new Date();
+  const { code, stdout, stderr } = await runShell(check.command, check.timeoutMs, check.id);
+  const end = new Date();
+  await writeFile(
+    path.join(LOGS, check.log),
+    `${cleanupNote}$ ${check.command}\n\n[stdout]\n${stdout}\n\n[stderr]\n${stderr}`
+  );
+  return { code, stdout, stderr, start, end };
+}
+
+/** Reads the machine-readable results a check left behind, if it has a parser. */
+async function parseCheckOutput(check) {
+  try {
+    if (check.parser === 'jest') {
+      return await parseJest(check);
+    }
+    if (check.parser === 'playwright') {
+      return await parsePlaywright(check);
+    }
+  } catch (e) {
+    return {
+      failing: [
+        {
+          runner: check.parser,
+          file: '',
+          name: 'Parser limitation',
+          message: e.message,
+          category: 'Unknown/manual review required',
+          action: 'Review raw log.',
+        },
+      ],
+      passing: {},
+    };
+  }
+  return { failing: [], passing: {} };
+}
+
+function didTimeOut(code, output) {
+  return code === 124 || code === 137 || output.includes('[Test audit] Command timed out');
+}
+
+function statusFor(check, code) {
+  if (code === 0) {
+    return 'PASS';
+  }
+  return check.warningOnFail ? 'WARNING' : 'FAIL';
+}
+
+function notesFor(check, copiedArtifacts, timedOut) {
+  return [
+    check.safe || '',
+    copiedArtifacts.length ? `Artifacts copied: ${copiedArtifacts.join(', ')}` : '',
+    timedOut
+      ? 'Audit runner timed out before this check could complete; review partial artifacts/logs.'
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function buildResult(check, { run, output, status, timedOut, copiedArtifacts }) {
+  return {
+    ...check,
+    startTime: run.start.toISOString(),
+    endTime: run.end.toISOString(),
+    durationMs: run.end - run.start,
+    exitCode: run.code,
+    status,
+    stdout: run.stdout,
+    stderr: run.stderr,
+    timedOut,
+    incomplete: timedOut,
+    copiedArtifacts,
+    failureReason: status === 'PASS' ? '' : excerpt(output),
+    likelyCategory: status === 'PASS' ? '' : classify(check, output),
+    logFile: `logs/${check.log}`,
+    notes: notesFor(check, copiedArtifacts, timedOut),
+  };
+}
+
+/** Runs one check end to end and returns its result plus what its parser found. */
+async function auditCheck(check) {
+  const run = await executeCheck(check);
+  const output = `${run.stdout}\n${run.stderr}`;
+  const timedOut = didTimeOut(run.code, output);
+  const copiedArtifacts = await copyArtifacts(check);
+  const status = statusFor(check, run.code);
+  const parsed = await parseCheckOutput(check);
+  for (const failure of parsed.failing) {
+    failure.category = classify(check, failure.message);
+  }
+  return {
+    parsed,
+    result: buildResult(check, { run, output, status, timedOut, copiedArtifacts }),
+  };
+}
+
+async function runChecks(checks) {
   const results = [];
   const failingTests = [];
   const passingSummaries = [];
-  for (const check of selectedChecks()) {
-    let cleanupNote = '';
-    if (check.preCommand) {
-      const cleanup = await runShell(check.preCommand, 10000, check.id);
-      cleanupNote = `$ ${check.preCommand}  # audit cleanup only\n${cleanup.stdout}${cleanup.stderr}\n`;
-    }
-    const start = new Date();
-    const { code, stdout, stderr } = await runShell(check.command, check.timeoutMs, check.id);
-    const end = new Date();
-    await writeFile(
-      path.join(LOGS, check.log),
-      `${cleanupNote}$ ${check.command}\n\n[stdout]\n${stdout}\n\n[stderr]\n${stderr}`
-    );
-    const output = `${stdout}\n${stderr}`;
-    const timedOut =
-      code === 124 || code === 137 || output.includes('[Test audit] Command timed out');
-    const copiedArtifacts = await copyArtifacts(check);
-    const status = code === 0 ? 'PASS' : check.warningOnFail ? 'WARNING' : 'FAIL';
-    let parsed = { failing: [], passing: {} };
-    try {
-      if (check.parser === 'jest') {
-        parsed = await parseJest(check);
-      }
-      if (check.parser === 'playwright') {
-        parsed = await parsePlaywright(check);
-      }
-    } catch (e) {
-      parsed = {
-        failing: [
-          {
-            runner: check.parser,
-            file: '',
-            name: 'Parser limitation',
-            message: e.message,
-            category: 'Unknown/manual review required',
-            action: 'Review raw log.',
-          },
-        ],
-        passing: {},
-      };
-    }
-    for (const failure of parsed.failing) failure.category = classify(check, failure.message);
+  for (const check of checks) {
+    const { parsed, result } = await auditCheck(check);
     failingTests.push(...parsed.failing);
     passingSummaries.push({ id: check.id, ...parsed.passing });
-    results.push({
-      ...check,
-      startTime: start.toISOString(),
-      endTime: end.toISOString(),
-      durationMs: end - start,
-      exitCode: code,
-      status,
-      stdout,
-      stderr,
-      timedOut,
-      incomplete: timedOut,
-      copiedArtifacts,
-      failureReason: status === 'PASS' ? '' : excerpt(output),
-      likelyCategory: status === 'PASS' ? '' : classify(check, output),
-      logFile: `logs/${check.log}`,
-      notes: [
-        check.safe || '',
-        copiedArtifacts.length ? `Artifacts copied: ${copiedArtifacts.join(', ')}` : '',
-        timedOut
-          ? 'Audit runner timed out before this check could complete; review partial artifacts/logs.'
-          : '',
-      ]
-        .filter(Boolean)
-        .join(' '),
-    });
+    results.push(result);
   }
+  return { results, failingTests, passingSummaries };
+}
 
-  const branch = await gitInfo(['rev-parse', '--abbrev-ref', 'HEAD']);
-  const commit = await gitInfo(['rev-parse', '--short', 'HEAD']);
-  const workflows = await workflowFindings();
+// ── Summarising ─────────────────────────────────────────────────────────────
+
+function buildSkipped(selected) {
   const skipped = allChecks
-    .filter(c => !selectedChecks().some(s => s.id === c.id))
+    .filter(c => !selected.some(s => s.id === c.id))
     .map(c => ({
       id: c.id,
       area: c.area,
@@ -502,7 +501,10 @@ async function main() {
       reason: 'Live checks require explicit --live and must remain read-only.',
     });
   }
+  return skipped;
+}
 
+function summarise(results, skipped) {
   const counts = {
     pass: results.filter(r => r.status === 'PASS').length,
     fail: results.filter(r => r.status === 'FAIL').length,
@@ -516,23 +518,44 @@ async function main() {
   const nextPr = counts.fail
     ? 'Triage the highest-priority failing audit suite without changing this audit baseline.'
     : 'Review whether the audit workflow should become a regular scheduled or required check.';
-  const greenRows =
+  return { counts, mostSerious, nextPr };
+}
+
+function overallStatus(counts) {
+  if (counts.fail) {
+    return 'RED — one or more checks failed';
+  }
+  return counts.warning ? 'AMBER — warnings need review' : 'GREEN — selected checks passed';
+}
+
+// ── Report tables ───────────────────────────────────────────────────────────
+
+function greenRowsOf(results) {
+  return (
     results
       .filter(r => r.status === 'PASS')
       .map(
         r =>
           `| ${esc(r.area)} | \`${esc(r.command)}\` | ${r.status} | ${ms(r.durationMs)} | ${esc(r.notes || 'Completed successfully.')} |`
       )
-      .join('\n') || '| _None_ | | | | |';
-  const redRows =
+      .join('\n') || '| _None_ | | | | |'
+  );
+}
+
+function redRowsOf(results) {
+  return (
     results
       .filter(r => r.status !== 'PASS')
       .map(
         r =>
           `| ${esc(r.area)} | \`${esc(r.command)}\` | ${r.status} | ${esc(r.failureReason)} | ${r.likelyCategory} | Preserve failure and open a focused follow-up PR. | ${r.logFile} |`
       )
-      .join('\n') || '| _None_ | | | | | | |';
-  const failingCsv = [
+      .join('\n') || '| _None_ | | | | | | |'
+  );
+}
+
+function failingCsvOf(failingTests) {
+  return [
     [
       'Test runner',
       'Test file',
@@ -547,26 +570,76 @@ async function main() {
       [t.runner, t.file, t.name, t.message, t.category, t.action].map(csvEscape).join(',')
     ),
   ].join('\n');
-  const failRows =
+}
+
+function failRowsOf(failingTests) {
+  return (
     failingTests
       .map(
         t =>
           `| ${esc(t.runner)} | ${esc(t.file)} | ${esc(t.name)} | ${esc(t.message)} | ${t.category} | ${esc(t.action)} |`
       )
-      .join('\n') || '| _No individual failing tests were extracted._ | | | | | |';
-  const skipRows =
-    skipped.map(s => `- ${s.suite}: \`${s.command}\` — ${s.reason}`).join('\n') || '- None.';
-  const detailRows =
+      .join('\n') || '| _No individual failing tests were extracted._ | | | | | |'
+  );
+}
+
+function skipRowsOf(skipped) {
+  return skipped.map(s => `- ${s.suite}: \`${s.command}\` — ${s.reason}`).join('\n') || '- None.';
+}
+
+function detailRowsOf(results) {
+  return (
     results
       .filter(r => r.status !== 'PASS')
       .map(
         r =>
           `### ${r.area}\n\n- Command: \`${r.command}\`\n- Exit code: ${r.exitCode}\n- Duration: ${ms(r.durationMs)}\n- Key error excerpt:\n\n\`\`\`\n${r.failureReason}\n\`\`\`\n- Related log file: ${r.logFile}\n- Is this likely a real product regression? ${r.likelyCategory === 'Real product regression' ? 'Possibly; review required.' : 'Unknown.'}\n- Is this likely a stale test? ${r.likelyCategory === 'Stale test expectation' ? 'Possibly.' : 'Unknown.'}\n- Is this likely an environment issue? ${r.likelyCategory === 'Environment/config issue' ? 'Possibly.' : 'Unknown.'}\n- Suggested follow-up PR: Focused fix for ${r.area}.`
       )
-      .join('\n\n') || 'No failing suites.';
+      .join('\n\n') || 'No failing suites.'
+  );
+}
 
-  const report = `# EventFlow Test Audit Report\n\nGenerated: ${new Date().toISOString()}\nBranch: ${branch}\nCommit: ${commit}\nNode version: ${process.version}\nMode: ${mode}${live ? ' + live' : ''}\nEnvironment: ${process.env.CI ? 'GitHub Actions/CI' : 'Local development'}\n\n## Executive Summary\n\n- Total checks run: ${results.length}\n- Passing checks: ${counts.pass}\n- Failing checks: ${counts.fail}\n- Warnings: ${counts.warning}\n- Skipped: ${skipped.length}\n- Overall status: ${counts.fail ? 'RED — one or more checks failed' : counts.warning ? 'AMBER — warnings need review' : 'GREEN — selected checks passed'}\n- Most serious issue: ${mostSerious}\n- Recommended next PR: ${nextPr}\n\n## Green List — Passing Checks\n\n| Area | Command | Status | Duration | Notes |\n| --- | --- | --- | --- | --- |\n${greenRows}\n\n## Red List — Failing Checks\n\n| Area | Command | Status | Failure reason | Likely category | Suggested next action | Log file |\n| --- | --- | --- | --- | --- | --- | --- |\n${redRows}\n\nFailure categories used by this audit: ${categories.join('; ')}.\n\n## Individual Failing Tests\n\n| Test runner | Test file | Test name | Failure message | Likely category | Suggested next action |\n| --- | --- | --- | --- | --- | --- |\n${failRows}\n\n## Passing Test Summary\n\n- Detailed pass counts are stored in \`results.json\`.\n- Jest/Playwright passing totals are summarised from machine-readable output where available.\n- Passing summary data: \`${esc(JSON.stringify(passingSummaries))}\`\n\n## Skipped / Not Run\n\n${skipRows}\n\n## Workflow / CI Findings\n\n${workflows.join('\n')}\n\n## Detailed Failure Notes\n\n${detailRows}\n\n## Recommended Fix Order\n\n1. CI/workflow blockers that prevent us seeing real test results\n2. Smoke test failures\n3. Real product regressions\n4. Authentication/security failures\n5. Messaging/notification/data integrity failures\n6. Environment/config issues\n7. Stale test expectations\n8. Flaky/timing issues\n9. Visual snapshot drift\n10. Non-critical warnings\n\n## Suggested Next PRs\n\n- PR 1: Fix blocking CI/workflow issue\n- PR 2: Fix smoke test failures\n- PR 3: Fix genuine product regressions\n- PR 4: Update stale test expectations\n- PR 5: Review visual snapshots\n`;
+function buildTables({ results, failingTests, skipped }) {
+  return {
+    greenRows: greenRowsOf(results),
+    redRows: redRowsOf(results),
+    failingCsv: failingCsvOf(failingTests),
+    failRows: failRowsOf(failingTests),
+    skipRows: skipRowsOf(skipped),
+    detailRows: detailRowsOf(results),
+  };
+}
 
+function renderReport({
+  branch,
+  commit,
+  results,
+  skipped,
+  summary,
+  tables,
+  workflows,
+  passingSummaries,
+}) {
+  const { counts, mostSerious, nextPr } = summary;
+  const { greenRows, redRows, failRows, skipRows, detailRows } = tables;
+  const modeLabel = `${mode}${live ? ' + live' : ''}`;
+  const environment = process.env.CI ? 'GitHub Actions/CI' : 'Local development';
+  return `# EventFlow Test Audit Report\n\nGenerated: ${new Date().toISOString()}\nBranch: ${branch}\nCommit: ${commit}\nNode version: ${process.version}\nMode: ${modeLabel}\nEnvironment: ${environment}\n\n## Executive Summary\n\n- Total checks run: ${results.length}\n- Passing checks: ${counts.pass}\n- Failing checks: ${counts.fail}\n- Warnings: ${counts.warning}\n- Skipped: ${skipped.length}\n- Overall status: ${overallStatus(counts)}\n- Most serious issue: ${mostSerious}\n- Recommended next PR: ${nextPr}\n\n## Green List — Passing Checks\n\n| Area | Command | Status | Duration | Notes |\n| --- | --- | --- | --- | --- |\n${greenRows}\n\n## Red List — Failing Checks\n\n| Area | Command | Status | Failure reason | Likely category | Suggested next action | Log file |\n| --- | --- | --- | --- | --- | --- | --- |\n${redRows}\n\nFailure categories used by this audit: ${categories.join('; ')}.\n\n## Individual Failing Tests\n\n| Test runner | Test file | Test name | Failure message | Likely category | Suggested next action |\n| --- | --- | --- | --- | --- | --- |\n${failRows}\n\n## Passing Test Summary\n\n- Detailed pass counts are stored in \`results.json\`.\n- Jest/Playwright passing totals are summarised from machine-readable output where available.\n- Passing summary data: \`${esc(JSON.stringify(passingSummaries))}\`\n\n## Skipped / Not Run\n\n${skipRows}\n\n## Workflow / CI Findings\n\n${workflows.join('\n')}\n\n## Detailed Failure Notes\n\n${detailRows}\n\n## Recommended Fix Order\n\n1. CI/workflow blockers that prevent us seeing real test results\n2. Smoke test failures\n3. Real product regressions\n4. Authentication/security failures\n5. Messaging/notification/data integrity failures\n6. Environment/config issues\n7. Stale test expectations\n8. Flaky/timing issues\n9. Visual snapshot drift\n10. Non-critical warnings\n\n## Suggested Next PRs\n\n- PR 1: Fix blocking CI/workflow issue\n- PR 2: Fix smoke test failures\n- PR 3: Fix genuine product regressions\n- PR 4: Update stale test expectations\n- PR 5: Review visual snapshots\n`;
+}
+
+// ── Writing the output files ────────────────────────────────────────────────
+
+async function writeOutputs({
+  report,
+  branch,
+  commit,
+  results,
+  skipped,
+  workflows,
+  passingSummaries,
+  failingTests,
+  tables,
+}) {
   await writeFile(path.join(OUT, 'TEST_AUDIT_REPORT.md'), report);
   await writeFile(
     path.join(OUT, 'results.json'),
@@ -590,15 +663,51 @@ async function main() {
   await writeFile(path.join(OUT, 'failing-tests.json'), JSON.stringify(failingTests, null, 2));
   await writeFile(
     path.join(OUT, 'failing-tests.md'),
-    `# Failing Tests\n\n| Test runner | Test file | Test name | Failure message | Likely category | Suggested next action |\n| --- | --- | --- | --- | --- | --- |\n${failRows}\n`
+    `# Failing Tests\n\n| Test runner | Test file | Test name | Failure message | Likely category | Suggested next action |\n| --- | --- | --- | --- | --- | --- |\n${tables.failRows}\n`
   );
-  await writeFile(path.join(OUT, 'failing-tests.csv'), `${failingCsv}\n`);
+  await writeFile(path.join(OUT, 'failing-tests.csv'), `${tables.failingCsv}\n`);
   await writeFile(
     path.join(OUT, 'passing-summary.md'),
     `# Passing Summary\n\n\`\`\`json\n${JSON.stringify(passingSummaries, null, 2)}\n\`\`\`\n`
   );
+}
+
+async function main() {
+  await rm(OUT, { recursive: true, force: true });
+  await mkdir(LOGS, { recursive: true });
+  const selected = selectedChecks();
+  const { results, failingTests, passingSummaries } = await runChecks(selected);
+
+  const branch = await gitInfo(['rev-parse', '--abbrev-ref', 'HEAD']);
+  const commit = await gitInfo(['rev-parse', '--short', 'HEAD']);
+  const workflows = await workflowFindings();
+  const skipped = buildSkipped(selected);
+  const summary = summarise(results, skipped);
+  const tables = buildTables({ results, failingTests, skipped });
+  const report = renderReport({
+    branch,
+    commit,
+    results,
+    skipped,
+    summary,
+    tables,
+    workflows,
+    passingSummaries,
+  });
+
+  await writeOutputs({
+    report,
+    branch,
+    commit,
+    results,
+    skipped,
+    workflows,
+    passingSummaries,
+    failingTests,
+    tables,
+  });
   console.log(report);
-  if (mode === 'ci' && counts.fail) {
+  if (shouldFailRun(mode, summary.counts.fail)) {
     process.exitCode = 1;
   }
 }

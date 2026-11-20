@@ -1,6 +1,8 @@
 'use strict';
 
 const crypto = require('crypto');
+const logger = require('../utils/logger');
+const { secretFingerprint } = require('../utils/opsBotSecretFingerprint');
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
 
@@ -25,6 +27,27 @@ function safeEqualHex(left, right) {
   );
 }
 
+/**
+ * Log why a request was rejected, server-side only.
+ *
+ * The HTTP response stays deliberately generic so an unauthenticated caller learns
+ * nothing, but "Invalid Ops Assistant signature" alone cannot tell an operator
+ * whether the secret differs, the signed path differs (for example a query string,
+ * which is part of `req.originalUrl`), or the body differs. Nothing logged here can
+ * be used to forge a signature.
+ */
+function logRejection(req, reason, details = {}) {
+  const originalUrl = String(req.originalUrl || '');
+  const queryStart = originalUrl.indexOf('?');
+  logger.warn('[OPS-BOT] Rejected request', {
+    reason,
+    method: req.method,
+    path: queryStart === -1 ? originalUrl : originalUrl.slice(0, queryStart),
+    hasQuery: queryStart !== -1,
+    ...details,
+  });
+}
+
 function verifyOpsBotHmac(req, res, next) {
   if (process.env.OPS_ASSISTANT_ENABLED !== 'true') {
     return res.status(503).json({ error: 'Ops Assistant is disabled' });
@@ -43,12 +66,29 @@ function verifyOpsBotHmac(req, res, next) {
   const timestampMs = Number(timestamp);
 
   if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > MAX_SKEW_MS) {
+    logRejection(req, 'timestamp_invalid_or_expired', {
+      timestampPresent: timestamp !== '',
+      skewMs: Number.isFinite(timestampMs) ? Date.now() - timestampMs : null,
+      secretFingerprint: secretFingerprint(secret),
+    });
     return res.status(401).json({ error: 'Ops Assistant request timestamp is invalid or expired' });
   }
 
   const body = JSON.stringify(req.body || {});
   const expected = signatureFor(secret, timestamp, req.method, req.originalUrl, body);
   if (!safeEqualHex(signature, expected)) {
+    logRejection(req, 'signature_mismatch', {
+      signatureHeader:
+        signatureHeader === ''
+          ? 'missing'
+          : signatureHeader.startsWith('sha256=')
+            ? 'sha256-prefixed'
+            : 'bare',
+      signatureWellFormed: /^[a-f0-9]{64}$/i.test(signature),
+      bodyBytes: Buffer.byteLength(body),
+      skewMs: Date.now() - timestampMs,
+      secretFingerprint: secretFingerprint(secret),
+    });
     return res.status(401).json({ error: 'Invalid Ops Assistant signature' });
   }
 
@@ -57,6 +97,7 @@ function verifyOpsBotHmac(req, res, next) {
 
 module.exports = {
   MAX_SKEW_MS,
+  secretFingerprint,
   signatureFor,
   verifyOpsBotHmac,
 };

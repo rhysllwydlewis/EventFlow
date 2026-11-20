@@ -537,21 +537,28 @@
       button.setAttribute('aria-pressed', String(selected));
     });
 
+    // The public profile paints buttons and tags with shades mixed from the accent
+    // (supplier-profile-theme.css), not the accent itself. Use the same shared palette so
+    // the preview shows the colours the profile will actually have.
+    const palette = sharedTheme.createAccentPalette(accent);
     const previewHeader = $('color-preview-header');
     const previewButton = $('color-preview-button');
     if (previewHeader) {
       previewHeader.style.background = themeBannerBackground();
     }
     if (previewButton) {
-      previewButton.style.backgroundColor = accent;
+      previewButton.style.background = `linear-gradient(145deg, ${palette.strong}, ${palette.hover})`;
+      previewButton.style.color = '#ffffff';
+      previewButton.style.boxShadow = `0 7px 24px ${palette.shadow}`;
     }
     const previewBanner = $('preview-banner');
     if (previewBanner && !previewBanner.querySelector('img')) {
       previewBanner.style.background = themeBannerBackground();
     }
     document.querySelectorAll('.pc-preview-tag').forEach(tag => {
-      tag.style.background = `${accent}1a`;
-      tag.style.color = accent;
+      tag.style.background = palette.soft;
+      tag.style.color = palette.strong;
+      tag.style.border = `1px solid ${palette.border}`;
     });
   }
 
