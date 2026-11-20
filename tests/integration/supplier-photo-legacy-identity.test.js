@@ -5,6 +5,7 @@
 
 const express = require('express');
 const request = require('supertest');
+const { matches } = require('../helpers/mongo-style-db');
 
 jest.mock('../../services/catalogCache', () => ({
   invalidate: jest.fn(() => Promise.resolve()),
@@ -16,6 +17,10 @@ function createApp(existingSupplier) {
   const dbUnified = {
     read: jest.fn(async collection => (collection === 'suppliers' ? [existingSupplier] : [])),
     updateOne: jest.fn(async () => true),
+    // What still refers to a photo after it is removed: the same live supplier the route edited
+    find: jest.fn(async (collection, filter) =>
+      (collection === 'suppliers' ? [existingSupplier] : []).filter(item => matches(item, filter))
+    ),
   };
   const photoUpload = {
     deleteImage: jest.fn(async () => true),
@@ -175,7 +180,7 @@ describe('an id the list route gives out is accepted by the delete and reorder r
     // Both are listed under the same id, so the delete cannot tell them apart. It must not pull
     // by address, which would remove both: it writes the gallery back without the first match.
     const shared = uploadedPhoto('shared');
-    const { app, dbUnified } = createApp({
+    const { app, dbUnified, photoUpload } = createApp({
       id: 'sup_3',
       ownerUserId: 'user_3',
       photosGallery: [shared, { ...shared, uploadedAt: 'the second copy' }, uploadedPhoto('other')],
@@ -194,6 +199,8 @@ describe('an id the list route gives out is accepted by the delete and reorder r
       expect.objectContaining({ url: shared.url, uploadedAt: 'the second copy' }),
       expect.objectContaining({ url: '/api/photos/opt_other' }),
     ]);
+    // The second copy still uses all four stored images, so none of them may be deleted
+    expect(photoUpload.deleteImage).not.toHaveBeenCalled();
   });
 
   test('a record with neither an id nor an address cannot be deleted, rather than deleting another', async () => {

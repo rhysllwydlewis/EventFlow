@@ -13,6 +13,7 @@ const { getFeatureFlags } = require('../middleware/features');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
 const { galleryAppendIfUrlAbsent, galleryAppendUpdate } = require('../utils/supplierGalleryUpdate');
 const photoVariants = require('../utils/photo-variants');
+const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
 const suppliersRouter = require('./suppliers');
 
 const router = express.Router();
@@ -1073,36 +1074,11 @@ router.post(
 
 // ---------- Photo Management Routes ----------
 
-/**
- * Whether another supplier or package still shows this photo. A gallery can hold any address a
- * user types, so being in your own gallery does not mean the stored file is yours: the file is only
- * deleted when nothing else points at it.
- *
- * @param {string} url - Photo address
- * @param {{supplierId?: string, packageId?: string}} own - The records the photo was just removed from
- * @returns {Promise<boolean>} True when something else still uses it
- */
-async function isPhotoUsedElsewhere(url, own) {
-  const [suppliers, objectPackages, plainPackages, coverPackages] = await Promise.all([
-    dbUnified.find('suppliers', { 'photosGallery.url': url }),
-    dbUnified.find('packages', { 'gallery.url': url }),
-    dbUnified.find('packages', { gallery: url }),
-    dbUnified.find('packages', { image: url }),
-  ]);
-  const others = (rows, ownId) => (rows || []).some(row => row && row.id !== ownId);
-  return (
-    others(suppliers, own.supplierId) ||
-    others(objectPackages, own.packageId) ||
-    others(plainPackages, own.packageId) ||
-    others(coverPackages, own.packageId)
-  );
-}
-
 /** What a delete helper returns when it refuses: the HTTP status and message to answer with. */
 const refusal = (status, error) => ({ status, error });
 
 /**
- * Remove a photo from a supplier's own gallery and delete the stored file.
+ * Remove a photo from a supplier's own gallery and delete the stored images behind it.
  *
  * @param {Object} user - The signed-in user
  * @param {string} id - Supplier id
@@ -1132,10 +1108,12 @@ async function deleteSupplierPhoto(user, id, url) {
     { $pull: { photosGallery: { url } } }
   );
 
-  // Delete the stored file, unless another record still shows it
-  if (!(await isPhotoUsedElsewhere(url, { supplierId: supplier.id }))) {
-    await photoUpload.deleteImage(url);
-  }
+  // Delete the stored images behind the removed photo, except any that something still uses. A
+  // gallery can hold any address a user types, so being in your own gallery does not mean the
+  // stored image is yours. The records are the ones that were removed, never the address in the
+  // request.
+  const removed = gallery.filter(p => !remaining.includes(p));
+  await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: removed });
   return null;
 }
 
@@ -1182,10 +1160,10 @@ async function deletePackagePhoto(user, id, url) {
   await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
   suppliersRouter.invalidatePackageCaches();
 
-  // Delete the stored file, unless another record still shows it
-  if (!(await isPhotoUsedElsewhere(url, { packageId: pkg.id }))) {
-    await photoUpload.deleteImage(url);
-  }
+  // Delete the stored images behind the removed photo, except any that something still uses (see
+  // deleteSupplierPhoto).
+  const removed = originalGallery.filter(item => !gallery.includes(item));
+  await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: removed });
   return null;
 }
 

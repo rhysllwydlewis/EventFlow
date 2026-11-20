@@ -10,6 +10,7 @@ const { PLACEHOLDER_PACKAGE_IMAGE, isPlaceholderImage } = require('../utils/pack
 const suppliersRouter = require('./suppliers');
 const { priceFields } = require('../utils/packagePrice');
 const { validatePackageImageUrl } = require('../utils/packageImageUrl');
+const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
 const router = express.Router();
 
 /**
@@ -963,6 +964,9 @@ router.delete(
         const itemUrl = typeof item === 'string' ? item : item.url || '';
         return itemUrl !== url;
       });
+      // What was removed, as stored: the stored images are found from these records, never from
+      // the address in the request.
+      const removedItems = gallery.filter(item => !newGallery.includes(item));
       const updateFields = { gallery: newGallery };
       if (pkg.image === url) {
         const nextPhoto = newGallery.find(item => {
@@ -983,6 +987,10 @@ router.delete(
         { throwOnError: true }
       );
       suppliersRouter.invalidatePackageCaches();
+      // Delete the stored images behind the removed photo (an upload stores four), except any that
+      // something else still uses. After the write above, so the removed photo does not count as
+      // a user of itself; never throws.
+      await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: removedItems });
       res.json({
         ok: true,
         gallery: newGallery,

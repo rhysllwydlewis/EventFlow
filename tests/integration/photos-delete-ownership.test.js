@@ -9,6 +9,7 @@
 
 const express = require('express');
 const request = require('supertest');
+const { createMongoStyleDb } = require('../helpers/mongo-style-db');
 
 function createApp({ suppliers, packages, user }) {
   jest.resetModules();
@@ -17,33 +18,13 @@ function createApp({ suppliers, packages, user }) {
   });
   const router = require('../../routes/photos');
   const deleteImage = jest.fn(async () => true);
+  // A database that applies the route's updates and matches filters as MongoDB does, so the check
+  // for what still uses a photo sees the photo already gone from the gallery it was removed from.
+  const db = createMongoStyleDb({ suppliers, packages });
   const dbUnified = {
-    findOne: jest.fn(async (collection, query) => {
-      const list = collection === 'suppliers' ? suppliers : packages;
-      return list.find(item => item.id === query.id) || null;
-    }),
-    updateOne: jest.fn(async () => true),
-    find: jest.fn(async (collection, query) => {
-      if (collection === 'suppliers') {
-        return suppliers.filter(item =>
-          (item.photosGallery || []).some(p => p.url === query['photosGallery.url'])
-        );
-      }
-      const asUrl = p => (typeof p === 'string' ? p : p.url);
-      return packages.filter(item => {
-        if (query['gallery.url']) {
-          return (item.gallery || []).some(
-            p => typeof p !== 'string' && p.url === query['gallery.url']
-          );
-        }
-        if (query.gallery) {
-          return (item.gallery || []).some(
-            p => typeof p === 'string' && asUrl(p) === query.gallery
-          );
-        }
-        return item.image === query.image;
-      });
-    }),
+    findOne: jest.fn(db.findOne),
+    updateOne: jest.fn(db.updateOne),
+    find: jest.fn(db.find),
     insertOne: jest.fn(async doc => doc),
   };
   const pass = (_req, _res, next) => next();
