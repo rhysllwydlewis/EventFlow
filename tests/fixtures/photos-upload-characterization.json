@@ -47,9 +47,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -61,9 +59,7 @@
         {
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -85,9 +81,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -99,9 +93,7 @@
         {
           "type": "supplier",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -123,9 +115,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -138,9 +128,7 @@
           "type": "banner",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -159,10 +147,7 @@
         "findOne",
         "suppliers",
         {
-          "id": [
-            "S1",
-            "S-other"
-          ]
+          "id": ["S1", "S-other"]
         }
       ]
     ],
@@ -173,9 +158,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -186,14 +169,9 @@
         "Photo upload request received",
         {
           "type": "supplier",
-          "id": [
-            "S1",
-            "S-other"
-          ],
+          "id": ["S1", "S-other"],
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -225,9 +203,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -240,9 +216,7 @@
           "type": "marketplace",
           "id": "nope",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -274,9 +248,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -289,9 +261,7 @@
           "type": "marketplace",
           "id": "L-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -304,9 +274,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_0"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_0"],
       "message": "1 image(s) uploaded successfully."
     },
     "db": [
@@ -325,33 +293,20 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/mk_a.jpg_0"
-            ],
+            "images": ["/api/photos/mk_a.jpg_0"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L-other",
-        "admin1",
-        0,
-        10
-      ]
-    ],
+    "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L-other", "admin1", 0, 10]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "endpoint": "/upload",
           "hasStack": false
@@ -364,9 +319,7 @@
           "type": "marketplace",
           "id": "L-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "userRole": "admin",
           "hasStack": false
@@ -390,9 +343,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "message": "1 image(s) uploaded successfully."
     },
     "db": [
@@ -411,34 +362,20 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ]
-    ],
+    "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -451,9 +388,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -477,11 +412,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_1",
-        "/api/photos/mk_b.jpg_2",
-        "/api/photos/mk_c.jpg_3"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1", "/api/photos/mk_b.jpg_2", "/api/photos/mk_c.jpg_3"],
       "message": "3 image(s) uploaded successfully."
     },
     "db": [
@@ -512,30 +443,9 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "b.jpg",
-        "L1",
-        "u1",
-        2,
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L1",
-        "u1",
-        3,
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["processAndSaveMarketplaceImage", "b.jpg", "L1", "u1", 2, 10],
+      ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 3, 10]
     ],
     "logs": [
       [
@@ -543,11 +453,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -560,11 +466,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -588,11 +490,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_4",
-        "/api/photos/mk_b.jpg_5",
-        "/api/photos/mk_c.jpg_6"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_4", "/api/photos/mk_b.jpg_5", "/api/photos/mk_c.jpg_6"],
       "message": "3 image(s) uploaded successfully."
     },
     "db": [
@@ -611,43 +509,16 @@
         },
         {
           "$set": {
-            "images": [
-              "/a",
-              "/b",
-              "/c",
-              "/d",
-              "/api/photos/mk_a.jpg_4"
-            ],
+            "images": ["/a", "/b", "/c", "/d", "/api/photos/mk_a.jpg_4"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L-full",
-        "u1",
-        4,
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "b.jpg",
-        "L-full",
-        "u1",
-        5,
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L-full",
-        "u1",
-        6,
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L-full", "u1", 4, 10],
+      ["processAndSaveMarketplaceImage", "b.jpg", "L-full", "u1", 5, 10],
+      ["processAndSaveMarketplaceImage", "c.jpg", "L-full", "u1", 6, 10]
     ],
     "logs": [
       [
@@ -655,11 +526,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -672,11 +539,7 @@
           "type": "marketplace",
           "id": "L-full",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -700,10 +563,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_2",
-        "/api/photos/mk_b.jpg_3"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_2", "/api/photos/mk_b.jpg_3"],
       "message": "2 image(s) uploaded successfully."
     },
     "db": [
@@ -722,34 +582,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/s",
-              "/o",
-              "/api/photos/mk_a.jpg_2",
-              "/api/photos/mk_b.jpg_3"
-            ],
+            "images": ["/s", "/o", "/api/photos/mk_a.jpg_2", "/api/photos/mk_b.jpg_3"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L-mixed",
-        "u1",
-        2,
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "b.jpg",
-        "L-mixed",
-        "u1",
-        3,
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L-mixed", "u1", 2, 10],
+      ["processAndSaveMarketplaceImage", "b.jpg", "L-mixed", "u1", 3, 10]
     ],
     "logs": [
       [
@@ -757,10 +598,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -773,10 +611,7 @@
           "type": "marketplace",
           "id": "L-mixed",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -800,10 +635,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_1",
-        "/api/photos/mk_c.jpg_2"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1", "/api/photos/mk_c.jpg_2"],
       "errors": [
         {
           "filename": "empty.jpg",
@@ -828,33 +660,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1",
-              "/api/photos/mk_c.jpg_2"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1", "/api/photos/mk_c.jpg_2"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L1",
-        "u1",
-        2,
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 2, 10]
     ],
     "logs": [
       [
@@ -862,11 +676,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "empty.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -879,11 +689,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "empty.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -917,9 +723,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [
         {
           "filename": "unknown",
@@ -944,35 +748,20 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ]
-    ],
+    "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            null
-          ],
+          "fileNames": ["a.jpg", null],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -985,10 +774,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            null
-          ],
+          "fileNames": ["a.jpg", null],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1022,9 +808,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [
         {
           "filename": "unknown",
@@ -1049,35 +833,20 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ]
-    ],
+    "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            42
-          ],
+          "fileNames": ["a.jpg", 42],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1090,10 +859,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            42
-          ],
+          "fileNames": ["a.jpg", 42],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1128,10 +894,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_1",
-        "/api/photos/mk_str.jpg_2"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1", "/api/photos/mk_str.jpg_2"],
       "message": "2 image(s) uploaded successfully."
     },
     "db": [
@@ -1150,33 +913,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1",
-              "/api/photos/mk_str.jpg_2"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1", "/api/photos/mk_str.jpg_2"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "str.jpg",
-        "L1",
-        "u1",
-        2,
-        12
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["processAndSaveMarketplaceImage", "str.jpg", "L1", "u1", 2, 12]
     ],
     "logs": [
       [
@@ -1184,10 +929,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            "str.jpg"
-          ],
+          "fileNames": ["a.jpg", "str.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1200,10 +942,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            "str.jpg"
-          ],
+          "fileNames": ["a.jpg", "str.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1227,9 +966,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_c.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_c.jpg_1"],
       "errors": [
         {
           "filename": "unknown",
@@ -1254,35 +991,20 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_c.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_c.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ]
-    ],
+    "uploads": [["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 1, 10]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            null,
-            "c.jpg"
-          ],
+          "fileNames": [null, "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1295,10 +1017,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            null,
-            "c.jpg"
-          ],
+          "fileNames": [null, "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1331,9 +1050,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [
         {
           "filename": "nobuf.jpg",
@@ -1358,35 +1075,20 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ]
-    ],
+    "uploads": [["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            "nobuf.jpg"
-          ],
+          "fileNames": ["a.jpg", "nobuf.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1399,10 +1101,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            "nobuf.jpg"
-          ],
+          "fileNames": ["a.jpg", "nobuf.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1445,11 +1144,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "nobuf.jpg",
-            null,
-            "c.jpg"
-          ],
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1462,11 +1157,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "nobuf.jpg",
-            null,
-            "c.jpg"
-          ],
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1479,9 +1170,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_good.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_good.jpg_1"],
       "errors": [
         {
           "filename": "validation.jpg",
@@ -1506,32 +1195,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_good.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_good.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "validation.jpg",
-        "L1",
-        "u1",
-        1,
-        19
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "good.jpg",
-        "L1",
-        "u1",
-        1,
-        13
-      ]
+      ["processAndSaveMarketplaceImage", "validation.jpg", "L1", "u1", 1, 19],
+      ["processAndSaveMarketplaceImage", "good.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
       [
@@ -1539,10 +1211,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "validation.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["validation.jpg", "good.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1555,10 +1224,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "validation.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["validation.jpg", "good.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1596,9 +1262,7 @@
     "status": 200,
     "body": {
       "success": true,
-      "urls": [
-        "/api/photos/mk_good.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_good.jpg_1"],
       "errors": [
         {
           "filename": "mongo-msg.jpg",
@@ -1623,32 +1287,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_good.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_good.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "mongo-msg.jpg",
-        "L1",
-        "u1",
-        1,
-        18
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "good.jpg",
-        "L1",
-        "u1",
-        1,
-        13
-      ]
+      ["processAndSaveMarketplaceImage", "mongo-msg.jpg", "L1", "u1", 1, 18],
+      ["processAndSaveMarketplaceImage", "good.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
       [
@@ -1656,10 +1303,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "mongo-msg.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1672,10 +1316,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "mongo-msg.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1737,22 +1378,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "validation.jpg",
-        "L1",
-        "u1",
-        1,
-        19
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "boom.jpg",
-        "L1",
-        "u1",
-        1,
-        13
-      ]
+      ["processAndSaveMarketplaceImage", "validation.jpg", "L1", "u1", 1, 19],
+      ["processAndSaveMarketplaceImage", "boom.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
       [
@@ -1760,10 +1387,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1776,10 +1400,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1866,9 +1487,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1881,9 +1500,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1939,9 +1556,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -1954,9 +1569,7 @@
           "type": "supplier",
           "id": "nope",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -1986,9 +1599,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2001,9 +1612,7 @@
           "type": "supplier",
           "id": "S-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2071,16 +1680,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -2088,9 +1689,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2103,9 +1702,7 @@
           "type": "supplier",
           "id": "S-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "userRole": "admin",
           "hasStack": false
@@ -2137,9 +1734,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2152,9 +1747,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2222,16 +1815,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -2239,9 +1824,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2254,9 +1837,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2324,16 +1905,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -2341,9 +1914,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2356,9 +1927,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2424,16 +1993,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -2441,9 +2002,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2456,9 +2015,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2504,16 +2061,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -2521,9 +2070,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2536,9 +2083,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2568,11 +2113,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2585,11 +2126,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2611,11 +2148,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2628,11 +2161,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2698,16 +2227,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -2715,9 +2236,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2730,9 +2249,7 @@
           "type": "supplier",
           "id": "S-null",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2800,16 +2317,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -2817,9 +2326,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2832,9 +2339,7 @@
           "type": "supplier",
           "id": "S-nogallery",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2856,11 +2361,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "validation.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2873,11 +2374,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "validation.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2899,10 +2396,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2915,10 +2409,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -2948,9 +2439,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -2963,9 +2452,7 @@
           "type": "package",
           "id": "nope",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3002,9 +2489,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3017,9 +2502,7 @@
           "type": "package",
           "id": "P-orphan",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3056,9 +2539,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3071,9 +2552,7 @@
           "type": "package",
           "id": "P-foreign",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3147,16 +2626,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -3164,9 +2635,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3179,9 +2648,7 @@
           "type": "package",
           "id": "P-foreign",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "userRole": "admin",
           "hasStack": false
@@ -3258,16 +2725,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -3275,9 +2734,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3290,9 +2747,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3366,16 +2821,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -3383,9 +2830,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3398,9 +2843,7 @@
           "type": "package",
           "id": "P-placeholder",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3473,16 +2916,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -3490,9 +2925,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3505,9 +2938,7 @@
           "type": "package",
           "id": "P-img",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3581,16 +3012,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -3598,9 +3021,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3613,9 +3034,7 @@
           "type": "package",
           "id": "P-nogallery",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3637,11 +3056,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3654,11 +3069,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3735,16 +3146,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "e1.jpg",
-        "package",
-        0
-      ],
-      [
-        "getImageMetadata",
-        0
-      ]
+      ["processAndSaveImage", "e1.jpg", "package", 0],
+      ["getImageMetadata", 0]
     ],
     "logs": [
       [
@@ -3752,9 +3155,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3767,9 +3168,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3801,23 +3200,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "validation.jpg",
-        "package",
-        19
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "validation.jpg", "package", 19]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3830,9 +3220,7 @@
           "type": "package",
           "id": "P-img",
           "filesCount": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3870,23 +3258,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "validation.jpg",
-        "supplier",
-        19
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3899,9 +3278,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -3939,23 +3316,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "unavailable.jpg",
-        "supplier",
-        20
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "unavailable.jpg", "supplier", 20]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "unavailable.jpg"
-          ],
+          "fileNames": ["unavailable.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -3968,9 +3336,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "unavailable.jpg"
-          ],
+          "fileNames": ["unavailable.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4008,23 +3374,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "storage.jpg",
-        "supplier",
-        16
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "storage.jpg", "supplier", 16]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "storage.jpg"
-          ],
+          "fileNames": ["storage.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -4037,9 +3394,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "storage.jpg"
-          ],
+          "fileNames": ["storage.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4077,23 +3432,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "boom.jpg",
-        "supplier",
-        13
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -4106,9 +3452,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4145,23 +3489,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "boom.jpg",
-        "supplier",
-        13
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -4174,9 +3509,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4221,9 +3554,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -4236,9 +3567,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4283,9 +3612,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -4298,9 +3625,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4345,9 +3670,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload",
           "hasStack": false
@@ -4360,9 +3683,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4432,9 +3753,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4446,9 +3765,7 @@
         {
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4470,9 +3787,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4484,9 +3799,7 @@
         {
           "type": "supplier",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4508,9 +3821,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4523,9 +3834,7 @@
           "type": "banner",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4597,16 +3906,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -4614,9 +3915,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4627,14 +3926,9 @@
         "Batch photo upload request received",
         {
           "type": "supplier",
-          "id": [
-            "S1",
-            "S-other"
-          ],
+          "id": ["S1", "S-other"],
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4681,9 +3975,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4696,9 +3988,7 @@
           "type": "marketplace",
           "id": "nope",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4728,9 +4018,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4743,9 +4031,7 @@
           "type": "marketplace",
           "id": "L-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4759,9 +4045,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_a.jpg_0"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_0"],
       "errors": [],
       "message": "1 photo(s) uploaded successfully to marketplace listing."
     },
@@ -4788,27 +4072,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/mk_a.jpg_0"
-            ],
+            "images": ["/api/photos/mk_a.jpg_0"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L-other",
-        "admin1",
-        0,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L-other", "admin1", 0, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -4816,9 +4088,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4831,9 +4101,7 @@
           "type": "marketplace",
           "id": "L-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "userRole": "admin",
           "hasStack": false
@@ -4874,9 +4142,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [],
       "message": "1 photo(s) uploaded successfully to marketplace listing."
     },
@@ -4903,28 +4169,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -4932,9 +4185,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -4947,9 +4198,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -4990,11 +4239,7 @@
     "body": {
       "success": true,
       "uploaded": 3,
-      "urls": [
-        "/api/photos/mk_a.jpg_1",
-        "/api/photos/mk_b.jpg_2",
-        "/api/photos/mk_c.jpg_3"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1", "/api/photos/mk_b.jpg_2", "/api/photos/mk_c.jpg_3"],
       "errors": [],
       "message": "3 photo(s) uploaded successfully to marketplace listing."
     },
@@ -5033,42 +4278,12 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "b.jpg",
-        "L1",
-        "u1",
-        2,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L1",
-        "u1",
-        3,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveMarketplaceImage", "b.jpg", "L1", "u1", 2, 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 3, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -5076,11 +4291,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -5093,11 +4304,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -5172,11 +4379,7 @@
     "body": {
       "success": true,
       "uploaded": 3,
-      "urls": [
-        "/api/photos/mk_a.jpg_4",
-        "/api/photos/mk_b.jpg_5",
-        "/api/photos/mk_c.jpg_6"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_4", "/api/photos/mk_b.jpg_5", "/api/photos/mk_c.jpg_6"],
       "errors": [],
       "message": "3 photo(s) uploaded successfully to marketplace listing."
     },
@@ -5203,55 +4406,19 @@
         },
         {
           "$set": {
-            "images": [
-              "/a",
-              "/b",
-              "/c",
-              "/d",
-              "/api/photos/mk_a.jpg_4"
-            ],
+            "images": ["/a", "/b", "/c", "/d", "/api/photos/mk_a.jpg_4"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L-full",
-        "u1",
-        4,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "b.jpg",
-        "L-full",
-        "u1",
-        5,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L-full",
-        "u1",
-        6,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L-full", "u1", 4, 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveMarketplaceImage", "b.jpg", "L-full", "u1", 5, 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveMarketplaceImage", "c.jpg", "L-full", "u1", 6, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -5259,11 +4426,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -5276,11 +4439,7 @@
           "type": "marketplace",
           "id": "L-full",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -5355,10 +4514,7 @@
     "body": {
       "success": true,
       "uploaded": 2,
-      "urls": [
-        "/api/photos/mk_a.jpg_2",
-        "/api/photos/mk_b.jpg_3"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_2", "/api/photos/mk_b.jpg_3"],
       "errors": [],
       "message": "2 photo(s) uploaded successfully to marketplace listing."
     },
@@ -5385,42 +4541,17 @@
         },
         {
           "$set": {
-            "images": [
-              "/s",
-              "/o",
-              "/api/photos/mk_a.jpg_2",
-              "/api/photos/mk_b.jpg_3"
-            ],
+            "images": ["/s", "/o", "/api/photos/mk_a.jpg_2", "/api/photos/mk_b.jpg_3"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L-mixed",
-        "u1",
-        2,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "b.jpg",
-        "L-mixed",
-        "u1",
-        3,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L-mixed", "u1", 2, 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveMarketplaceImage", "b.jpg", "L-mixed", "u1", 3, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -5428,10 +4559,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -5444,10 +4572,7 @@
           "type": "marketplace",
           "id": "L-mixed",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -5505,10 +4630,7 @@
     "body": {
       "success": true,
       "uploaded": 2,
-      "urls": [
-        "/api/photos/mk_a.jpg_1",
-        "/api/photos/mk_c.jpg_2"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1", "/api/photos/mk_c.jpg_2"],
       "errors": [
         {
           "filename": "empty.jpg",
@@ -5540,41 +4662,17 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1",
-              "/api/photos/mk_c.jpg_2"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1", "/api/photos/mk_c.jpg_2"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L1",
-        "u1",
-        2,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 2, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -5582,11 +4680,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "empty.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -5599,11 +4693,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "empty.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "empty.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -5688,9 +4778,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [
         {
           "filename": "unknown",
@@ -5722,28 +4810,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -5751,10 +4826,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            null
-          ],
+          "fileNames": ["a.jpg", null],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -5767,10 +4839,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            null
-          ],
+          "fileNames": ["a.jpg", null],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -5816,12 +4885,7 @@
           "type": "undefined",
           "listingId": "L1",
           "userId": "u1",
-          "fileKeys": [
-            "originalname",
-            "buffer",
-            "size",
-            "mimetype"
-          ],
+          "fileKeys": ["originalname", "buffer", "size", "mimetype"],
           "mimetype": "image/jpeg",
           "size": 100,
           "hasStack": false
@@ -5845,9 +4909,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [
         {
           "filename": "unknown",
@@ -5879,28 +4941,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -5908,10 +4957,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            42
-          ],
+          "fileNames": ["a.jpg", 42],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -5924,10 +4970,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            42
-          ],
+          "fileNames": ["a.jpg", 42],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -5975,12 +5018,7 @@
           "type": "number",
           "listingId": "L1",
           "userId": "u1",
-          "fileKeys": [
-            "originalname",
-            "buffer",
-            "size",
-            "mimetype"
-          ],
+          "fileKeys": ["originalname", "buffer", "size", "mimetype"],
           "mimetype": "image/jpeg",
           "size": 100,
           "hasStack": false
@@ -6004,9 +5042,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [
         {
           "filename": "str.jpg",
@@ -6038,28 +5074,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -6067,10 +5090,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            "str.jpg"
-          ],
+          "fileNames": ["a.jpg", "str.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -6083,10 +5103,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            "str.jpg"
-          ],
+          "fileNames": ["a.jpg", "str.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -6156,9 +5173,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_c.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_c.jpg_1"],
       "errors": [
         {
           "filename": "unknown",
@@ -6190,28 +5205,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_c.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_c.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "c.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "c.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -6219,10 +5221,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            null,
-            "c.jpg"
-          ],
+          "fileNames": [null, "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -6235,10 +5234,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            null,
-            "c.jpg"
-          ],
+          "fileNames": [null, "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -6304,9 +5300,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_a.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_a.jpg_1"],
       "errors": [
         {
           "filename": "nobuf.jpg",
@@ -6338,28 +5332,15 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_a.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_a.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "a.jpg",
-        "L1",
-        "u1",
-        1,
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveMarketplaceImage", "a.jpg", "L1", "u1", 1, 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -6367,10 +5348,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "a.jpg",
-            "nobuf.jpg"
-          ],
+          "fileNames": ["a.jpg", "nobuf.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -6383,10 +5361,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "a.jpg",
-            "nobuf.jpg"
-          ],
+          "fileNames": ["a.jpg", "nobuf.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -6522,16 +5497,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "c.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "c.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -6539,11 +5506,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "nobuf.jpg",
-            null,
-            "c.jpg"
-          ],
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -6556,11 +5519,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "nobuf.jpg",
-            null,
-            "c.jpg"
-          ],
+          "fileNames": ["nobuf.jpg", null, "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -6617,12 +5576,7 @@
           "type": "undefined",
           "listingId": "S1",
           "userId": "u1",
-          "fileKeys": [
-            "originalname",
-            "buffer",
-            "size",
-            "mimetype"
-          ],
+          "fileKeys": ["originalname", "buffer", "size", "mimetype"],
           "mimetype": "image/jpeg",
           "size": 100,
           "hasStack": false
@@ -6653,9 +5607,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_good.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_good.jpg_1"],
       "errors": [
         {
           "filename": "validation.jpg",
@@ -6687,36 +5639,16 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_good.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_good.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "validation.jpg",
-        "L1",
-        "u1",
-        1,
-        19
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "good.jpg",
-        "L1",
-        "u1",
-        1,
-        13
-      ],
-      [
-        "getImageMetadata",
-        13
-      ]
+      ["processAndSaveMarketplaceImage", "validation.jpg", "L1", "u1", 1, 19],
+      ["processAndSaveMarketplaceImage", "good.jpg", "L1", "u1", 1, 13],
+      ["getImageMetadata", 13]
     ],
     "logs": [
       [
@@ -6724,10 +5656,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "validation.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["validation.jpg", "good.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -6740,10 +5669,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "validation.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["validation.jpg", "good.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -6816,9 +5742,7 @@
     "body": {
       "success": true,
       "uploaded": 1,
-      "urls": [
-        "/api/photos/mk_good.jpg_1"
-      ],
+      "urls": ["/api/photos/mk_good.jpg_1"],
       "errors": [
         {
           "filename": "mongo-msg.jpg",
@@ -6850,36 +5774,16 @@
         },
         {
           "$set": {
-            "images": [
-              "/api/photos/old1",
-              "/api/photos/mk_good.jpg_1"
-            ],
+            "images": ["/api/photos/old1", "/api/photos/mk_good.jpg_1"],
             "updatedAt": "<TS>"
           }
         }
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "mongo-msg.jpg",
-        "L1",
-        "u1",
-        1,
-        18
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "good.jpg",
-        "L1",
-        "u1",
-        1,
-        13
-      ],
-      [
-        "getImageMetadata",
-        13
-      ]
+      ["processAndSaveMarketplaceImage", "mongo-msg.jpg", "L1", "u1", 1, 18],
+      ["processAndSaveMarketplaceImage", "good.jpg", "L1", "u1", 1, 13],
+      ["getImageMetadata", 13]
     ],
     "logs": [
       [
@@ -6887,10 +5791,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "mongo-msg.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -6903,10 +5804,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "mongo-msg.jpg",
-            "good.jpg"
-          ],
+          "fileNames": ["mongo-msg.jpg", "good.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7008,22 +5906,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveMarketplaceImage",
-        "validation.jpg",
-        "L1",
-        "u1",
-        1,
-        19
-      ],
-      [
-        "processAndSaveMarketplaceImage",
-        "boom.jpg",
-        "L1",
-        "u1",
-        1,
-        13
-      ]
+      ["processAndSaveMarketplaceImage", "validation.jpg", "L1", "u1", 1, 19],
+      ["processAndSaveMarketplaceImage", "boom.jpg", "L1", "u1", 1, 13]
     ],
     "logs": [
       [
@@ -7031,10 +5915,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7047,10 +5928,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7179,9 +6057,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7194,9 +6070,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7269,9 +6143,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7284,9 +6156,7 @@
           "type": "supplier",
           "id": "nope",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7316,9 +6186,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7331,9 +6199,7 @@
           "type": "supplier",
           "id": "S-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7405,16 +6271,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -7422,9 +6280,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7437,9 +6293,7 @@
           "type": "supplier",
           "id": "S-other",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "userRole": "admin",
           "hasStack": false
@@ -7488,9 +6342,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7503,9 +6355,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7577,16 +6427,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -7594,9 +6436,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7609,9 +6449,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7700,16 +6538,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -7717,9 +6547,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7732,9 +6560,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7821,16 +6647,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -7838,9 +6656,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7853,9 +6669,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -7923,16 +6737,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -7940,9 +6746,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -7955,9 +6759,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -8111,36 +6913,12 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveImage",
-        "b.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveImage",
-        "c.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveImage", "b.jpg", "supplier", 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveImage", "c.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -8148,11 +6926,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -8165,11 +6939,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -8370,36 +7140,12 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveImage",
-        "b.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveImage",
-        "c.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveImage", "b.jpg", "supplier", 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveImage", "c.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -8407,11 +7153,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -8424,11 +7166,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -8549,16 +7287,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -8566,9 +7296,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -8581,9 +7309,7 @@
           "type": "supplier",
           "id": "S-null",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -8672,16 +7398,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -8689,9 +7407,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -8704,9 +7420,7 @@
           "type": "supplier",
           "id": "S-nogallery",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -8828,32 +7542,11 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveImage",
-        "validation.jpg",
-        "supplier",
-        19
-      ],
-      [
-        "processAndSaveImage",
-        "c.jpg",
-        "supplier",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "supplier", 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveImage", "validation.jpg", "supplier", 19],
+      ["processAndSaveImage", "c.jpg", "supplier", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -8861,11 +7554,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "validation.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -8878,11 +7567,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "validation.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "validation.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -8999,18 +7684,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "validation.jpg",
-        "supplier",
-        19
-      ],
-      [
-        "processAndSaveImage",
-        "boom.jpg",
-        "supplier",
-        13
-      ]
+      ["processAndSaveImage", "validation.jpg", "supplier", 19],
+      ["processAndSaveImage", "boom.jpg", "supplier", 13]
     ],
     "logs": [
       [
@@ -9018,10 +7693,7 @@
         "Multer parsed files",
         {
           "totalFiles": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9034,10 +7706,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 2,
-          "fileNames": [
-            "validation.jpg",
-            "boom.jpg"
-          ],
+          "fileNames": ["validation.jpg", "boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -9131,9 +7800,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9146,9 +7813,7 @@
           "type": "package",
           "id": "nope",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -9185,9 +7850,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9200,9 +7863,7 @@
           "type": "package",
           "id": "P-orphan",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -9239,9 +7900,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9254,9 +7913,7 @@
           "type": "package",
           "id": "P-foreign",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -9334,16 +7991,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -9351,9 +8000,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9366,9 +8013,7 @@
           "type": "package",
           "id": "P-foreign",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "admin1",
           "userRole": "admin",
           "hasStack": false
@@ -9466,16 +8111,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -9483,9 +8120,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9498,9 +8133,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -9595,16 +8228,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -9612,9 +8237,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9627,9 +8250,7 @@
           "type": "package",
           "id": "P-placeholder",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -9723,16 +8344,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -9740,9 +8353,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9755,9 +8366,7 @@
           "type": "package",
           "id": "P-img",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -9852,16 +8461,8 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -9869,9 +8470,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -9884,9 +8483,7 @@
           "type": "package",
           "id": "P-nogallery",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10040,36 +8637,12 @@
       ]
     ],
     "uploads": [
-      [
-        "processAndSaveImage",
-        "a.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveImage",
-        "b.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ],
-      [
-        "processAndSaveImage",
-        "c.jpg",
-        "package",
-        10
-      ],
-      [
-        "getImageMetadata",
-        10
-      ]
+      ["processAndSaveImage", "a.jpg", "package", 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveImage", "b.jpg", "package", 10],
+      ["getImageMetadata", 10],
+      ["processAndSaveImage", "c.jpg", "package", 10],
+      ["getImageMetadata", 10]
     ],
     "logs": [
       [
@@ -10077,11 +8650,7 @@
         "Multer parsed files",
         {
           "totalFiles": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10094,11 +8663,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 3,
-          "fileNames": [
-            "a.jpg",
-            "b.jpg",
-            "c.jpg"
-          ],
+          "fileNames": ["a.jpg", "b.jpg", "c.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10188,9 +8753,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10203,9 +8766,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 1,
-          "fileNames": [
-            "e1.jpg"
-          ],
+          "fileNames": ["e1.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10296,23 +8857,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "validation.jpg",
-        "package",
-        19
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "validation.jpg", "package", 19]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10325,9 +8877,7 @@
           "type": "package",
           "id": "P-img",
           "filesCount": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10405,23 +8955,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "validation.jpg",
-        "supplier",
-        19
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10434,9 +8975,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "validation.jpg"
-          ],
+          "fileNames": ["validation.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10514,23 +9053,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "unavailable.jpg",
-        "supplier",
-        20
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "unavailable.jpg", "supplier", 20]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "unavailable.jpg"
-          ],
+          "fileNames": ["unavailable.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10543,9 +9073,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "unavailable.jpg"
-          ],
+          "fileNames": ["unavailable.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10623,23 +9151,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "storage.jpg",
-        "supplier",
-        16
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "storage.jpg", "supplier", 16]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "storage.jpg"
-          ],
+          "fileNames": ["storage.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10652,9 +9171,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "storage.jpg"
-          ],
+          "fileNames": ["storage.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10732,23 +9249,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "boom.jpg",
-        "supplier",
-        13
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10761,9 +9269,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10841,23 +9347,14 @@
         }
       ]
     ],
-    "uploads": [
-      [
-        "processAndSaveImage",
-        "boom.jpg",
-        "supplier",
-        13
-      ]
-    ],
+    "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
       [
         "info",
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10870,9 +9367,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "boom.jpg"
-          ],
+          "fileNames": ["boom.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10936,9 +9431,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -10951,9 +9444,7 @@
           "type": "supplier",
           "id": "S1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -10998,9 +9489,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -11013,9 +9502,7 @@
           "type": "package",
           "id": "P1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
@@ -11060,9 +9547,7 @@
         "Multer parsed files",
         {
           "totalFiles": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "endpoint": "/upload/batch",
           "hasStack": false
@@ -11075,9 +9560,7 @@
           "type": "marketplace",
           "id": "L1",
           "filesCount": 1,
-          "fileNames": [
-            "a.jpg"
-          ],
+          "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false

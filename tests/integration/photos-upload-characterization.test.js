@@ -10,6 +10,8 @@
  *
  * To regenerate the fixture after an intended behaviour change:
  *   UPDATE_PHOTOS_CHARACTERIZATION=1 npx jest tests/integration/photos-upload-characterization.test.js
+ *   npx prettier --write tests/fixtures/photos-upload-characterization.json
+ * The second step matters: the test writes plain JSON, and CI's formatting check rejects it.
  *
  * @jest-environment node
  */
