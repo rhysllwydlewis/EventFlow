@@ -366,6 +366,8 @@ As with the single upload, the target is looked up and authorised before any fil
 DELETE /api/photos/delete?type=supplier&id=sup_abc123&photoUrl=https://...
 ```
 
+Removes the photo from the gallery and deletes the images stored for it. One upload stores four (original, thumbnail, optimised and large), and all four are deleted, except any that another record still uses (another gallery, a logo, cover or banner, a package, an avatar, a marketplace listing, a category or a calendar event). The same applies to `DELETE /api/me/suppliers/:id/photos/:photoId` and `DELETE /api/me/packages/:id/photos`. The images deleted are always the ones stored in the gallery record that was removed, never an address taken from the request. If the check for other uses fails, nothing is deleted and the request still succeeds; a failure to delete a stored image never fails the request either.
+
 #### Get a Stored Photo
 
 ```http

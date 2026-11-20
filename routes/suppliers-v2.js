@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
 const { galleryAppendUpdate, galleryRemoveUpdate } = require('../utils/supplierGalleryUpdate');
+const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
 const router = express.Router();
 
 /**
@@ -388,16 +389,14 @@ router.delete(
         );
       }
 
-      // Delete the physical file from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
-      if (removedPhoto.url) {
-        if (removedPhoto.url.startsWith('/api/photos/')) {
-          await photoUpload.deleteImage(removedPhoto.url);
-        }
-        // Legacy /uploads/ URLs: the file may not exist on disk; just remove the reference (already done above)
-      }
-
       // Bust catalog cache — a removed gallery photo affects public listing display
       invalidateCatalogCache();
+
+      // Delete the stored images behind the photo (an upload stores four: original, thumbnail,
+      // optimised and large), except any that something else still uses. This runs after the
+      // reference was removed above, and never throws. Legacy /uploads/ addresses are not stored
+      // images, so only the reference is removed for those.
+      await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [removedPhoto] });
 
       res.json({
         success: true,
