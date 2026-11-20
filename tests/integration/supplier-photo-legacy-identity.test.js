@@ -113,9 +113,22 @@ describe('supplier gallery legacy URL identity compatibility', () => {
 // used to invent `photo_<position>`, which neither route recognises: the page showed the photo but
 // answered "Photo not found" when it was deleted.
 describe('an id the list route gives out is accepted by the delete and reorder routes', () => {
+  // The record POST /api/photos/upload/batch stores for a supplier (buildPhotoRecord in
+  // routes/photos.js): four image addresses and no `id`.
+  const uploadedPhoto = name => ({
+    url: `/api/photos/opt_${name}`,
+    thumbnail: `/api/photos/thumb_${name}`,
+    large: `/api/photos/large_${name}`,
+    original: `/api/photos/orig_${name}`,
+    approved: true,
+    uploadedAt: '2026-11-20T19:30:00.000Z',
+    uploadedBy: 'user_3',
+    metadata: { width: 100, height: 80, format: 'jpeg' },
+  });
+
   const idLessGallery = () => [
-    { url: '/api/photos/opt_first', thumbnail: '/api/photos/thumb_first', approved: true },
-    { url: '/api/photos/opt_second', thumbnail: '/api/photos/thumb_second', approved: true },
+    uploadedPhoto('first'),
+    uploadedPhoto('second'),
     { id: 'photo_own', url: '/api/photos/opt_own', thumbnail: '/api/photos/thumb_own' },
   ];
 
@@ -156,6 +169,45 @@ describe('an id the list route gives out is accepted by the delete and reorder r
       expect.objectContaining({ $pull: { photosGallery: { url: '/api/photos/opt_second' } } })
     );
     expect(photoUpload.deleteImage).toHaveBeenCalledWith('/api/photos/opt_second');
+  });
+
+  test('deleting one of two id-less photos that share an address removes only one of them', async () => {
+    // Both are listed under the same id, so the delete cannot tell them apart. It must not pull
+    // by address, which would remove both: it writes the gallery back without the first match.
+    const shared = uploadedPhoto('shared');
+    const { app, dbUnified } = createApp({
+      id: 'sup_3',
+      ownerUserId: 'user_3',
+      photosGallery: [shared, { ...shared, uploadedAt: 'the second copy' }, uploadedPhoto('other')],
+    });
+
+    const listed = await request(app).get('/api/me/suppliers/sup_3/photos').expect(200);
+    expect(listed.body.photos[0].id).toBe(listed.body.photos[1].id);
+
+    await request(app)
+      .delete(`/api/me/suppliers/sup_3/photos/${encodeURIComponent(listed.body.photos[0].id)}`)
+      .expect(200);
+
+    const [, , update] = dbUnified.updateOne.mock.calls[0];
+    expect(update).not.toHaveProperty('$pull');
+    expect(update.$set.photosGallery).toEqual([
+      expect.objectContaining({ url: shared.url, uploadedAt: 'the second copy' }),
+      expect.objectContaining({ url: '/api/photos/opt_other' }),
+    ]);
+  });
+
+  test('a record with neither an id nor an address cannot be deleted, rather than deleting another', async () => {
+    const { app, dbUnified } = createApp({
+      id: 'sup_3',
+      ownerUserId: 'user_3',
+      photosGallery: [{ thumbnail: '/api/photos/thumb_orphan' }, uploadedPhoto('kept')],
+    });
+
+    const listed = await request(app).get('/api/me/suppliers/sup_3/photos').expect(200);
+    expect(listed.body.photos[0].id).toBe('photo_0');
+
+    await request(app).delete('/api/me/suppliers/sup_3/photos/photo_0').expect(404);
+    expect(dbUnified.updateOne).not.toHaveBeenCalled();
   });
 
   test('reorders photos using the ids the list returned', async () => {
