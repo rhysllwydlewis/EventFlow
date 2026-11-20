@@ -22,7 +22,7 @@ const tails = new Map();
  */
 async function withLock(key, work) {
   const previous = tails.get(key) || Promise.resolve();
-  let release;
+  let release = () => undefined; // replaced at once: a promise executor runs synchronously
   const mine = new Promise(resolve => {
     release = resolve;
   });
