@@ -189,7 +189,12 @@ router.get('/:id/photos', applyWriteLimiter, applyAuthRequired, async (req, res)
       success: true,
       count: photos.length,
       photos: photos.map((p, index) => ({
-        id: p.id || `photo_${index}`,
+        // Photos uploaded through POST /api/photos/upload/batch have no id. The delete and
+        // reorder routes address such a photo by its stored URL (`p.id || p.url`), so that is
+        // the id to give out. A position-based id (`photo_<index>`) matched neither route, and
+        // the photos page answered "Photo not found" for every photo uploaded through it.
+        // The position is only a last resort for a record with neither an id nor a URL.
+        id: p.id || p.url || `photo_${index}`,
         url: p.url,
         thumbnail: p.thumbnail || p.url,
         approved: p.approved !== false,

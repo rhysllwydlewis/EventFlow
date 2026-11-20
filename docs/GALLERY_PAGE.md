@@ -76,6 +76,12 @@ does not exist for the delete's token, so neither could be relied on to work.
   photos. A tile that does say "Awaiting approval" gets the status filter.
 - **Package photo ids are positions** (`photo_0`, `photo_1`, ...), so the list is reloaded after every
   delete; a package photo is deleted by its address, a profile photo by its id.
+- **A profile photo that was uploaded through this page has no id of its own**, so the profile list
+  gives it its stored address as its id, which is what the delete and reorder routes accept. A
+  position-based id (`photo_<n>`) would be refused with "Photo not found". If the page was opened
+  before a fix like this went live, reload it: the old list still carries the old ids.
+  `tests/integration/supplier-photo-legacy-identity.test.js` covers the list, delete and reorder
+  round trip.
 - **A slow answer for a gallery that is no longer shown is dropped** (`loadSeq`), so switching the
   picker quickly cannot leave one gallery's photos under another's name.
 - **After a delete, focus moves to the "Your photos" heading**, because the button that had it is

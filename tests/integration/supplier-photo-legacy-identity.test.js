@@ -106,3 +106,129 @@ describe('supplier gallery legacy URL identity compatibility', () => {
     );
   });
 });
+
+// The photos page (/gallery) lists a gallery, then deletes a photo using the id the list gave it.
+// Photos uploaded through POST /api/photos/upload/batch are stored without an `id`, so for them the
+// id in the list has to be something the delete and reorder routes accept, the stored URL. The list
+// used to invent `photo_<position>`, which neither route recognises: the page showed the photo but
+// answered "Photo not found" when it was deleted.
+describe('an id the list route gives out is accepted by the delete and reorder routes', () => {
+  // The record POST /api/photos/upload/batch stores for a supplier (buildPhotoRecord in
+  // routes/photos.js): four image addresses and no `id`.
+  const uploadedPhoto = name => ({
+    url: `/api/photos/opt_${name}`,
+    thumbnail: `/api/photos/thumb_${name}`,
+    large: `/api/photos/large_${name}`,
+    original: `/api/photos/orig_${name}`,
+    approved: true,
+    uploadedAt: '2026-11-20T19:30:00.000Z',
+    uploadedBy: 'user_3',
+    metadata: { width: 100, height: 80, format: 'jpeg' },
+  });
+
+  const idLessGallery = () => [
+    uploadedPhoto('first'),
+    uploadedPhoto('second'),
+    { id: 'photo_own', url: '/api/photos/opt_own', thumbnail: '/api/photos/thumb_own' },
+  ];
+
+  test('lists a photo that has no id under its stored URL, and keeps a real id as it is', async () => {
+    const { app } = createApp({
+      id: 'sup_3',
+      ownerUserId: 'user_3',
+      photosGallery: idLessGallery(),
+    });
+
+    const response = await request(app).get('/api/me/suppliers/sup_3/photos').expect(200);
+
+    expect(response.body.photos.map(photo => photo.id)).toEqual([
+      '/api/photos/opt_first',
+      '/api/photos/opt_second',
+      'photo_own',
+    ]);
+  });
+
+  test('deletes an id-less photo using the id the list returned for it', async () => {
+    const { app, dbUnified, photoUpload } = createApp({
+      id: 'sup_3',
+      ownerUserId: 'user_3',
+      photosGallery: idLessGallery(),
+    });
+
+    const listed = await request(app).get('/api/me/suppliers/sup_3/photos').expect(200);
+    const second = listed.body.photos[1];
+
+    const response = await request(app)
+      .delete(`/api/me/suppliers/sup_3/photos/${encodeURIComponent(second.id)}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup_3' },
+      expect.objectContaining({ $pull: { photosGallery: { url: '/api/photos/opt_second' } } })
+    );
+    expect(photoUpload.deleteImage).toHaveBeenCalledWith('/api/photos/opt_second');
+  });
+
+  test('deleting one of two id-less photos that share an address removes only one of them', async () => {
+    // Both are listed under the same id, so the delete cannot tell them apart. It must not pull
+    // by address, which would remove both: it writes the gallery back without the first match.
+    const shared = uploadedPhoto('shared');
+    const { app, dbUnified } = createApp({
+      id: 'sup_3',
+      ownerUserId: 'user_3',
+      photosGallery: [shared, { ...shared, uploadedAt: 'the second copy' }, uploadedPhoto('other')],
+    });
+
+    const listed = await request(app).get('/api/me/suppliers/sup_3/photos').expect(200);
+    expect(listed.body.photos[0].id).toBe(listed.body.photos[1].id);
+
+    await request(app)
+      .delete(`/api/me/suppliers/sup_3/photos/${encodeURIComponent(listed.body.photos[0].id)}`)
+      .expect(200);
+
+    const [, , update] = dbUnified.updateOne.mock.calls[0];
+    expect(update).not.toHaveProperty('$pull');
+    expect(update.$set.photosGallery).toEqual([
+      expect.objectContaining({ url: shared.url, uploadedAt: 'the second copy' }),
+      expect.objectContaining({ url: '/api/photos/opt_other' }),
+    ]);
+  });
+
+  test('a record with neither an id nor an address cannot be deleted, rather than deleting another', async () => {
+    const { app, dbUnified } = createApp({
+      id: 'sup_3',
+      ownerUserId: 'user_3',
+      photosGallery: [{ thumbnail: '/api/photos/thumb_orphan' }, uploadedPhoto('kept')],
+    });
+
+    const listed = await request(app).get('/api/me/suppliers/sup_3/photos').expect(200);
+    expect(listed.body.photos[0].id).toBe('photo_0');
+
+    await request(app).delete('/api/me/suppliers/sup_3/photos/photo_0').expect(404);
+    expect(dbUnified.updateOne).not.toHaveBeenCalled();
+  });
+
+  test('reorders photos using the ids the list returned', async () => {
+    const { app } = createApp({
+      id: 'sup_3',
+      ownerUserId: 'user_3',
+      photosGallery: idLessGallery(),
+    });
+
+    const listed = await request(app).get('/api/me/suppliers/sup_3/photos').expect(200);
+    const ids = listed.body.photos.map(photo => photo.id).reverse();
+
+    const response = await request(app)
+      .patch('/api/me/suppliers/sup_3/photos/order')
+      .send({ photoIds: ids })
+      .expect(200);
+
+    expect(response.body.photosGallery.map(photo => photo.url)).toEqual([
+      '/api/photos/opt_own',
+      '/api/photos/opt_second',
+      '/api/photos/opt_first',
+    ]);
+  });
+});
