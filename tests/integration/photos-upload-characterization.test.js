@@ -1,12 +1,17 @@
 /**
  * Characterisation of POST /api/photos/upload and POST /api/photos/upload/batch.
  *
- * Those two handlers were each a single 300-line function (cyclomatic complexity 44 and 49) and
- * were refactored into small functions without changing what they do. This test pins what they
- * do: it drives the real router with fake database, photo pipeline, logger and feature flags
- * across a matrix of scenarios, and compares everything observable (the HTTP status and body,
- * every database call, every photo pipeline call, every log line, cache invalidations) with a
- * recorded fixture generated from the code *before* the refactor.
+ * Those two handlers were each a single 300-line function (cyclomatic complexity 44 and 49). They
+ * were refactored into small functions without changing what they do, and then changed to look up
+ * and authorise the target before any file is processed. This test pins what they do: it drives
+ * the real router with fake database, photo pipeline, logger and feature flags across a matrix of
+ * scenarios, and compares everything observable (the HTTP status and body, every database call,
+ * every photo pipeline call, every log line, cache invalidations) with a recorded fixture.
+ *
+ * The fixture was recorded from the code before the refactor and regenerated for the ordering
+ * change. What differs from the original is only: a refused target never reaches the photo
+ * pipeline, the resulting order of database calls, and a supplier or package single upload taking
+ * exactly one file.
  *
  * To regenerate the fixture after an intended behaviour change:
  *   UPDATE_PHOTOS_CHARACTERIZATION=1 npx jest tests/integration/photos-upload-characterization.test.js
@@ -112,7 +117,7 @@ function failureFor(name) {
   return null;
 }
 
-function makePhotoUpload(calls, files, events) {
+function makePhotoUpload(calls, files, events, onProcess = () => {}) {
   const results = name => ({
     optimized: `/api/photos/opt_${name}`,
     thumbnail: `/api/photos/thumb_${name}`,
@@ -130,6 +135,7 @@ function makePhotoUpload(calls, files, events) {
     processAndSaveImage: jest.fn(async (buffer, name, type) => {
       calls.push(['processAndSaveImage', name, type, buffer.length]);
       events.push('pipeline');
+      onProcess();
       const failure = failureFor(name);
       if (failure) {
         throw failure;
@@ -139,6 +145,7 @@ function makePhotoUpload(calls, files, events) {
     processAndSaveMarketplaceImage: jest.fn(async (buffer, name, listingId, userId, order) => {
       calls.push(['processAndSaveMarketplaceImage', name, listingId, userId, order, buffer.length]);
       events.push('pipeline');
+      onProcess();
       const failure = failureFor(name);
       if (failure) {
         throw failure;
@@ -173,7 +180,10 @@ function mount(scenario) {
       if (scenario.findOneThrows === collection) {
         throw new Error('db down');
       }
-      return find(collection, query);
+      const found = find(collection, query);
+      // A real database hands back a copy. The fake hands back the stored object itself unless a
+      // scenario asks for copies, which a scenario about stale reads needs.
+      return found && scenario.cloneReads ? JSON.parse(JSON.stringify(found)) : found;
     }),
     updateOne: jest.fn(async (collection, filter, update) => {
       dbCalls.push(['updateOne', collection, filter, update]);
@@ -194,6 +204,15 @@ function mount(scenario) {
     });
     return acc;
   }, {});
+  // A scenario can change the stored data while the first file is being processed, as another
+  // request finishing in the meantime would
+  let processing = false;
+  const onProcess = () => {
+    if (scenario.duringProcessing && !processing) {
+      processing = true;
+      scenario.duringProcessing(db);
+    }
+  };
   const pass = (_req, _res, next) => next();
   router.initializeDependencies({
     dbUnified,
@@ -204,7 +223,7 @@ function mount(scenario) {
     roleRequired: () => pass,
     featureRequired: () => pass,
     csrfProtection: pass,
-    photoUpload: makePhotoUpload(uploadCalls, files, events),
+    photoUpload: makePhotoUpload(uploadCalls, files, events, onProcess),
     logger,
   });
   const app = express();
@@ -574,19 +593,21 @@ describe('the target is looked up and authorised before any file is processed', 
     });
   });
 
-  test('the allowance is checked for every file in the request, before any is processed', async () => {
-    for (const [endpoint, count] of [
-      ['/upload/batch', 3],
-      ['/upload/batch', 1],
-    ]) {
+  test.each([1, 3])(
+    'a batch of %i files is checked against the allowance as that many',
+    async count => {
       checkPhotoAllowance.mockClear();
       const files = Array.from({ length: count }, (_, i) => file(`f${i}.jpg`));
-      const result = await run(endpoint, { type: 'supplier', id: 'S1', files });
+      const result = await run('/upload/batch', { type: 'supplier', id: 'S1', files });
       expect(result.status).toBe(200);
       expect(checkPhotoAllowance).toHaveBeenCalledTimes(1);
       expect(checkPhotoAllowance.mock.calls[0][1]).toBe(count);
+      // and that check came before the first file was processed
+      expect(result.events.indexOf('pipeline')).toBeGreaterThan(
+        result.events.indexOf('findOne:suppliers')
+      );
     }
-  });
+  );
 
   test('a file that then fails to process still counts towards the batch allowance', async () => {
     checkPhotoAllowance.mockClear();
@@ -627,5 +648,66 @@ describe('the target is looked up and authorised before any file is processed', 
     expect(
       result.uploads.filter(([name]) => name === 'processAndSaveMarketplaceImage')
     ).toHaveLength(2);
+  });
+});
+
+// ── A package that changes while its photo is processed ─────────────────────
+//
+// The package is looked up before the file is processed, to authorise the upload. Processing takes
+// a while, and another request can add a photo or pick a cover for the same package in that time.
+// The write must build on the package as it is when it is saved, or that photo or cover is lost.
+
+describe('a package changed by another request while its photo is processed', () => {
+  const run = (endpoint, scenario) => record(endpoint, scenario, { withEvents: true });
+  const packageUpdate = result =>
+    result.db.find(([call, collection]) => call === 'updateOne' && collection === 'packages');
+
+  describe.each(ENDPOINTS)('%s', endpoint => {
+    test('keeps a photo and a cover saved in the meantime', async () => {
+      const result = await run(endpoint, {
+        type: 'package',
+        id: 'P1',
+        cloneReads: true,
+        duringProcessing: db => {
+          const pkg = db.packages.find(p => p.id === 'P1');
+          pkg.gallery.push({ url: '/concurrent' });
+          pkg.image = '/api/photos/concurrent-cover';
+        },
+      });
+
+      expect(result.status).toBe(200);
+      const [, , , update] = packageUpdate(result);
+      expect(update.$set.gallery.map(p => p.url)).toEqual([
+        '/pg1',
+        '/concurrent',
+        '/api/photos/opt_a.jpg',
+      ]);
+      // P1 had no cover when it was first read, but has one now, so the upload must not replace it
+      expect(update.$set).not.toHaveProperty('image');
+    });
+
+    test('reads the package again after processing and before writing it', async () => {
+      const result = await run(endpoint, { type: 'package', id: 'P1' });
+      const lastPipeline = result.events.lastIndexOf('pipeline');
+      const reload = result.events.indexOf('findOne:packages', lastPipeline);
+      const write = result.events.indexOf('updateOne:packages');
+      expect(reload).toBeGreaterThan(lastPipeline);
+      expect(write).toBeGreaterThan(reload);
+    });
+
+    test('answers 404, and writes nothing, if the package was deleted in the meantime', async () => {
+      const result = await run(endpoint, {
+        type: 'package',
+        id: 'P1',
+        duringProcessing: db => {
+          db.packages = db.packages.filter(p => p.id !== 'P1');
+        },
+      });
+
+      expect(result.status).toBe(404);
+      expect(result.body).toEqual({ error: 'Package not found' });
+      expect(packageUpdate(result)).toBeUndefined();
+      expect(result.cacheInvalidations).toBe(0);
+    });
   });
 });

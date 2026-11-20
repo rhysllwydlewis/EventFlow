@@ -404,6 +404,17 @@ async function loadPackageForOwner(packageId, user) {
   return { pkg };
 }
 
+/**
+ * Read a package again just before it is changed. The one that authorised the upload was read
+ * before the image was processed, and writing its gallery and cover back would discard a photo
+ * or cover that another request saved in the meantime.
+ * @returns {Promise<{failure: Object}|{pkg: Object}>}
+ */
+async function reloadPackage(packageId) {
+  const pkg = await dbUnified.findOne('packages', { id: packageId });
+  return pkg ? { pkg } : failure(404, { error: 'Package not found' });
+}
+
 async function photoAutoApproveEnabled() {
   const flags = await getFeatureFlags();
   return flags.photoAutoApprove !== false;
@@ -638,7 +649,11 @@ async function uploadSinglePackagePhoto(req, res, { id, type }) {
   }
   const photoRecord = await processSingleImage(req.files[0], type, req.user.id);
 
-  await appendToPackageGallery(loaded.pkg, [photoRecord]);
+  const current = await reloadPackage(loaded.pkg.id);
+  if (current.failure) {
+    return sendFailure(res, current.failure);
+  }
+  await appendToPackageGallery(current.pkg, [photoRecord]);
 
   return res.json({
     success: true,
@@ -690,6 +705,8 @@ async function handleSingleUpload(req, res) {
 /**
  * Upload photos for supplier, package, or marketplace listing
  * POST /api/photos/upload
+ * A supplier or package takes exactly one file (more is a 400; use the batch route); a marketplace
+ * listing takes up to five. The target is looked up and authorised before any file is processed.
  */
 router.post(
   '/photos/upload',
@@ -962,20 +979,30 @@ async function finishSupplierBatch(res, { supplier }, uploadedPhotos, errors) {
   return false;
 }
 
-async function finishPackageBatch({ pkg }, uploadedPhotos) {
-  await appendToPackageGallery(pkg, uploadedPhotos);
+async function finishPackageBatch(res, { pkg }, uploadedPhotos) {
+  const current = await reloadPackage(pkg.id);
+  if (current.failure) {
+    sendFailure(res, current.failure);
+    return true;
+  }
+
+  await appendToPackageGallery(current.pkg, uploadedPhotos);
   return false;
 }
 
-/** @returns {Promise<boolean>} true when the request has been answered */
+/** @returns {Promise<boolean>|boolean} true when the request has been answered */
 function finishBatchUpload(req, res, target, prepared, uploadedPhotos, errors) {
   switch (target.type) {
     case 'marketplace':
       return finishMarketplaceBatch(req, res, target, uploadedPhotos, errors);
     case 'supplier':
       return finishSupplierBatch(res, prepared, uploadedPhotos, errors);
+    case 'package':
+      return finishPackageBatch(res, prepared, uploadedPhotos);
     default:
-      return finishPackageBatch(prepared, uploadedPhotos);
+      // prepareBatchTarget has already refused any other type, so this is not reached
+      res.status(400).json({ error: 'Invalid type' });
+      return true;
   }
 }
 
@@ -1023,6 +1050,8 @@ async function handleBatchUpload(req, res) {
  * Body: multipart/form-data with 'photos' field (multiple files)
  * Query: ?type=supplier|package|marketplace&id=<supplierId|packageId|listingId>
  * Note: Accepts up to 10 files for supplier/package, marketplace listings capped at 5 images total
+ * The target is looked up and authorised before any file is processed. For a supplier every file in
+ * the request counts towards the photo allowance, whether or not it later processes.
  */
 router.post(
   '/photos/upload/batch',
