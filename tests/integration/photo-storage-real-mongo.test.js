@@ -105,6 +105,72 @@ describeRealMongo('photo storage (real MongoDB, unique index on photos.id)', () 
     expect(await raw.collection('photos').countDocuments({ type: { $exists: true } })).toBe(8);
   });
 
+  it('records whose each stored copy is, only when it is told', async () => {
+    const png = solidPng(64);
+    const owned = await photoUpload.processAndSaveImage(png, 'owned.png', 'supplier', {
+      ownerUserId: 'owner_1',
+      uploadedBy: 'admin_9',
+    });
+    const anonymous = await photoUpload.processAndSaveImage(png, 'anonymous.png', 'supplier');
+    const idOf = address => address.split('/').pop();
+
+    for (const address of [owned.original, owned.thumbnail, owned.optimized, owned.large]) {
+      const doc = await raw.collection('photos').findOne({ _id: idOf(address) });
+      expect(doc.ownerUserId).toBe('owner_1');
+      expect(doc.uploadedBy).toBe('admin_9');
+    }
+    for (const address of [
+      anonymous.original,
+      anonymous.thumbnail,
+      anonymous.optimized,
+      anonymous.large,
+    ]) {
+      const doc = await raw.collection('photos').findOne({ _id: idOf(address) });
+      expect(doc).not.toHaveProperty('ownerUserId');
+      expect(doc).not.toHaveProperty('uploadedBy');
+    }
+  });
+
+  it('says whose images are, null for one with no recorded owner or no document', async () => {
+    const png = solidPng(64);
+    const owned = await photoUpload.processAndSaveImage(png, 'who.png', 'supplier', {
+      ownerUserId: 'owner_2',
+    });
+    const anonymous = await photoUpload.processAndSaveImage(png, 'nobody.png', 'supplier');
+    await raw
+      .collection('marketplace_images')
+      .insertOne({ _id: 'mkt_image_1', userId: 'seller_3', imageData: 'x' });
+
+    const owners = await photoUpload.getImageOwners([
+      owned.optimized,
+      owned.thumbnail,
+      anonymous.optimized,
+      '/api/photos/mkt_image_1',
+      '/api/photos/does_not_exist',
+    ]);
+
+    expect(owners).toEqual({
+      [owned.optimized]: 'owner_2',
+      [owned.thumbnail]: 'owner_2',
+      [anonymous.optimized]: null,
+      '/api/photos/mkt_image_1': 'seller_3',
+      '/api/photos/does_not_exist': null,
+    });
+    expect(await photoUpload.getImageOwners([])).toEqual({});
+  });
+
+  it('ignores an owner that is not a user id string', async () => {
+    const png = solidPng(64);
+    const result = await photoUpload.processAndSaveImage(png, 'bad.png', 'supplier', {
+      ownerUserId: { $ne: null },
+      uploadedBy: 42,
+    });
+    const doc = await raw.collection('photos').findOne({ _id: result.optimized.split('/').pop() });
+
+    expect(doc).not.toHaveProperty('ownerUserId');
+    expect(doc).not.toHaveProperty('uploadedBy');
+  });
+
   it('keeps `id` equal to `_id` so the image is found either way', async () => {
     const doc = await raw.collection('photos').findOne({ type: 'optimized' });
     expect(typeof doc.id).toBe('string');

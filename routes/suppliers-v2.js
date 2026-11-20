@@ -115,10 +115,12 @@ function applyWriteLimiter(req, res, next) {
  * Derives the correct file extension from the data URI MIME type.
  * @param {string} base64 - Base64 data URI (data:image/...;base64,...)
  * @param {string} namePrefix - Filename prefix (e.g. "supplier_id_1234")
+ * @param {{ownerUserId?: string, uploadedBy?: string}} [owner] - Whose image this is, recorded on
+ *   every stored copy so a later delete can tell
  * @returns {Promise<{url:string, thumbnail:string, large:string, original:string}>}
  * @throws {Error} If the base64 data is invalid or storage fails
  */
-async function saveImageBase64(base64, namePrefix) {
+async function saveImageBase64(base64, namePrefix, owner) {
   const match = base64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (!match) {
     const err = new Error('Invalid base64 image format');
@@ -129,7 +131,7 @@ async function saveImageBase64(base64, namePrefix) {
   const ext = mimeSubtype === 'jpeg' ? 'jpg' : mimeSubtype;
   const filename = `${namePrefix}.${ext}`;
   const buffer = Buffer.from(match[2], 'base64');
-  const results = await photoUpload.processAndSaveImage(buffer, filename, 'supplier');
+  const results = await photoUpload.processAndSaveImage(buffer, filename, 'supplier', owner);
   if (!results || !results.original) {
     const err = new Error('Image processing returned no URL');
     err.name = 'ImageProcessingError';
@@ -154,9 +156,9 @@ async function saveImageBase64(base64, namePrefix) {
  * @param {string} namePrefix - Filename prefix for the stored image.
  * @returns {Promise<{imageVariants?: object, error?: Error}>} Outcome.
  */
-async function processBannerImage(image, namePrefix) {
+async function processBannerImage(image, namePrefix, owner) {
   try {
-    return { imageVariants: await saveImageBase64(image, namePrefix) };
+    return { imageVariants: await saveImageBase64(image, namePrefix, owner) };
   } catch (error) {
     return { error };
   }
@@ -239,7 +241,10 @@ router.post(
     }
     let imageVariants;
     try {
-      imageVariants = await saveImageBase64(image, `supplier_${req.params.id}_${Date.now()}`);
+      imageVariants = await saveImageBase64(image, `supplier_${req.params.id}_${Date.now()}`, {
+        ownerUserId: s.ownerUserId,
+        uploadedBy: req.user.id,
+      });
     } catch (e) {
       logger.error('Supplier photo upload failed:', e.message);
       if (e.name === 'InvalidImageError' || e.name === 'ValidationError') {
@@ -310,7 +315,8 @@ router.post(
     }
     const { imageVariants, error: uploadError } = await processBannerImage(
       image,
-      `supplier_banner_${req.params.id}_${Date.now()}`
+      `supplier_banner_${req.params.id}_${Date.now()}`,
+      { ownerUserId: supplier.ownerUserId, uploadedBy: req.user.id }
     );
     if (uploadError) {
       logger.error('Supplier banner upload failed:', uploadError.message);
@@ -405,7 +411,12 @@ router.delete(
       // optimised and large), except any that something else still uses. This runs after the
       // reference was removed above, and never throws. Legacy /uploads/ addresses are not stored
       // images, so only the reference is removed for those.
-      await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [removedPhoto] });
+      await deleteUnusedStoredCopies({
+        dbUnified,
+        photoUpload,
+        records: [removedPhoto],
+        ownerUserId: supplier.ownerUserId,
+      });
 
       res.json({
         success: true,

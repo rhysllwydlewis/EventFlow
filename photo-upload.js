@@ -165,13 +165,38 @@ async function processImage(buffer, config) {
 }
 
 /**
+ * The fields that say whose a stored image is.
+ *
+ * `ownerUserId` is the owner of the supplier, package or account the image was uploaded for (an
+ * admin uploading for a supplier records the supplier's owner, not themselves), and `uploadedBy` is
+ * who actually uploaded it. Stored images used to carry neither, so nothing could tell whose an
+ * image was, and anything that deleted one had to guess from what else referred to it. Images
+ * stored before this still have neither; code that reads them must treat that as "unknown".
+ *
+ * @param {{ownerUserId?: string, uploadedBy?: string}} [owner] - Who the image is for and from
+ * @returns {{ownerUserId?: string, uploadedBy?: string}} Only the fields that are real ids
+ */
+function ownerFields(owner) {
+  const fields = {};
+  if (owner && typeof owner.ownerUserId === 'string' && owner.ownerUserId) {
+    fields.ownerUserId = owner.ownerUserId;
+  }
+  if (owner && typeof owner.uploadedBy === 'string' && owner.uploadedBy) {
+    fields.uploadedBy = owner.uploadedBy;
+  }
+  return fields;
+}
+
+/**
  * Save image to MongoDB
  * @param {Buffer} buffer - Image buffer
  * @param {string} filename - Filename
  * @param {string} type - Image type (original, thumbnail, optimized, large)
+ * @param {{ownerUserId?: string, uploadedBy?: string}} [owner] - Whose image this is, see
+ *   `ownerFields`
  * @returns {Promise<string>} Database ID
  */
-async function saveToMongoDB(buffer, filename, type = 'optimized') {
+async function saveToMongoDB(buffer, filename, type = 'optimized', owner = {}) {
   try {
     // Check if MongoDB is available before attempting save
     const isAvailable = await mongoDb.isMongoAvailable();
@@ -196,6 +221,7 @@ async function saveToMongoDB(buffer, filename, type = 'optimized') {
       mimeType: 'image/jpeg',
       size: buffer.length,
       createdAt: new Date().toISOString(),
+      ...ownerFields(owner),
     };
 
     await collection.insertOne(photoDoc);
@@ -315,9 +341,11 @@ async function saveMarketplaceImageToMongoDB(
  * @param {Buffer} buffer - Original image buffer
  * @param {string} originalFilename - Original filename
  * @param {string} context - Upload context ('marketplace', 'supplier', 'avatar')
+ * @param {{ownerUserId?: string, uploadedBy?: string}} [owner] - Whose image this is, recorded on
+ *   every stored copy (see `ownerFields`)
  * @returns {Promise<Object>} URLs/IDs for all image sizes
  */
-async function processAndSaveImage(buffer, originalFilename, context = 'supplier') {
+async function processAndSaveImage(buffer, originalFilename, context = 'supplier', owner = {}) {
   // Validate buffer early
   if (!buffer || !Buffer.isBuffer(buffer)) {
     const error = new Error(`Invalid file buffer - expected Buffer, received ${typeof buffer}`);
@@ -388,7 +416,12 @@ async function processAndSaveImage(buffer, originalFilename, context = 'supplier
         const avatarProcessed = await processImage(buffer, IMAGE_CONFIGS.avatar);
 
         logger.debug('Saving avatar to MongoDB');
-        const avatarId = await saveToMongoDB(avatarProcessed, `${baseFilename}.jpg`, 'avatar');
+        const avatarId = await saveToMongoDB(
+          avatarProcessed,
+          `${baseFilename}.jpg`,
+          'avatar',
+          owner
+        );
         results.optimized = `/api/photos/${avatarId}`;
 
         logger.info('Avatar image processed successfully');
@@ -432,10 +465,10 @@ async function processAndSaveImage(buffer, originalFilename, context = 'supplier
       // Save to MongoDB (only storage backend)
       logger.debug('Saving images to MongoDB');
       const [originalId, thumbnailId, optimizedId, largeId] = await Promise.all([
-        saveToMongoDB(originalProcessed, `${baseFilename}.jpg`, 'original'),
-        saveToMongoDB(thumbnail, `${baseFilename}-thumb.jpg`, 'thumbnail'),
-        saveToMongoDB(optimized, `${baseFilename}-opt.jpg`, 'optimized'),
-        saveToMongoDB(large, `${baseFilename}-large.jpg`, 'large'),
+        saveToMongoDB(originalProcessed, `${baseFilename}.jpg`, 'original', owner),
+        saveToMongoDB(thumbnail, `${baseFilename}-thumb.jpg`, 'thumbnail', owner),
+        saveToMongoDB(optimized, `${baseFilename}-opt.jpg`, 'optimized', owner),
+        saveToMongoDB(large, `${baseFilename}-large.jpg`, 'large', owner),
       ]);
 
       // Return photo IDs that will be served via API endpoint
@@ -837,6 +870,47 @@ async function getImageMetadata(buffer) {
 }
 
 /**
+ * Whose each stored image is, read without loading the image data.
+ *
+ * Looks in both places an image can be stored: `photos` (`ownerUserId`, recorded from upload) and
+ * `marketplace_images` (`userId`). An image with no recorded owner (everything stored before owners
+ * were recorded) or no stored document at all answers null.
+ *
+ * Throws when the database cannot be read, so the caller can keep an image rather than act on a
+ * guess.
+ *
+ * @param {string[]} addresses - Stored image addresses, /api/photos/<id>
+ * @returns {Promise<Object<string, string|null>>} The owner's user id, or null, by address
+ */
+async function getImageOwners(addresses) {
+  const idOf = address => String(address).split('/').pop();
+  const ids = [...new Set(addresses.map(idOf))];
+  const owners = new Map();
+  if (ids.length > 0) {
+    const db = await mongoDb.getDb();
+    const [generic, marketplace] = await Promise.all([
+      db
+        .collection('photos')
+        .find({ _id: { $in: ids } }, { projection: { ownerUserId: 1 } })
+        .toArray(),
+      db
+        .collection('marketplace_images')
+        .find({ _id: { $in: ids } }, { projection: { userId: 1 } })
+        .toArray(),
+    ]);
+    for (const doc of generic) {
+      owners.set(doc._id, typeof doc.ownerUserId === 'string' ? doc.ownerUserId : null);
+    }
+    for (const doc of marketplace) {
+      if (!owners.get(doc._id)) {
+        owners.set(doc._id, typeof doc.userId === 'string' ? doc.userId : null);
+      }
+    }
+  }
+  return Object.fromEntries(addresses.map(address => [address, owners.get(idOf(address)) || null]));
+}
+
+/**
  * Fetch image buffer from MongoDB by URL
  * @param {string} imageUrl - /api/photos/{id} URL
  * @returns {Promise<Buffer>} Image buffer
@@ -979,6 +1053,7 @@ module.exports = {
   processAndSaveMarketplaceImage,
   deleteImage,
   deleteMarketplaceImages,
+  getImageOwners,
   getImageMetadata,
   cropImage,
   updatePhotoMetadata,

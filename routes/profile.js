@@ -398,7 +398,8 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
       const images = await photoUpload.processAndSaveImage(
         req.file.buffer,
         `avatar-${req.user.id}.jpg`,
-        'avatar' // Use avatar-specific size limits
+        'avatar', // Use avatar-specific size limits
+        { ownerUserId: req.user.id, uploadedBy: req.user.id }
       );
 
       const user = await dbUnified.findOne('users', { id: req.user.id });

@@ -37,7 +37,11 @@ function createApp({ suppliers, packages, user }) {
     roleRequired: () => pass,
     featureRequired: () => pass,
     csrfProtection: pass,
-    photoUpload: { deleteImage },
+    // No stored image has a recorded owner here, as for every image stored before owners were kept
+    photoUpload: {
+      deleteImage,
+      getImageOwners: async addresses => Object.fromEntries(addresses.map(a => [a, null])),
+    },
     logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
   });
   const app = express();

@@ -110,6 +110,8 @@ function setup({ data = baseData(), failInsert = () => false, failUpdate = () =>
     }),
     getImageMetadata: jest.fn(async () => ({ width: 100, height: 80, format: 'jpeg' })),
     deleteImage: jest.fn(async () => undefined),
+    // No stored image has a recorded owner here, as for every image stored before owners were kept
+    getImageOwners: jest.fn(async addresses => Object.fromEntries(addresses.map(a => [a, null]))),
   };
   const logger = { warn: jest.fn(), error: jest.fn(), info: jest.fn(), debug: jest.fn() };
 

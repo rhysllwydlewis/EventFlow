@@ -192,7 +192,7 @@ function applyPhotoUploadSingle(fieldName) {
  * @returns {Promise<string>} Stored photo URL in /api/photos/{id} format
  * @throws {Error} If the base64 data is invalid or storage fails
  */
-async function saveImageBase64(base64, namePrefix) {
+async function saveImageBase64(base64, namePrefix, owner) {
   const match = base64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (!match) {
     const err = new Error('Invalid base64 image format');
@@ -203,7 +203,7 @@ async function saveImageBase64(base64, namePrefix) {
   const ext = mimeSubtype === 'jpeg' ? 'jpg' : mimeSubtype;
   const filename = `${namePrefix}.${ext}`;
   const buffer = Buffer.from(match[2], 'base64');
-  const results = await photoUpload.processAndSaveImage(buffer, filename, 'supplier');
+  const results = await photoUpload.processAndSaveImage(buffer, filename, 'supplier', owner);
   if (!results || !results.original) {
     const err = new Error('Image processing returned no URL');
     err.name = 'ImageProcessingError';
@@ -385,7 +385,10 @@ router.post(
     if (isBase64Upload) {
       try {
         const rand = Math.random().toString(36).slice(2, 8);
-        resolvedImage = await saveImageBase64(image, `package_${pkgId}_${Date.now()}_${rand}`);
+        resolvedImage = await saveImageBase64(image, `package_${pkgId}_${Date.now()}_${rand}`, {
+          ownerUserId: own.ownerUserId,
+          uploadedBy: req.userId,
+        });
         gallery.push({ url: resolvedImage, approved: true, uploadedAt: Date.now() });
       } catch (e) {
         logger.warn('Package create: image processing failed, storing without image:', e.message);
@@ -573,14 +576,14 @@ function isStoredImage(submitted, pkg) {
  * @param {Object} pkg - The stored package
  * @returns {Promise<{updates: Object, imageProcessingError: (string|null)}>} Fields to set
  */
-async function buildImageUpdate(newImage, pkg) {
+async function buildImageUpdate(newImage, pkg, owner) {
   const updates = {};
   let imageProcessingError = null;
   if (newImage && typeof newImage === 'string' && newImage.startsWith('data:')) {
     // Process base64 image through the storage pipeline so we store a file URL,
     // not raw base64, which keeps the DB lean and consistent with gallery items.
     try {
-      const storedUrl = await saveImageBase64(newImage, `package_${pkg.id}_${Date.now()}`);
+      const storedUrl = await saveImageBase64(newImage, `package_${pkg.id}_${Date.now()}`, owner);
       updates.image = storedUrl;
       // Also add to gallery if not already present so detail view stays in sync
       const gallery = galleryWithImage(pkg, storedUrl);
@@ -648,7 +651,10 @@ router.put(
       // response can tell the supplier their other edits saved but the photo did not.
       let imageProcessingError = null;
       if (req.body.image !== undefined) {
-        const imageUpdate = await buildImageUpdate(req.body.image, pkg);
+        const imageUpdate = await buildImageUpdate(req.body.image, pkg, {
+          ownerUserId: req.userId,
+          uploadedBy: req.userId,
+        });
         if (imageUpdate.invalidImage) {
           res.status(400).json({ error: 'Invalid image', details: imageUpdate.invalidImage });
           return;
@@ -894,7 +900,10 @@ router.post(
       }
       let url = null;
       try {
-        url = await saveImageBase64(image, `package_${req.params.id}_${Date.now()}`);
+        url = await saveImageBase64(image, `package_${req.params.id}_${Date.now()}`, {
+          ownerUserId: own.ownerUserId,
+          uploadedBy: req.userId,
+        });
       } catch (e) {
         logger.error('Package photo upload failed:', e.message);
         if (e.name === 'InvalidImageError' || e.name === 'ValidationError') {
@@ -995,7 +1004,12 @@ router.delete(
       // Delete the stored images behind the removed photo (an upload stores four), except any that
       // something else still uses. After the write above, so the removed photo does not count as
       // a user of itself; never throws.
-      await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: removedItems });
+      await deleteUnusedStoredCopies({
+        dbUnified,
+        photoUpload,
+        records: removedItems,
+        ownerUserId: own.ownerUserId,
+      });
       res.json({
         ok: true,
         gallery: newGallery,

@@ -425,7 +425,7 @@ async function loadPackageForOwner(packageId, user) {
   if (!supplier || !canManageSupplier(supplier, user)) {
     return failure(403, { error: 'Not authorized' });
   }
-  return { pkg };
+  return { pkg, ownerUserId: supplier.ownerUserId };
 }
 
 /**
@@ -633,9 +633,16 @@ async function uploadMarketplaceImages(req, res, { normalizedId }) {
   });
 }
 
-/** Process the one uploaded file and describe it as a gallery record. */
-async function processSingleImage(file, type, userId) {
-  const images = await photoUpload.processAndSaveImage(file.buffer, file.originalname, type);
+/**
+ * Process the one uploaded file and describe it as a gallery record. The stored images record who
+ * they are for (`ownerUserId`, the owner of the supplier or package, which an admin uploading on
+ * their behalf is not) and who uploaded them.
+ */
+async function processSingleImage(file, type, userId, ownerUserId) {
+  const images = await photoUpload.processAndSaveImage(file.buffer, file.originalname, type, {
+    ownerUserId,
+    uploadedBy: userId,
+  });
   const metadata = await photoUpload.getImageMetadata(file.buffer);
   return buildPhotoRecord(images, metadata, userId);
 }
@@ -649,7 +656,12 @@ async function uploadSingleSupplierPhoto(req, res, { id, type }) {
     return sendFailure(res, loaded.failure);
   }
   const { supplier } = loaded;
-  const photoRecord = await processSingleImage(req.files[0], type, req.user.id);
+  const photoRecord = await processSingleImage(
+    req.files[0],
+    type,
+    req.user.id,
+    supplier.ownerUserId
+  );
 
   if (await photoAutoApproveEnabled()) {
     const notSaved = await appendSupplierPhotos(supplier.id, [photoRecord]);
@@ -689,7 +701,7 @@ async function uploadSinglePackagePhoto(req, res, { id, type }) {
   if (loaded.failure) {
     return sendFailure(res, loaded.failure);
   }
-  const photoRecord = await processSingleImage(req.files[0], type, req.user.id);
+  const photoRecord = await processSingleImage(req.files[0], type, req.user.id, loaded.ownerUserId);
 
   const current = await reloadPackage(loaded.pkg.id);
   if (current.failure) {
@@ -850,7 +862,7 @@ function batchFileProblem(file, context) {
   return null;
 }
 
-async function processBatchFile(file, { type, normalizedId }, userId, order) {
+async function processBatchFile(file, { type, normalizedId }, userId, order, ownerUserId) {
   // Marketplace images go through their own processing, with a position in the listing
   const images =
     type === 'marketplace'
@@ -861,14 +873,17 @@ async function processBatchFile(file, { type, normalizedId }, userId, order) {
           userId,
           order
         )
-      : await photoUpload.processAndSaveImage(file.buffer, file.originalname, type);
+      : await photoUpload.processAndSaveImage(file.buffer, file.originalname, type, {
+          ownerUserId,
+          uploadedBy: userId,
+        });
   const metadata = await photoUpload.getImageMetadata(file.buffer);
 
   return buildPhotoRecord(images, metadata, userId);
 }
 
 /** Process every file, collecting the photo records that worked and an entry for each that did not. */
-async function processBatchFiles(req, target, existingImagesCount) {
+async function processBatchFiles(req, target, existingImagesCount, ownerUserId) {
   const { type, normalizedId } = target;
   const uploadedPhotos = [];
   const errors = [];
@@ -884,7 +899,7 @@ async function processBatchFiles(req, target, existingImagesCount) {
 
     try {
       const order = existingImagesCount + uploadedPhotos.length;
-      uploadedPhotos.push(await processBatchFile(file, target, req.user.id, order));
+      uploadedPhotos.push(await processBatchFile(file, target, req.user.id, order, ownerUserId));
     } catch (error) {
       logProcessingFailure('Batch photo processing failed', error, file, {
         type,
@@ -925,11 +940,19 @@ async function prepareBatchTarget(req, { type, normalizedId }) {
   if (type === 'supplier') {
     // Every file counts towards the allowance, since which ones will process is not yet known
     const loaded = await loadSupplierWithAllowance(normalizedId, req.user, req.files.length);
-    return loaded.failure ? loaded : { existingImagesCount: 0, supplier: loaded.supplier };
+    return loaded.failure
+      ? loaded
+      : {
+          existingImagesCount: 0,
+          supplier: loaded.supplier,
+          ownerUserId: loaded.supplier.ownerUserId,
+        };
   }
   if (type === 'package') {
     const loaded = await loadPackageForOwner(normalizedId, req.user);
-    return loaded.failure ? loaded : { existingImagesCount: 0, pkg: loaded.pkg };
+    return loaded.failure
+      ? loaded
+      : { existingImagesCount: 0, pkg: loaded.pkg, ownerUserId: loaded.ownerUserId };
   }
   return failure(400, { error: 'Invalid type' });
 }
@@ -1088,7 +1111,8 @@ async function handleBatchUpload(req, res) {
     const { uploadedPhotos, errors } = await processBatchFiles(
       req,
       target,
-      prepared.existingImagesCount
+      prepared.existingImagesCount,
+      prepared.ownerUserId
     );
 
     const answered = await finishBatchUpload(req, res, target, prepared, uploadedPhotos, errors);
@@ -1171,7 +1195,12 @@ async function deleteSupplierPhoto(user, id, url) {
   // stored image is yours. The records are the ones that were removed, never the address in the
   // request.
   const removed = gallery.filter(p => !remaining.includes(p));
-  await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: removed });
+  await deleteUnusedStoredCopies({
+    dbUnified,
+    photoUpload,
+    records: removed,
+    ownerUserId: supplier.ownerUserId,
+  });
   return null;
 }
 
@@ -1221,7 +1250,12 @@ async function deletePackagePhoto(user, id, url) {
   // Delete the stored images behind the removed photo, except any that something still uses (see
   // deleteSupplierPhoto).
   const removed = originalGallery.filter(item => !gallery.includes(item));
-  await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: removed });
+  await deleteUnusedStoredCopies({
+    dbUnified,
+    photoUpload,
+    records: removed,
+    ownerUserId: supplier.ownerUserId,
+  });
   return null;
 }
 
