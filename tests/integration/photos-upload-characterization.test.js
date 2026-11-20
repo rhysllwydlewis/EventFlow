@@ -41,6 +41,7 @@ jest.mock('../../utils/photoGalleryAllowance', () => ({
 }));
 
 const router = require('../../routes/photos');
+const { checkPhotoAllowance } = require('../../utils/photoGalleryAllowance');
 const suppliersRouter = require('../../routes/suppliers');
 
 // ── The mockWorld a scenario runs in ────────────────────────────────────────────
@@ -109,7 +110,7 @@ function failureFor(name) {
   return null;
 }
 
-function makePhotoUpload(calls, files) {
+function makePhotoUpload(calls, files, events) {
   const results = name => ({
     optimized: `/api/photos/opt_${name}`,
     thumbnail: `/api/photos/thumb_${name}`,
@@ -126,6 +127,7 @@ function makePhotoUpload(calls, files) {
     },
     processAndSaveImage: jest.fn(async (buffer, name, type) => {
       calls.push(['processAndSaveImage', name, type, buffer.length]);
+      events.push('pipeline');
       const failure = failureFor(name);
       if (failure) {
         throw failure;
@@ -134,6 +136,7 @@ function makePhotoUpload(calls, files) {
     }),
     processAndSaveMarketplaceImage: jest.fn(async (buffer, name, listingId, userId, order) => {
       calls.push(['processAndSaveMarketplaceImage', name, listingId, userId, order, buffer.length]);
+      events.push('pipeline');
       const failure = failureFor(name);
       if (failure) {
         throw failure;
@@ -142,6 +145,7 @@ function makePhotoUpload(calls, files) {
     }),
     getImageMetadata: jest.fn(async buffer => {
       calls.push(['getImageMetadata', buffer.length]);
+      events.push('pipeline');
       return { width: 100, height: 80, format: 'jpeg' };
     }),
   };
@@ -152,6 +156,9 @@ function mount(scenario) {
   const dbCalls = [];
   const uploadCalls = [];
   const logs = [];
+  // Database calls and photo pipeline calls in the one order they happened, which the two
+  // separate lists above cannot show
+  const events = [];
   const files = scenario.files || [file('a.jpg')];
 
   const find = (collection, query) =>
@@ -160,6 +167,7 @@ function mount(scenario) {
   const dbUnified = {
     findOne: jest.fn(async (collection, query) => {
       dbCalls.push(['findOne', collection, query]);
+      events.push(`findOne:${collection}`);
       if (scenario.findOneThrows === collection) {
         throw new Error('db down');
       }
@@ -167,10 +175,12 @@ function mount(scenario) {
     }),
     updateOne: jest.fn(async (collection, filter, update) => {
       dbCalls.push(['updateOne', collection, filter, update]);
+      events.push(`updateOne:${collection}`);
       return true;
     }),
     insertOne: jest.fn(async (collection, doc) => {
       dbCalls.push(['insertOne', collection, doc]);
+      events.push(`insertOne:${collection}`);
       return scenario.insertOk === false ? null : doc;
     }),
   };
@@ -192,12 +202,12 @@ function mount(scenario) {
     roleRequired: () => pass,
     featureRequired: () => pass,
     csrfProtection: pass,
-    photoUpload: makePhotoUpload(uploadCalls, files),
+    photoUpload: makePhotoUpload(uploadCalls, files, events),
     logger,
   });
   const app = express();
   app.use('/api', router);
-  return { app, dbCalls, uploadCalls, logs };
+  return { app, dbCalls, uploadCalls, logs, events };
 }
 
 // ── Scenarios ───────────────────────────────────────────────────────────────
@@ -411,7 +421,7 @@ function normalise(value) {
   );
 }
 
-async function record(endpoint, scenario) {
+async function record(endpoint, scenario, { withEvents = false } = {}) {
   const originalEnv = process.env.NODE_ENV;
   const changesEnv = Boolean(scenario.nodeEnv);
   if (changesEnv) {
@@ -421,7 +431,7 @@ async function record(endpoint, scenario) {
   mockWorld.allowance = scenario.allowance || { allowed: true };
   suppliersRouter.invalidatePackageCaches.mockClear();
   try {
-    const { app, dbCalls, uploadCalls, logs } = mount(scenario);
+    const { app, dbCalls, uploadCalls, logs, events } = mount(scenario);
     const query =
       scenario.rawQuery ||
       [scenario.type && `type=${scenario.type}`, scenario.id && `id=${scenario.id}`]
@@ -441,6 +451,7 @@ async function record(endpoint, scenario) {
       uploads: uploadCalls,
       logs,
       cacheInvalidations: suppliersRouter.invalidatePackageCaches.mock.calls.length,
+      ...(withEvents ? { events } : {}),
     });
   } finally {
     if (changesEnv) {
@@ -494,4 +505,125 @@ describe('photo upload routes, characterised', () => {
       expect(Object.keys(fixture).sort()).toEqual(expected);
     });
   }
+});
+
+// ── The target is checked before any file is processed ──────────────────────
+//
+// The fixture lists database calls and pipeline calls separately, so it cannot tell whether a
+// request was authorised before or after its images were stored. These tests can.
+
+describe('the target is looked up and authorised before any file is processed', () => {
+  const run = (endpoint, scenario) => record(endpoint, scenario, { withEvents: true });
+  const noWrites = result => {
+    expect(result.uploads).toEqual([]);
+    expect(
+      result.events.filter(e => e.startsWith('updateOne') || e.startsWith('insertOne'))
+    ).toEqual([]);
+    expect(result.cacheInvalidations).toBe(0);
+  };
+
+  const refused = [
+    ['an unknown type', { type: 'banner', id: 'S1' }, 400],
+    ['a supplier that does not exist', { type: 'supplier', id: 'nope' }, 404],
+    ['someone else’s supplier', { type: 'supplier', id: 'S-other' }, 403],
+    [
+      'a supplier already at its photo allowance',
+      { type: 'supplier', id: 'S1', allowance: { allowed: false, limit: 10, current: 10 } },
+      403,
+    ],
+    ['a package that does not exist', { type: 'package', id: 'nope' }, 404],
+    ['a package whose supplier is missing', { type: 'package', id: 'P-orphan' }, 403],
+    ['a package of someone else’s supplier', { type: 'package', id: 'P-foreign' }, 403],
+  ];
+
+  describe.each(ENDPOINTS)('%s', endpoint => {
+    test.each(refused)('%s stores nothing', async (_name, scenario, status) => {
+      const result = await run(endpoint, scenario);
+      expect(result.status).toBe(status);
+      noWrites(result);
+    });
+
+    test('a listing that does not exist or is someone else’s stores nothing', async () => {
+      for (const [id, status] of [
+        ['nope', 404],
+        ['L-other', 403],
+      ]) {
+        const result = await run(endpoint, { type: 'marketplace', id });
+        expect(result.status).toBe(status);
+        noWrites(result);
+      }
+    });
+
+    test('an unknown type is refused without looking anything up', async () => {
+      const result = await run(endpoint, { type: 'banner', id: 'S1' });
+      expect(result.events).toEqual([]);
+    });
+
+    test.each([
+      ['supplier', 'S1', ['findOne:suppliers']],
+      ['package', 'P1', ['findOne:packages', 'findOne:suppliers']],
+      ['marketplace', 'L1', ['findOne:marketplace_listings']],
+    ])('a %s is looked up before the first file is processed', async (type, id, lookups) => {
+      const result = await run(endpoint, { type, id });
+      expect(result.status).toBe(200);
+      const firstPipeline = result.events.indexOf('pipeline');
+      expect(firstPipeline).toBe(lookups.length);
+      expect(result.events.slice(0, firstPipeline)).toEqual(lookups);
+    });
+  });
+
+  test('the allowance is checked for every file in the request, before any is processed', async () => {
+    for (const [endpoint, count] of [
+      ['/upload/batch', 3],
+      ['/upload/batch', 1],
+    ]) {
+      checkPhotoAllowance.mockClear();
+      const files = Array.from({ length: count }, (_, i) => file(`f${i}.jpg`));
+      const result = await run(endpoint, { type: 'supplier', id: 'S1', files });
+      expect(result.status).toBe(200);
+      expect(checkPhotoAllowance).toHaveBeenCalledTimes(1);
+      expect(checkPhotoAllowance.mock.calls[0][1]).toBe(count);
+    }
+  });
+
+  test('a file that then fails to process still counts towards the batch allowance', async () => {
+    checkPhotoAllowance.mockClear();
+    await run('/upload/batch', {
+      type: 'supplier',
+      id: 'S1',
+      files: [file('a.jpg'), file('validation.jpg')],
+    });
+    expect(checkPhotoAllowance.mock.calls[0][1]).toBe(2);
+  });
+
+  test('the single upload checks the allowance for the one photo it adds', async () => {
+    checkPhotoAllowance.mockClear();
+    await run('/upload', { type: 'supplier', id: 'S1' });
+    expect(checkPhotoAllowance.mock.calls[0][1]).toBe(1);
+  });
+
+  test('the single upload refuses several files for a supplier or package, without storing any', async () => {
+    const files = [file('a.jpg'), file('b.jpg')];
+    for (const [type, id] of [
+      ['supplier', 'S1'],
+      ['package', 'P1'],
+    ]) {
+      const result = await run('/upload', { type, id, files });
+      expect(result.status).toBe(400);
+      expect(result.body.error).toMatch(/Only one file/);
+      expect(result.events).toEqual([]);
+    }
+  });
+
+  test('the single upload still takes several files for a marketplace listing', async () => {
+    const result = await run('/upload', {
+      type: 'marketplace',
+      id: 'L1',
+      files: [file('a.jpg'), file('b.jpg')],
+    });
+    expect(result.status).toBe(200);
+    expect(
+      result.uploads.filter(([name]) => name === 'processAndSaveMarketplaceImage')
+    ).toHaveLength(2);
+  });
 });
