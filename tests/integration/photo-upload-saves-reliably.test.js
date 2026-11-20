@@ -342,6 +342,26 @@ describe('a photo that could not be saved is not reported as uploaded', () => {
     expect(ctx.deletedAddresses()).toEqual(addressesOf('a.jpg').sort());
   });
 
+  test('a database failure reading the supplier at save time is a 500, not "Supplier not found"', async () => {
+    const ctx = setup({ hold: true });
+    mockWorld.allowance = 10;
+
+    const pending = ctx.batch('type=supplier&id=S1', 'a.jpg').then(r => r);
+    await until(() => ctx.state.processing === 1);
+    ctx.dbUnified.findOne.mockImplementation(async (_collection, _filter, options) => {
+      if (options && options.throwOnError) {
+        throw new Error('db down');
+      }
+      return null; // what the real database layer answers for a failed read without throwOnError
+    });
+    ctx.release();
+    const response = await pending;
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Failed to save photos. Please try again.' });
+    expect(ctx.deletedAddresses()).toEqual(addressesOf('a.jpg').sort());
+  });
+
   test('a package write that throws is answered as a failed save, and the images are deleted', async () => {
     const ctx = setup({ hold: true });
     const pending = ctx.batch('type=package&id=P1', 'a.jpg').then(r => r);

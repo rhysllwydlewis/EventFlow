@@ -20,6 +20,9 @@
 const fs = require('fs');
 const path = require('path');
 
+const { PLACEHOLDER_PACKAGE_IMAGE } = require('../../utils/constants');
+const { packageGalleryAppendUpdate } = require('../../utils/packageGalleryUpdate');
+
 const PACKAGES_ROUTES = path.join(__dirname, '../../routes/packages.js');
 const CAROUSEL_JS = path.join(__dirname, '../../public/assets/js/components/carousel.js');
 const PACKAGE_LIST_JS = path.join(__dirname, '../../public/assets/js/components/package-list.js');
@@ -132,27 +135,32 @@ describe('PUT /me/packages/:id — base64 image pipeline', () => {
 // ─── 4. Gallery upload — auto-sync pkg.image ─────────────────────────────────
 
 describe('POST /me/packages/:id/photos — auto-sync pkg.image', () => {
-  it('sets pkg.image to the uploaded URL when pkg.image was a placeholder', () => {
-    expect(packagesContent).toContain(
-      "if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '')"
-    );
-    expect(packagesContent).toContain('updateFields.image = url');
+  // The route builds its update with packageGalleryAppendUpdate (utils/packageGalleryUpdate.js),
+  // which decides whether the new photo also becomes the package's cover.
+  const photo = { url: '/api/photos/new_original', approved: true };
+
+  it('sets pkg.image to the uploaded URL when pkg.image was a placeholder, empty or missing', () => {
+    for (const image of [PLACEHOLDER_PACKAGE_IMAGE, '', undefined, null]) {
+      const update = packageGalleryAppendUpdate({ gallery: [], image }, [photo]);
+      expect(update.$set).toEqual({ image: '/api/photos/new_original' });
+    }
   });
 
   it('does NOT overwrite a real pkg.image when one already exists', () => {
-    // The guard fires only when image is absent/placeholder — a surrounding conditional ensures
-    // a real image is never replaced.  Just verify the guard and update are present.
-    expect(packagesContent).toContain(
-      "if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '')"
-    );
-    expect(packagesContent).toContain('updateFields.image = url');
+    const update = packageGalleryAppendUpdate({ gallery: [], image: '/api/photos/cover' }, [photo]);
+    expect(update).toEqual({ $push: { gallery: { $each: [photo] } } });
+  });
+
+  it('adds the photo to the gallery, as an append that keeps what is already there', () => {
+    const update = packageGalleryAppendUpdate({ gallery: [{ url: '/a' }], image: '/x' }, [photo]);
+    expect(update.$push).toEqual({ gallery: { $each: [photo] } });
+    expect(JSON.stringify(update)).not.toContain('"/a"');
   });
 
   it('invalidates package caches after gallery upload', () => {
-    // The photo upload route (POST /me/packages/:id/photos) calls invalidatePackageCaches
-    // after committing the updated gallery + auto-synced image to the DB.
-    // We verify via line proximity: the photo route adds to pkg.gallery and then invalidates.
-    expect(packagesContent).toContain('pkg.gallery.push({ url, approved: true');
+    // The photo upload route (POST /me/packages/:id/photos) builds the append with
+    // packageGalleryAppendUpdate and calls invalidatePackageCaches after the write has landed.
+    expect(packagesContent).toContain('packageGalleryAppendUpdate(pkg, [{ url, approved: true');
     expect(packagesContent).toContain('suppliersRouter.invalidatePackageCaches()');
   });
 });

@@ -16,7 +16,7 @@ const tails = new Map();
 
 /**
  * @template T
- * @param {string} key - What is being protected, such as `supplier:<id>`
+ * @param {string} key - What is being protected, such as `supplier-gallery:<id>`
  * @param {() => Promise<T>} work - Runs once every earlier caller for this key has finished
  * @returns {Promise<T>} What `work` returns (or rejects with); a failure does not block later callers
  */
