@@ -651,6 +651,45 @@ describe('the target is looked up and authorised before any file is processed', 
   });
 });
 
+// ── A package batch where every file fails ──────────────────────────────────
+//
+// A package without a real cover used to answer 500 here, because the write took the cover from a
+// photo that does not exist. It now answers like a supplier batch does: 200, `uploaded: 0` and the
+// per-file errors (which is what the gallery page shows), and it writes nothing.
+
+describe('a package batch where every file fails to process', () => {
+  const run = scenario => record('/upload/batch', scenario, { withEvents: true });
+  const failing = [file('validation.jpg'), file('boom.jpg')];
+
+  test.each([
+    ['without a real cover', 'P1'],
+    ['with a cover', 'P-img'],
+  ])('a package %s answers 200 with the errors and writes nothing', async (_label, id) => {
+    const result = await run({ type: 'package', id, files: failing });
+
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({ success: true, uploaded: 0, photos: [] });
+    expect(result.body.errors).toHaveLength(2);
+    expect(result.events).not.toContain('updateOne:packages');
+    expect(result.cacheInvalidations).toBe(0);
+  });
+
+  test('a batch that is only partly failed still saves what worked, and takes the cover from it', async () => {
+    const result = await run({
+      type: 'package',
+      id: 'P1',
+      files: [file('validation.jpg'), file('a.jpg')],
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body.uploaded).toBe(1);
+    expect(result.body.errors).toHaveLength(1);
+    const update = result.db.find(([call, name]) => call === 'updateOne' && name === 'packages');
+    expect(update[3].$set.image).toBe('/api/photos/opt_a.jpg');
+    expect(result.cacheInvalidations).toBe(1);
+  });
+});
+
 // ── A package that changes while its photo is processed ─────────────────────
 //
 // The package is looked up before the file is processed, to authorise the upload. Processing takes

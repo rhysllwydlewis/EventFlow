@@ -8808,11 +8808,18 @@
     "cacheInvalidations": 1
   },
   "/upload/batch :: package: every file is empty": {
-    "status": 500,
+    "status": 200,
     "body": {
-      "error": "Failed to upload photo",
-      "details": "Cannot read properties of undefined (reading 'url')",
-      "errorType": "TypeError"
+      "success": true,
+      "uploaded": 0,
+      "photos": [],
+      "errors": [
+        {
+          "filename": "e1.jpg",
+          "error": "Empty file - please try re-uploading this image"
+        }
+      ],
+      "message": "0 photo(s) uploaded successfully."
     },
     "db": [
       [
@@ -8889,19 +8896,6 @@
           "userId": "u1",
           "hasStack": false
         }
-      ],
-      [
-        "error",
-        "Batch upload error",
-        {
-          "error": "Cannot read properties of undefined (reading 'url')",
-          "errorName": "TypeError",
-          "type": "package",
-          "id": "P1",
-          "userId": "u1",
-          "fileCount": 1,
-          "hasStack": true
-        }
       ]
     ],
     "cacheInvalidations": 0
@@ -8940,18 +8934,6 @@
         "packages",
         {
           "id": "P-img"
-        }
-      ],
-      [
-        "updateOne",
-        "packages",
-        {
-          "id": "P-img"
-        },
-        {
-          "$set": {
-            "gallery": []
-          }
         }
       ]
     ],
@@ -9014,7 +8996,7 @@
         }
       ]
     ],
-    "cacheInvalidations": 1
+    "cacheInvalidations": 0
   },
   "/upload/batch :: error: validation": {
     "status": 200,
