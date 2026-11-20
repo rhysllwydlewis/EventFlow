@@ -179,6 +179,7 @@ function records(kind, extra = {}) {
     packages: [pkg, ...(extra.morePackages || [])],
     users: [],
     marketplace_listings: [],
+    reviews: extra.reviews || [],
   };
 }
 
@@ -220,6 +221,19 @@ describe.each(ROUTES)('$name', route => {
     await remove(app, gone).expect(200);
 
     expect(addressesDeleted(deleteImage)).toEqual([gone.thumbnail, gone.large, gone.original]);
+  });
+
+  test("keeps a customer's review photo that was copied into the gallery, and deletes the rest", async () => {
+    // Stored images have no owner, so a supplier can put a review photo's address in their own
+    // gallery. Removing it from there must not destroy the customer's photo.
+    const db = createMongoStyleDb(
+      records(route.kind, { reviews: [{ id: 'rev_1', userId: 'customer', photos: [gone.large] }] })
+    );
+    const { app, remove, deleteImage } = route.build(db, OWNER);
+
+    await remove(app, gone).expect(200);
+
+    expect(addressesDeleted(deleteImage)).toEqual([gone.url, gone.thumbnail, gone.original]);
   });
 
   test('keeps everything, and still answers success, when it cannot check what uses the images', async () => {

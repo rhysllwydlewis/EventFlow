@@ -192,6 +192,24 @@ describe('deleteUnusedStoredCopies', () => {
         'public_calendar_events',
         { id: 'x', featuredImageUrl: thumbnail },
       ],
+      [
+        'a public calendar event gallery image',
+        'public_calendar_events',
+        { id: 'x', galleryImageUrls: ['/a.jpg', thumbnail] },
+      ],
+      ['a customer review photo', 'reviews', { id: 'x', photos: ['/a.jpg', thumbnail] }],
+      ['a customer review photo object', 'reviews', { id: 'x', photos: [{ url: thumbnail }] }],
+      [
+        'a saved shortlist item image',
+        'shortlists',
+        {
+          id: 'x',
+          items: [
+            { id: 'a', imageUrl: null },
+            { id: 'b', imageUrl: thumbnail },
+          ],
+        },
+      ],
     ];
 
     test.each(cases)('%s', async (_label, collection, document) => {
@@ -202,6 +220,20 @@ describe('deleteUnusedStoredCopies', () => {
       expect(result.kept).toEqual([thumbnail]);
       expect(result.deleted).toEqual([gone.url, gone.large, gone.original]);
       expect(photoUpload.deleteImage).not.toHaveBeenCalledWith(thumbnail);
+    });
+
+    test('a review photo a supplier copied into their own package is not deleted with it', async () => {
+      // Stored images have no owner, so a package gallery can name a customer's review photo.
+      // Removing that entry from the package must not delete the customer's photo.
+      const reviewPhoto = '/api/photos/photo_review_opt';
+      const { run, photoUpload } = setup({
+        reviews: [{ id: 'r1', userId: 'customer', photos: [reviewPhoto] }],
+      });
+
+      const result = await run([reviewPhoto]);
+
+      expect(result).toEqual({ deleted: [], kept: [reviewPhoto] });
+      expect(photoUpload.deleteImage).not.toHaveBeenCalled();
     });
 
     test('the supplier it was removed from, when another of its records still shows it', async () => {

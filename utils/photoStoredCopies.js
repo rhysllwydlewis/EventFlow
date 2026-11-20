@@ -58,7 +58,12 @@ const REFERENCE_FIELDS = {
   users: ['avatarUrl'],
   marketplace_listings: ['images', 'images.url'],
   categories: ['heroImage'],
-  public_calendar_events: ['imageUrl', 'featuredImageUrl'],
+  public_calendar_events: ['imageUrl', 'featuredImageUrl', 'galleryImageUrls'],
+  // A customer's review photos (/api/reviews/photos/upload stores the same /api/photos/<id>
+  // addresses); a supplier must not be able to delete them by naming one in their own gallery
+  reviews: ['photos', 'photos.url'],
+  // A saved item keeps the image address it was saved with
+  shortlists: ['items.imageUrl'],
 };
 
 /**
