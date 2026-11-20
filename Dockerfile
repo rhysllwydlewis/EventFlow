@@ -1,11 +1,14 @@
 # Use the exact supported Node 22 release used by local development and CI.
 FROM node:22.23.1-alpine
 
-# Install curl for healthcheck. Also pull in the current Alpine OpenSSL: the
-# pinned node image lags the Alpine repo, and the Supply Chain Evidence Trivy
-# gate fails on fixable HIGH/CRITICAL findings (libcrypto3/libssl3 3.5.7-r0,
-# CVE-2026-14456, fixed in 3.5.8-r0). Upgrading in place keeps the node pin.
-RUN apk add --no-cache --upgrade curl libcrypto3 libssl3
+# Install curl for healthcheck. Also pull in the current Alpine OpenSSL and musl
+# tools: the pinned node image lags the Alpine repo, and the Supply Chain Evidence
+# Trivy gate fails on fixable HIGH/CRITICAL findings (libcrypto3/libssl3 3.5.7-r0,
+# CVE-2026-14456, fixed in 3.5.8-r0; musl-utils 1.2.6-r2, CVE-2026-107891, fixed in
+# 1.2.6-r3). musl-utils must be named: it depends on the musl library by name only,
+# so upgrading musl through curl's dependencies leaves it behind. Upgrading in
+# place keeps the node pin.
+RUN apk add --no-cache --upgrade curl libcrypto3 libssl3 musl-utils
 
 # Create app directory
 WORKDIR /app
