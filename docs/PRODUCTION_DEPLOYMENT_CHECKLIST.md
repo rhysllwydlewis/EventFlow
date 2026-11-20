@@ -63,11 +63,11 @@ npm run test:headers
   - [ ] `EVENTFLOW_QUEUE_NAMESPACE` (unique per deployed environment if Redis is shared)
   - [ ] `POSTMARK_API_KEY` (required for production messenger email delivery)
   - [ ] `POSTMARK_FROM` (verified sender email)
+  - [ ] `POSTMARK_WEBHOOK_USER` and `POSTMARK_WEBHOOK_PASS` (Basic-auth credentials for `POST /api/webhooks/postmark`). **Both are required for the webhook to work:** while either is unset the route answers `503 "Webhook is not configured."` to every call, so bounces, spam complaints and suppressions are never recorded and Postmark gives up retrying after about ten attempts. Generate a strong random password, set both variables, then add the same credentials to the webhook URL in the Postmark dashboard (`https://USER:PASS@your-domain/api/webhooks/postmark`) and send a test event.
   - [ ] `STRIPE_SECRET_KEY` (live mode)
   - [ ] `STRIPE_PUBLISHABLE_KEY` (live mode)
   - [ ] `STRIPE_WEBHOOK_SECRET` (for webhook verification)
-  - [ ] `CLOUDINARY_URL` (for image hosting)
-  - [ ] `SENTRY_DSN` (for error tracking)
+  - [ ] `SENTRY_DSN` (backend error tracking) and `SENTRY_DSN_FRONTEND` (browser error tracking). Without `SENTRY_DSN` the server starts with error tracking disabled and only logs "Sentry DSN not configured", so production errors are not reported anywhere.
   - [ ] `COOKIE_DOMAIN` (optional — set to `.yourdomain.com` only if cookies must be shared across subdomains; leave unset for host-only cookies)
   - [ ] `ALLOW_DEGRADED_STARTUP` **must NOT be set** in production (the server will refuse to start if it is)
 
