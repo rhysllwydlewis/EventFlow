@@ -10,8 +10,9 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
-const { galleryAppendUpdate, galleryRemoveUpdate } = require('../utils/supplierGalleryUpdate');
+const { galleryRemoveUpdate } = require('../utils/supplierGalleryUpdate');
 const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
+const { saveSupplierPhotos } = require('../utils/supplierPhotoSave');
 const router = express.Router();
 
 /**
@@ -256,13 +257,21 @@ router.post(
       approved: true,
       uploadedAt: updatedAt,
     };
-    // Append only this photo. Writing back the whole array lost a photo whenever two
-    // uploads overlapped, because each started from the same copy.
-    await dbUnified.updateOne(
-      'suppliers',
-      { id: req.params.id },
-      galleryAppendUpdate(s, photoRecord, { updatedAt })
-    );
+    // Append only this photo (writing back the whole array lost a photo whenever two uploads
+    // overlapped, because each started from the same copy), checking the plan's allowance again
+    // now that the file is processed. If it cannot be saved, delete the images just stored and
+    // say so, rather than answering "ok" for a photo that is not in the gallery.
+    const notSaved = await saveSupplierPhotos({
+      dbUnified,
+      logger,
+      supplierId: s.id,
+      records: [photoRecord],
+      extraSet: { updatedAt },
+    });
+    if (notSaved) {
+      await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [photoRecord] });
+      return res.status(notSaved.failure.status).json(notSaved.failure.body);
+    }
 
     // Bust catalog cache — a new gallery photo affects public listing display
     invalidateCatalogCache();

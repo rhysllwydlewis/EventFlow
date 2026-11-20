@@ -63,7 +63,12 @@ POST /api/v1/me/suppliers/:id/photos
 
 - **Auth**: verified owner, CSRF, rate-limited, `photoUploads` feature flag
 - **Body**: `{ image: "<base64 data URI>" }`
-- **Response**: `{ ok: true, url }`
+- **Response**: `{ ok: true, url, photo }`
+- **Errors**: `403` with code `PHOTO_LIMIT_REACHED` when the plan has no room left. The allowance is checked
+  before the image is processed and again when the photo is saved, because another upload may have used the
+  last place in the meantime. `404` if the supplier was deleted meanwhile, and `500` with `"Failed to save
+photos. Please try again."` if the database could not save the photo. In each of these the images the
+  upload stored are deleted, and the photo is never answered `ok` when it was not saved.
 
 ### Delete a photo
 

@@ -1650,6 +1650,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-other"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -1785,6 +1792,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -1867,6 +1881,13 @@
       "message": "Photo uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -2199,6 +2220,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-null"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -2279,6 +2307,13 @@
       "message": "Photo uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-nogallery"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -2610,23 +2645,27 @@
           "id": "P-foreign"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "admin1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "admin1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -2713,26 +2752,27 @@
           "id": "P1"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -2819,23 +2859,27 @@
           "id": "P-placeholder"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -2922,23 +2966,25 @@
           "id": "P-img"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         }
       ]
@@ -3024,23 +3070,27 @@
           "id": "P-nogallery"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -3162,26 +3212,27 @@
           "id": "P1"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_e1.jpg",
-                "thumbnail": "/api/photos/thumb_e1.jpg",
-                "large": "/api/photos/large_e1.jpg",
-                "original": "/api/photos/orig_e1.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_e1.jpg",
+                  "thumbnail": "/api/photos/thumb_e1.jpg",
+                  "large": "/api/photos/large_e1.jpg",
+                  "original": "/api/photos/orig_e1.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_e1.jpg"
           }
         }
@@ -3910,6 +3961,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -5509,6 +5567,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -6283,6 +6348,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-other"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -6439,6 +6511,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -6542,6 +6621,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -6889,6 +6975,13 @@
       "message": "3 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -7301,6 +7394,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-null"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -7402,6 +7502,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-nogallery"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -7532,6 +7639,13 @@
       "message": "2 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -7708,20 +7822,6 @@
         "suppliers",
         {
           "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
         }
       ]
     ],
@@ -8017,23 +8117,27 @@
           "id": "P-foreign"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "admin1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "admin1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -8141,26 +8245,27 @@
           "id": "P1"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -8268,23 +8373,27 @@
           "id": "P-placeholder"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -8392,23 +8501,25 @@
           "id": "P-img"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         }
       ]
@@ -8515,23 +8626,27 @@
           "id": "P-nogallery"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -8667,54 +8782,55 @@
           "id": "P1"
         },
         {
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
+                },
+                {
+                  "url": "/api/photos/opt_b.jpg",
+                  "thumbnail": "/api/photos/thumb_b.jpg",
+                  "large": "/api/photos/large_b.jpg",
+                  "original": "/api/photos/orig_b.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
+                },
+                {
+                  "url": "/api/photos/opt_c.jpg",
+                  "thumbnail": "/api/photos/thumb_c.jpg",
+                  "large": "/api/photos/large_c.jpg",
+                  "original": "/api/photos/orig_c.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
+                }
+              ]
+            }
+          },
           "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
-                }
-              },
-              {
-                "url": "/api/photos/opt_b.jpg",
-                "thumbnail": "/api/photos/thumb_b.jpg",
-                "large": "/api/photos/large_b.jpg",
-                "original": "/api/photos/orig_b.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
-                }
-              },
-              {
-                "url": "/api/photos/opt_c.jpg",
-                "thumbnail": "/api/photos/thumb_c.jpg",
-                "large": "/api/photos/large_c.jpg",
-                "original": "/api/photos/orig_c.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
-                }
-              }
-            ],
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -9019,20 +9135,6 @@
         {
           "id": "S1"
         }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
-        }
       ]
     ],
     "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
@@ -9116,20 +9218,6 @@
         "suppliers",
         {
           "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
         }
       ]
     ],
@@ -9215,20 +9303,6 @@
         {
           "id": "S1"
         }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
-        }
       ]
     ],
     "uploads": [["processAndSaveImage", "storage.jpg", "supplier", 16]],
@@ -9313,20 +9387,6 @@
         {
           "id": "S1"
         }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
-        }
       ]
     ],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
@@ -9410,20 +9470,6 @@
         "suppliers",
         {
           "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
         }
       ]
     ],

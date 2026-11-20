@@ -11,6 +11,7 @@ const suppliersRouter = require('./suppliers');
 const { priceFields } = require('../utils/packagePrice');
 const { validatePackageImageUrl } = require('../utils/packageImageUrl');
 const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
+const { packageGalleryAppendUpdate } = require('../utils/packageGalleryUpdate');
 const router = express.Router();
 
 /**
@@ -901,21 +902,25 @@ router.post(
         }
         return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
       }
-      if (!pkg.gallery) {
-        pkg.gallery = [];
+      // Append this photo to the gallery as it is now. The package was read before the image was
+      // processed, which takes seconds, so writing back that copy of the gallery would discard a
+      // photo another upload added in the meantime. A failed or unmatched write (the package was
+      // deleted meanwhile) is a 500 the supplier sees, not an "ok" that saved nothing, and the
+      // image just stored is deleted.
+      try {
+        const written = await dbUnified.updateOne(
+          'packages',
+          { id: req.params.id },
+          packageGalleryAppendUpdate(pkg, [{ url, approved: true, uploadedAt: Date.now() }]),
+          { throwOnError: true }
+        );
+        if (written === false) {
+          throw new Error('the database did not save the photo');
+        }
+      } catch (saveError) {
+        await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [url] });
+        throw saveError;
       }
-      pkg.gallery.push({ url, approved: true, uploadedAt: Date.now() });
-      const updateFields = { gallery: pkg.gallery };
-      if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '') {
-        updateFields.image = url;
-      }
-      // throwOnError: a failed write is a 500 the supplier sees, not an "ok" that saved nothing.
-      await dbUnified.updateOne(
-        'packages',
-        { id: req.params.id },
-        { $set: updateFields },
-        { throwOnError: true }
-      );
       suppliersRouter.invalidatePackageCaches();
       res.json({ ok: true, url });
     } catch (error) {

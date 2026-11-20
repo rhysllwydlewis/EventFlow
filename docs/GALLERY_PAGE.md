@@ -82,6 +82,11 @@ does not exist for the delete's token, so neither could be relied on to work.
   before a fix like this went live, reload it: the old list still carries the old ids.
   `tests/integration/supplier-photo-legacy-identity.test.js` covers the list, delete and reorder
   round trip.
+- **An upload that cannot be saved says so, and leaves nothing behind.** The plan's photo limit is
+  checked again when the photos are saved, because processing takes seconds and another upload may
+  have used the last place; if the profile or package was deleted meanwhile, or the database could
+  not save them, the page gets an error instead of "uploaded", and the images that were stored are
+  deleted. A package gallery keeps photos added by two uploads at the same time.
 - **A slow answer for a gallery that is no longer shown is dropped** (`loadSeq`), so switching the
   picker quickly cannot leave one gallery's photos under another's name.
 - **A delete removes the stored images, not just the tile.** An upload stores four images
