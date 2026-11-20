@@ -91,6 +91,15 @@ describe('mongo-style-db updates', () => {
     expect(fixture.suppliers[0].photosGallery).toHaveLength(2);
   });
 
+  test('deleteOne removes one document by id or by filter, and says whether it removed one', async () => {
+    const db = createMongoStyleDb({ packages: [{ id: 'a' }, { id: 'b', kind: 'x' }, { id: 'c' }] });
+
+    expect(await db.deleteOne('packages', 'a')).toBe(true);
+    expect(await db.deleteOne('packages', { kind: 'x' })).toBe(true);
+    expect(await db.deleteOne('packages', 'a')).toBe(false);
+    expect(db.collections.packages).toEqual([{ id: 'c' }]);
+  });
+
   test('findOne answers with a copy, so editing the record found does not change what is stored', async () => {
     const db = createMongoStyleDb({ photos: [{ id: 'p1', status: 'pending' }] });
 

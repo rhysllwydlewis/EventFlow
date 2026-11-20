@@ -12,6 +12,7 @@ const { priceFields } = require('../utils/packagePrice');
 const { validatePackageImageUrl } = require('../utils/packageImageUrl');
 const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
 const { packageGalleryAppendUpdate } = require('../utils/packageGalleryUpdate');
+const { packagePhotoRecords } = require('../utils/removedRecordPhotos');
 const router = express.Router();
 
 /**
@@ -704,7 +705,7 @@ router.delete(
         return;
       }
 
-      await dbUnified.deleteOne(
+      const deleted = await dbUnified.deleteOne(
         'packages',
         {
           id: req.params.id,
@@ -713,6 +714,18 @@ router.delete(
         { throwOnError: true }
       );
       suppliersRouter.invalidatePackageCaches();
+      // The package's stored photos go with it (except any something else uses, or another user's);
+      // after the delete above, so the package does not count as a use of its own images. Only when
+      // a package was actually deleted: `deleteOne` answers false when nothing matched. Never
+      // throws.
+      if (deleted) {
+        await deleteUnusedStoredCopies({
+          dbUnified,
+          photoUpload,
+          records: packagePhotoRecords(result.pkg),
+          ownerUserId: result.own.ownerUserId,
+        });
+      }
       res.json({ ok: true, message: 'Package deleted successfully' });
     } catch (error) {
       logger.error('Error deleting supplier package:', error);
@@ -1261,8 +1274,25 @@ router.delete(
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    await dbUnified.deleteOne('packages', id);
+    // `deleteOne` answers false, rather than throwing, when the database failed or nothing matched
+    const deleted = await dbUnified.deleteOne('packages', id);
     suppliersRouter.invalidatePackageCaches();
+    // Its stored photos go with it, as when a supplier deletes their own package, but only when the
+    // package really was deleted (otherwise they belong to a package that still exists). Whose they
+    // are is the owner of the package's supplier, not the admin deleting it; with no supplier there
+    // is nobody to compare with, so they are left for the orphan sweep
+    // (scripts/sweep-orphan-photos.js).
+    const owningSupplier = deleted
+      ? await dbUnified.findOne('suppliers', { id: pkg.supplierId })
+      : null;
+    if (owningSupplier && owningSupplier.ownerUserId) {
+      await deleteUnusedStoredCopies({
+        dbUnified,
+        photoUpload,
+        records: packagePhotoRecords(pkg),
+        ownerUserId: owningSupplier.ownerUserId,
+      });
+    }
     return res.json({ ok: true, message: 'Package deleted successfully' });
   }
 );

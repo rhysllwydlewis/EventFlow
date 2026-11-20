@@ -93,7 +93,7 @@ function applyUpdate(document, update) {
  * @param {Object<string, Object[]>} collections - Documents by collection name. Copied, so a test
  *   that changes them does not change the fixture it started from.
  * @returns {{collections: Object, find: Function, findOne: Function, insertOne: Function,
- *   updateOne: Function}}
+ *   updateOne: Function, deleteOne: Function}}
  */
 function createMongoStyleDb(collections) {
   const store = JSON.parse(JSON.stringify(collections));
@@ -118,6 +118,17 @@ function createMongoStyleDb(collections) {
     insertOne: async (name, document) => {
       documents(name).push(JSON.parse(JSON.stringify(document)));
       return document;
+    },
+    // `dbUnified.deleteOne` takes a document id or a filter; answers whether a document was removed
+    deleteOne: async (name, idOrFilter) => {
+      const filter = typeof idOrFilter === 'string' ? { id: idOrFilter } : idOrFilter;
+      const list = documents(name);
+      const index = list.findIndex(item => matches(item, filter));
+      if (index < 0) {
+        return false;
+      }
+      list.splice(index, 1);
+      return true;
     },
     updateOne: async (name, filter, update) => {
       const document = documents(name).find(item => matches(item, filter));
