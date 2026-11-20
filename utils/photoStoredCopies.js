@@ -185,6 +185,26 @@ async function idsStillReferenced(dbUnified, ids) {
 }
 
 /**
+ * `idsStillReferenced`, but a failure is logged and answered with null instead of thrown, so the
+ * caller can keep every image.
+ *
+ * @param {Object} dbUnified - The database layer
+ * @param {string[]} ids - Stored photo ids
+ * @returns {Promise<Set<string>|null>} The ids still referred to, or null when that is not known
+ */
+async function referencedIdsOrNull(dbUnified, ids) {
+  try {
+    return await idsStillReferenced(dbUnified, ids);
+  } catch (error) {
+    logger.error('Kept stored photo images: could not check what still uses them', {
+      error: error.message,
+      count: ids.length,
+    });
+    return null;
+  }
+}
+
+/**
  * Delete the stored images behind removed gallery records, except any that something still uses.
  *
  * @param {Object} options
@@ -210,15 +230,9 @@ async function deleteUnusedStoredCopies({ dbUnified, photoUpload, records }) {
       return result;
     }
 
-    let referenced;
-    try {
-      referenced = await idsStillReferenced(dbUnified, addresses.map(storedPhotoId));
-    } catch (error) {
+    const referenced = await referencedIdsOrNull(dbUnified, addresses.map(storedPhotoId));
+    if (referenced === null) {
       // The check could not be completed, so nothing is known to be unused: keep everything.
-      logger.error('Kept stored photo images: could not check what still uses them', {
-        error: error.message,
-        count: addresses.length,
-      });
       result.kept.push(...addresses);
       return result;
     }
