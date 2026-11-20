@@ -351,6 +351,8 @@ Upload up to 10 photos at once for suppliers/packages, or up to 5 photos total f
 
 As with the single upload, the target is looked up and authorised before any file is processed, so a missing, foreign, over-allowance or unknown-`type` request stores nothing. For a supplier, every file in the request counts towards the photo allowance (`403`, code `PHOTO_LIMIT_REACHED`), including any that later fail to process.
 
+**When every file fails:** for a supplier or package, a batch where no file could be processed answers `200` with `"uploaded": 0`, `"photos": []` and the per-file reasons in `errors`, and stores nothing. (A package without a real cover image used to answer `500` here.) A marketplace listing answers `500` with `"error": "All photo uploads failed"` and the reasons in `details`.
+
 **Marketplace Listings:**
 
 - Uses `type=marketplace&id=<listingId>`

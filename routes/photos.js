@@ -986,7 +986,12 @@ async function finishPackageBatch(res, { pkg }, uploadedPhotos) {
     return true;
   }
 
-  await appendToPackageGallery(current.pkg, uploadedPhotos);
+  // When every file failed there is nothing to add. Writing anyway would try to take a cover from
+  // a photo that does not exist (a 500 for a package without a real cover). Answer like a supplier
+  // does instead: 200 with `uploaded: 0` and the per-file errors, which the gallery page shows.
+  if (uploadedPhotos.length > 0) {
+    await appendToPackageGallery(current.pkg, uploadedPhotos);
+  }
   return false;
 }
 
