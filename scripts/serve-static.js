@@ -27,6 +27,7 @@ const {
 } = require('../utils/template-renderer');
 const { resolveCategoryName } = require('../services/categoryLookup.service');
 const { noindexMiddleware } = require('../middleware/seo');
+const configureCompression = require('../middleware/compression');
 
 // This server has no database, so the legacy /category redirect below uses
 // this fixed list instead of the real `categories` collection — it's the
@@ -88,6 +89,11 @@ const staticLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(staticLimiter);
+
+// Compress responses the way production does (Brotli or gzip, via the same middleware). Without
+// it this server sent every page and script uncompressed, so anything measured through it,
+// Lighthouse above all, saw more than twice the bytes a visitor to the real site receives.
+app.use(configureCompression());
 
 // Disable caching for development/testing
 app.use((req, res, next) => {

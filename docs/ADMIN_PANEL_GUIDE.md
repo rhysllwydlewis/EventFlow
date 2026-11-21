@@ -163,6 +163,21 @@ collection under `settings.features.photoAutoApprove`.
 `photos` collection rather than adding it directly to the supplier's `photosGallery`.
 On approval the record is moved to `photosGallery`. Package photos are not affected.
 
+**Approving:** the photo is added to the supplier's gallery first, with all four stored images
+(original, thumbnail, optimised and large), and only then marked approved. If the supplier's plan has
+no room left for it the approval is refused with `403` (code `PHOTO_LIMIT_REACHED`) and the photo stays
+pending, so a gallery can never be taken past its limit by approvals. If the gallery could not be saved
+(`500`), the photo also stays pending. Approving a photo that is already in the gallery (a retry) just
+finishes the job. A photo that was rejected cannot be approved (`409`): rejecting deletes its images.
+
+**Rejecting:** a photo that was still pending is in no gallery, so rejecting it deletes the images its
+upload stored (except any something else still uses). A photo that was already approved keeps its
+images, because it is in a gallery.
+
+**Held photos are protected:** while a photo is pending, its images count as in use, so deleting some
+other gallery photo that names one of them cannot delete it. If the held photo's record cannot be
+saved when it is uploaded, the images that upload stored are deleted.
+
 ### Reports Management
 
 ```

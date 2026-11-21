@@ -646,6 +646,38 @@ jobs:
 3. **Cloudflare Analytics** - CDN and caching metrics
 4. **New Relic / Datadog** - Application performance monitoring
 
+## Lighthouse in CI (`.lighthouserc.mobile.json`)
+
+CI audits `/`, `/marketplace`, `/pricing` and `/suppliers` on a mobile profile against
+`scripts/serve-static.js`, a static test server, not the real app. Two things follow:
+
+- **That server must send what production sends.** It compresses with the production middleware
+  (`middleware/compression.js`: Brotli, then gzip). Until it did, the homepage was measured at 4.1 MB
+  against 1.8 MB from the real site, and scored about 57 (often under the 0.5 threshold) where
+  production scores about 66. `tests/unit/static-server-compression.test.js` starts the server and
+  checks it. Anything else production does to a response that affects weight or timing belongs in that
+  server too.
+- **It is HTTP/1.1 on localhost**, where production is HTTP/2 behind Cloudflare, so a page with many
+  small stylesheets (the homepage links 26 in its `<head>`) is slightly worse here than for a visitor.
+
+Measured on the homepage (mobile, 3 runs each, local; compressed server unless noted), so nobody
+spends time on these again:
+
+| Change                                                   | Median score      | Largest Contentful Paint |
+| -------------------------------------------------------- | ----------------- | ------------------------ |
+| Compressed static server (the fix)                       | 66 (from 57)      | 9.0 s (from 22.7 s)      |
+| Remove every `backdrop-filter`                           | 66                | 9.0 s                    |
+| Preload the LCP image (`collage-venue-640.webp`)         | 67                | 9.1 s                    |
+| Load the six below-the-fold stylesheets without blocking | 45 (worse, 42-64) | 9.1 s                    |
+| Remove `hero-collage.js`                                 | 65                | 8.2 s                    |
+| Remove the hero video                                    | 68                | 8.8 s                    |
+
+The LCP element is `img#collage-venues`. It finishes downloading in under a second; the delay is
+main-thread work (style, layout and rendering account for most of 11 s of CPU-throttled time) spread
+across 26 stylesheets (381 KiB) and 58 scripts (1 MB), not any one of them. A real improvement needs
+fewer, larger files (bundling), which changes how every page loads its CSS and JS and needs its own
+plan. The thresholds are deliberately unchanged.
+
 ## Additional Resources
 
 - [MDN: HTTP Caching](https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching)

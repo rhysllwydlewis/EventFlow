@@ -236,6 +236,25 @@ describe('deleteUnusedStoredCopies', () => {
       expect(photoUpload.deleteImage).not.toHaveBeenCalled();
     });
 
+    test('only a pending photo record counts, even if the database returns every record', async () => {
+      // A database that ignored the status condition in the query must not make an approved or
+      // rejected record keep its images alive: the records are checked again here
+      const records = [
+        { id: 'a', status: 'approved', url: gone.url },
+        { id: 'b', status: 'rejected', thumbnail: gone.thumbnail },
+        { id: 'c', status: 'pending', large: gone.large },
+      ];
+      const dbUnified = {
+        find: jest.fn(async collection => (collection === 'photos' ? records : [])),
+      };
+      const photoUpload = { deleteImage: jest.fn(async () => undefined) };
+
+      const result = await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [gone] });
+
+      expect(result.kept).toEqual([gone.large]);
+      expect(result.deleted).toEqual([gone.url, gone.thumbnail, gone.original]);
+    });
+
     test('the supplier it was removed from, when another of its records still shows it', async () => {
       // The removed photo is gone from this gallery, but a second record here points at the same image
       const { run, photoUpload } = setup({
@@ -357,6 +376,115 @@ describe('deleteUnusedStoredCopies', () => {
     expect(photoUpload.deleteImage).toHaveBeenCalledTimes(4);
     expect(result.kept).toEqual([gone.thumbnail]);
     expect(result.deleted).toEqual([gone.url, gone.large, gone.original]);
+  });
+});
+
+describe('deleting only images that belong to the gallery owner', () => {
+  // `owners` says whose each image is (an address missing from it, or null, has no recorded owner)
+  function ownedSetup({ owners = {}, collections = {}, lookup } = {}) {
+    const db = createMongoStyleDb(collections);
+    const dbUnified = { find: jest.fn(db.find) };
+    const photoUpload = {
+      deleteImage: jest.fn(async () => undefined),
+      getImageOwners:
+        lookup ||
+        jest.fn(async addresses => Object.fromEntries(addresses.map(a => [a, owners[a] || null]))),
+    };
+    const run = (records, ownerUserId = 'owner_1') =>
+      deleteUnusedStoredCopies({ dbUnified, photoUpload, records, ownerUserId });
+    return { photoUpload, run };
+  }
+
+  test("an image recorded as another user's is kept, even though nothing refers to it", async () => {
+    const { run, photoUpload } = ownedSetup({ owners: { [gone.large]: 'customer_9' } });
+
+    const result = await run([gone]);
+
+    expect(result.kept).toEqual([gone.large]);
+    expect(result.deleted).toEqual([gone.url, gone.thumbnail, gone.original]);
+    expect(photoUpload.deleteImage).not.toHaveBeenCalledWith(gone.large);
+  });
+
+  test("images recorded as the gallery owner's are deleted", async () => {
+    const owners = Object.fromEntries(GONE_ADDRESSES.map(a => [a, 'owner_1']));
+    const { run } = ownedSetup({ owners });
+
+    const result = await run([gone]);
+
+    expect(result.deleted).toEqual(GONE_ADDRESSES);
+    expect(result.kept).toEqual([]);
+  });
+
+  test('an image with no recorded owner (stored before owners were recorded) is deleted', async () => {
+    const { run } = ownedSetup({ owners: {} });
+
+    const result = await run([gone]);
+
+    expect(result.deleted).toEqual(GONE_ADDRESSES);
+  });
+
+  test('only images nothing refers to are looked up', async () => {
+    const { run, photoUpload } = ownedSetup({
+      collections: { suppliers: [{ id: 'x', logo: gone.thumbnail }] },
+    });
+
+    await run([gone]);
+
+    expect(photoUpload.getImageOwners).toHaveBeenCalledTimes(1);
+    expect(photoUpload.getImageOwners).toHaveBeenCalledWith([gone.url, gone.large, gone.original]);
+  });
+
+  test('nothing is looked up when every image is still used', async () => {
+    const { run, photoUpload } = ownedSetup({
+      collections: {
+        suppliers: [{ id: 'x', photosGallery: [gone] }],
+      },
+    });
+
+    const result = await run([gone]);
+
+    expect(photoUpload.getImageOwners).not.toHaveBeenCalled();
+    expect(result.deleted).toEqual([]);
+  });
+
+  test('no owner given: owners are not looked up at all (images this request just stored)', async () => {
+    const { photoUpload } = ownedSetup({ owners: { [gone.large]: 'customer_9' } });
+    const { dbUnified } = setup();
+
+    const result = await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [gone] });
+
+    expect(photoUpload.getImageOwners).not.toHaveBeenCalled();
+    expect(result.deleted).toEqual(GONE_ADDRESSES);
+  });
+
+  test('keeps everything when the owners cannot be read', async () => {
+    const { run, photoUpload } = ownedSetup({
+      lookup: jest.fn(async () => {
+        throw new Error('database down');
+      }),
+    });
+
+    const result = await run([gone]);
+
+    expect(result.deleted).toEqual([]);
+    expect(result.kept).toEqual(GONE_ADDRESSES);
+    expect(photoUpload.deleteImage).not.toHaveBeenCalled();
+  });
+
+  test('keeps everything when storage cannot say whose an image is', async () => {
+    const db = createMongoStyleDb({});
+    const dbUnified = { find: jest.fn(db.find) };
+    const photoUpload = { deleteImage: jest.fn(async () => undefined) }; // no getImageOwners
+
+    const result = await deleteUnusedStoredCopies({
+      dbUnified,
+      photoUpload,
+      records: [gone],
+      ownerUserId: 'owner_1',
+    });
+
+    expect(result.deleted).toEqual([]);
+    expect(result.kept).toEqual(GONE_ADDRESSES);
   });
 });
 

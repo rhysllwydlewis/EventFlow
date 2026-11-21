@@ -33,6 +33,8 @@ const {
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const { validatePackageImageUrl } = require('../utils/packageImageUrl');
 const photoUpload = require('../photo-upload');
+const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
+const { supplierPhotoRecords } = require('../utils/removedRecordPhotos');
 const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
@@ -1098,12 +1100,28 @@ router.delete('/suppliers/:id', authRequired, roleRequired('admin'), csrfProtect
       if (idx < 0) {
         return res.status(404).json({ error: 'Not found' });
       }
-      await dbUnified.deleteOne('suppliers', req.params.id);
+      const removedSupplier = all[idx];
+      // `deleteOne` answers false, rather than throwing, when the database failed or nothing matched.
+      // It is given the stored supplier's own id (the one just matched against the request), not the
+      // request value itself, so request text never reaches a database filter.
+      const deleted = await dbUnified.deleteOne('suppliers', removedSupplier.id);
       await auditLog({
         action: AUDIT_ACTIONS.SUPPLIER_DELETED || 'supplier_deleted',
         userId: req.user.id,
         targetId: req.params.id,
       });
+      // The supplier's stored photos go with it (except any something else uses, or another user's);
+      // after the delete above, so the supplier does not count as a use of its own images. With no
+      // owner on record there is nobody to compare with, so they are left for the orphan sweep
+      // (scripts/sweep-orphan-photos.js). Never throws.
+      if (deleted && removedSupplier.ownerUserId) {
+        await deleteUnusedStoredCopies({
+          dbUnified,
+          photoUpload,
+          records: supplierPhotoRecords(removedSupplier),
+          ownerUserId: removedSupplier.ownerUserId,
+        });
+      }
       res.json({ success: true });
     } catch (error) {
       logger.error('Error deleting supplier:', error);

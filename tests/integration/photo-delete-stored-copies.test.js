@@ -41,6 +41,22 @@ const GONE_ADDRESSES = [gone.url, gone.thumbnail, gone.large, gone.original];
 const OWNER = { id: 'user_1', role: 'supplier' };
 const pass = (_req, _res, next) => next();
 
+/**
+ * Photo storage. By default it says no image has a recorded owner, as for every image stored before
+ * owners were recorded (so the reference check alone decides). `owners` says whose an address is, or
+ * is an Error to make the lookup fail.
+ */
+const storage = (deleteImage, owners = {}) => ({
+  deleteImage,
+  processAndSaveImage: jest.fn(),
+  getImageOwners: async addresses => {
+    if (owners instanceof Error) {
+      throw owners;
+    }
+    return Object.fromEntries(addresses.map(address => [address, owners[address] || null]));
+  },
+});
+
 /** Build the dependencies every router in this file shares. */
 function dependencies(db, user) {
   const deleteImage = jest.fn(async () => undefined);
@@ -72,7 +88,7 @@ const ROUTES = [
   {
     name: 'DELETE /api/me/suppliers/:id/photos/:photoId',
     kind: 'supplier',
-    build(db, user) {
+    build(db, user, owners) {
       jest.resetModules();
       const router = require('../../routes/suppliers-v2');
       const { dbUnified, deleteImage, authRequired } = dependencies(db, user);
@@ -82,7 +98,7 @@ const ROUTES = [
         requireVerifiedUser: pass,
         csrfProtection: pass,
         featureRequired: () => pass,
-        photoUpload: { deleteImage, processAndSaveImage: jest.fn() },
+        photoUpload: storage(deleteImage, owners),
         writeLimiter: pass,
       });
       return {
@@ -97,7 +113,7 @@ const ROUTES = [
   {
     name: 'DELETE /api/me/packages/:id/photos',
     kind: 'package',
-    build(db, user) {
+    build(db, user, owners) {
       jest.resetModules();
       jest.doMock('../../routes/suppliers', () => ({ invalidatePackageCaches: jest.fn() }));
       const router = require('../../routes/packages');
@@ -111,7 +127,7 @@ const ROUTES = [
         csrfProtection: pass,
         featureRequired: () => pass,
         writeLimiter: pass,
-        photoUpload: { deleteImage, processAndSaveImage: jest.fn() },
+        photoUpload: storage(deleteImage, owners),
         uploadValidation: {},
         logger,
         uid: prefix => `${prefix}_test`,
@@ -128,7 +144,7 @@ const ROUTES = [
   ...['supplier', 'package'].map(kind => ({
     name: `DELETE /api/photos/delete?type=${kind}`,
     kind,
-    build(db, user) {
+    build(db, user, owners) {
       jest.resetModules();
       jest.doMock('../../routes/suppliers', () => ({ invalidatePackageCaches: jest.fn() }));
       const router = require('../../routes/photos');
@@ -139,7 +155,7 @@ const ROUTES = [
         roleRequired: () => pass,
         featureRequired: () => pass,
         csrfProtection: pass,
-        photoUpload: { deleteImage },
+        photoUpload: storage(deleteImage, owners),
         logger,
       });
       return {
@@ -236,6 +252,37 @@ describe.each(ROUTES)('$name', route => {
     expect(addressesDeleted(deleteImage)).toEqual([gone.url, gone.thumbnail, gone.original]);
   });
 
+  test("keeps an image recorded as another user's, even when nothing refers to it", async () => {
+    // A supplier names a customer's image (here the large copy) in their own gallery record. No
+    // field lists it anywhere, but the image itself records whose it is
+    const owners = { [gone.large]: 'customer_9' };
+    const db = createMongoStyleDb(records(route.kind));
+    const { app, remove, deleteImage } = route.build(db, OWNER, owners);
+
+    await remove(app, gone).expect(200);
+
+    expect(addressesDeleted(deleteImage)).toEqual([gone.url, gone.thumbnail, gone.original]);
+  });
+
+  test("deletes every image recorded as the gallery owner's", async () => {
+    const owners = Object.fromEntries(GONE_ADDRESSES.map(address => [address, OWNER.id]));
+    const db = createMongoStyleDb(records(route.kind));
+    const { app, remove, deleteImage } = route.build(db, OWNER, owners);
+
+    await remove(app, gone).expect(200);
+
+    expect(addressesDeleted(deleteImage)).toEqual(GONE_ADDRESSES);
+  });
+
+  test('keeps everything, and still answers success, when it cannot read whose the images are', async () => {
+    const db = createMongoStyleDb(records(route.kind));
+    const { app, remove, deleteImage } = route.build(db, OWNER, new Error('database down'));
+
+    await remove(app, gone).expect(200);
+
+    expect(deleteImage).not.toHaveBeenCalled();
+  });
+
   test('keeps everything, and still answers success, when it cannot check what uses the images', async () => {
     const db = createMongoStyleDb(records(route.kind));
     const { app, remove, deleteImage, dbUnified } = route.build(db, OWNER);
@@ -266,6 +313,24 @@ describe.each(ROUTES)('$name', route => {
     expect(deleteImage).not.toHaveBeenCalled();
     expect(db.collections.suppliers[1].photosGallery.map(item => item.url)).toEqual([victim.url]);
   });
+});
+
+describe("an admin deleting on a supplier's behalf", () => {
+  // The images belong to the supplier's owner, not to the admin who is acting
+  const ADMIN = { id: 'admin_9', role: 'admin' };
+
+  test.each(ROUTES.filter(route => route.name !== 'DELETE /api/me/packages/:id/photos'))(
+    '$name compares with the gallery owner, not the admin',
+    async route => {
+      const owners = Object.fromEntries(GONE_ADDRESSES.map(address => [address, 'user_1']));
+      const db = createMongoStyleDb(records(route.kind));
+      const { app, remove, deleteImage } = route.build(db, ADMIN, owners);
+
+      await remove(app, gone).expect(200);
+
+      expect(addressesDeleted(deleteImage)).toEqual(GONE_ADDRESSES);
+    }
+  );
 });
 
 describe('a gallery record that names another image in one of its own fields', () => {
