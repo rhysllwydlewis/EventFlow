@@ -1101,8 +1101,10 @@ router.delete('/suppliers/:id', authRequired, roleRequired('admin'), csrfProtect
         return res.status(404).json({ error: 'Not found' });
       }
       const removedSupplier = all[idx];
-      // `deleteOne` answers false, rather than throwing, when the database failed or nothing matched
-      const deleted = await dbUnified.deleteOne('suppliers', req.params.id);
+      // `deleteOne` answers false, rather than throwing, when the database failed or nothing matched.
+      // It is given the stored supplier's own id (the one just matched against the request), not the
+      // request value itself, so request text never reaches a database filter.
+      const deleted = await dbUnified.deleteOne('suppliers', removedSupplier.id);
       await auditLog({
         action: AUDIT_ACTIONS.SUPPLIER_DELETED || 'supplier_deleted',
         userId: req.user.id,
