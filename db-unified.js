@@ -12,6 +12,7 @@
 const db = require('./db');
 const logger = require('./utils/logger');
 const { applyLocalUpdate } = require('./utils/localStoreUpdate');
+const { sanitizeRegExp } = require('./utils/sanitizeRegExp');
 const store = require('./store');
 
 // Passed to applyLocalUpdate (utils/localStoreUpdate.js) so the local store supports the same
@@ -1215,7 +1216,7 @@ function matchesFilter(item, filter) {
             return Array.isArray(operatorValue) && operatorValue.includes(itemValue);
           case '$regex': {
             const options = filterValue.$options || '';
-            const regex = new RegExp(operatorValue, options);
+            const regex = new RegExp(sanitizeRegExp(operatorValue), options);
             return regex.test(itemValue);
           }
           default:
