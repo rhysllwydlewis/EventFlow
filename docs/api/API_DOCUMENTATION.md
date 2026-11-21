@@ -282,6 +282,12 @@ Requires authentication. Uploads photo for supplier, package, or marketplace lis
 **Supported Formats:** JPEG, PNG, WebP, GIF  
 **Max Size:** 10MB per file
 
+**One file for a supplier or package:** a supplier or package takes exactly one file per request. Sending more returns `400`; use the batch endpoint below for several. A marketplace listing takes up to five files.
+
+**Checked before anything is stored:** the target is looked up and authorised before the file is processed, so a request for something that does not exist (`404`), that belongs to someone else or is over the supplier's photo allowance (`403`), or that has an unknown `type` (`400`) stores nothing.
+
+**Checked again when the photo is saved (supplier and package; the same applies to `POST /api/me/suppliers/:id/photos` and `POST /api/me/packages/:id/photos`):** processing takes a while, so the photo allowance is checked once more, against the supplier as it is then, just before the photo is added to the gallery. If another upload has used the last place in the meantime, this one is refused (`403`, code `PHOTO_LIMIT_REACHED`). If the supplier or package was deleted meanwhile, it answers `404`. If the database could not save the photo, it answers `500` with `"Failed to save photos. Please try again."`. In each case the images the upload had stored are deleted, so nothing is left behind, and the photo is never reported as uploaded when it was not saved. The allowance check serialises uploads to one supplier within a single server process; with several server processes two overlapping uploads could still, rarely, both be saved.
+
 **Response:**
 
 ```json
@@ -292,8 +298,9 @@ Requires authentication. Uploads photo for supplier, package, or marketplace lis
     "thumbnail": "https://...",
     "large": "https://...",
     "original": "https://...",
-    "approved": false,
-    "uploadedAt": 1234567890,
+    "approved": true,
+    "uploadedAt": "2026-01-01T12:00:00.000Z",
+    "uploadedBy": "usr_abc123",
     "metadata": {
       "width": 1920,
       "height": 1080,
@@ -301,7 +308,24 @@ Requires authentication. Uploads photo for supplier, package, or marketplace lis
       "size": 524288
     }
   },
-  "message": "Photo uploaded successfully. Pending admin approval."
+  "message": "Photo uploaded successfully."
+}
+```
+
+With the default settings a supplier or package photo is approved and added to the gallery straight away, as above. Only when the `photoAutoApprove` feature flag is turned off is a **supplier** photo held for moderation instead: it is stored as a pending record, not added to the gallery, and the response differs:
+
+```json
+{
+  "success": true,
+  "photo": {
+    "id": "photo_...",
+    "status": "pending",
+    "approved": false,
+    "supplierId": "sup_abc123",
+    "...": "..."
+  },
+  "pending": true,
+  "message": "Photo uploaded and is awaiting moderation approval."
 }
 ```
 
@@ -327,6 +351,12 @@ photos: [file1, file2, file3, ...]
 
 Upload up to 10 photos at once for suppliers/packages, or up to 5 photos total for marketplace listings (capped at 5 images per listing).
 
+As with the single upload, the target is looked up and authorised before any file is processed, so a missing, foreign, over-allowance or unknown-`type` request stores nothing. For a supplier, every file in the request counts towards the photo allowance (`403`, code `PHOTO_LIMIT_REACHED`), including any that later fail to process.
+
+**Saving the batch:** the photos that were processed are saved together. If they cannot be saved (the allowance was used up meanwhile, the target was deleted, or the database failed) the whole batch is refused with the status above and none of its stored images are kept. Photos added to a package gallery at the same time as another upload are kept (each upload adds only its own photos).
+
+**When every file fails:** for a supplier or package, a batch where no file could be processed answers `200` with `"uploaded": 0`, `"photos": []` and the per-file reasons in `errors`, and stores nothing. (A package without a real cover image used to answer `500` here.) A marketplace listing answers `500` with `"error": "All photo uploads failed"` and the reasons in `details`.
+
 **Marketplace Listings:**
 
 - Uses `type=marketplace&id=<listingId>`
@@ -339,6 +369,8 @@ Upload up to 10 photos at once for suppliers/packages, or up to 5 photos total f
 ```http
 DELETE /api/photos/delete?type=supplier&id=sup_abc123&photoUrl=https://...
 ```
+
+Removes the photo from the gallery and deletes the images stored for it. One upload stores four (original, thumbnail, optimised and large), and all four are deleted, except any that another record still uses (another gallery, a logo, cover or banner, a package, an avatar, a marketplace listing, a category, a calendar event, a customer review photo or a saved shortlist item). The same applies to `DELETE /api/me/suppliers/:id/photos/:photoId` and `DELETE /api/me/packages/:id/photos`. The images deleted are always the ones stored in the gallery record that was removed, never an address taken from the request. Stored images have no recorded owner, so this protection is by reference: it covers the places listed in `REFERENCE_FIELDS` (`utils/photoStoredCopies.js`) and nothing else. If the check for other uses fails, nothing is deleted and the request still succeeds; a failure to delete a stored image never fails the request either.
 
 #### Get a Stored Photo
 

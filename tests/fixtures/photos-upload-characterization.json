@@ -108,10 +108,7 @@
       "error": "Invalid type. Must be supplier, package, or marketplace."
     },
     "db": [],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "banner", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -154,10 +151,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -1138,11 +1132,9 @@
     "cacheInvalidations": 0
   },
   "/upload :: supplier: a file with no buffer, and one with a bad name": {
-    "status": 500,
+    "status": 400,
     "body": {
-      "error": "Failed to upload photo",
-      "details": "Cannot read properties of undefined (reading 'length')",
-      "errorType": "TypeError"
+      "error": "Only one file can be uploaded at a time for a supplier. Use the batch upload for several."
     },
     "db": [],
     "uploads": [],
@@ -1169,19 +1161,6 @@
           "userId": "u1",
           "userRole": "supplier",
           "hasStack": false
-        }
-      ],
-      [
-        "error",
-        "Photo upload error",
-        {
-          "error": "Cannot read properties of undefined (reading 'length')",
-          "errorName": "TypeError",
-          "type": "supplier",
-          "id": "S1",
-          "userId": "u1",
-          "fileCount": 3,
-          "hasStack": true
         }
       ]
     ],
@@ -1570,10 +1549,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -1616,10 +1592,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -1669,6 +1642,13 @@
       "message": "Photo uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-other"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -1754,10 +1734,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -1807,6 +1784,13 @@
       "message": "Photo uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -1897,6 +1881,13 @@
       "message": "Photo uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -2131,67 +2122,12 @@
     "cacheInvalidations": 0
   },
   "/upload :: supplier: three files": {
-    "status": 200,
+    "status": 400,
     "body": {
-      "success": true,
-      "photo": {
-        "url": "/api/photos/opt_a.jpg",
-        "thumbnail": "/api/photos/thumb_a.jpg",
-        "large": "/api/photos/large_a.jpg",
-        "original": "/api/photos/orig_a.jpg",
-        "approved": true,
-        "uploadedAt": "<TS>",
-        "uploadedBy": "u1",
-        "metadata": {
-          "width": 100,
-          "height": 80,
-          "format": "jpeg"
-        }
-      },
-      "message": "Photo uploaded successfully."
+      "error": "Only one file can be uploaded at a time for a supplier. Use the batch upload for several."
     },
-    "db": [
-      [
-        "findOne",
-        "suppliers",
-        {
-          "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": [
-                {
-                  "url": "/api/photos/opt_a.jpg",
-                  "thumbnail": "/api/photos/thumb_a.jpg",
-                  "large": "/api/photos/large_a.jpg",
-                  "original": "/api/photos/orig_a.jpg",
-                  "approved": true,
-                  "uploadedAt": "<TS>",
-                  "uploadedBy": "u1",
-                  "metadata": {
-                    "width": 100,
-                    "height": 80,
-                    "format": "jpeg"
-                  }
-                }
-              ]
-            }
-          }
-        }
-      ]
-    ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "db": [],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -2221,65 +2157,12 @@
     "cacheInvalidations": 0
   },
   "/upload :: supplier: three files, moderation on": {
-    "status": 200,
+    "status": 400,
     "body": {
-      "success": true,
-      "photo": {
-        "url": "/api/photos/opt_a.jpg",
-        "thumbnail": "/api/photos/thumb_a.jpg",
-        "large": "/api/photos/large_a.jpg",
-        "original": "/api/photos/orig_a.jpg",
-        "approved": false,
-        "uploadedAt": "<TS>",
-        "uploadedBy": "u1",
-        "metadata": {
-          "width": 100,
-          "height": 80,
-          "format": "jpeg"
-        },
-        "id": "photo_<ID>",
-        "status": "pending",
-        "supplierId": "S1",
-        "supplierName": "Sup One"
-      },
-      "pending": true,
-      "message": "Photo uploaded and is awaiting moderation approval."
+      "error": "Only one file can be uploaded at a time for a supplier. Use the batch upload for several."
     },
-    "db": [
-      [
-        "findOne",
-        "suppliers",
-        {
-          "id": "S1"
-        }
-      ],
-      [
-        "insertOne",
-        "photos",
-        {
-          "url": "/api/photos/opt_a.jpg",
-          "thumbnail": "/api/photos/thumb_a.jpg",
-          "large": "/api/photos/large_a.jpg",
-          "original": "/api/photos/orig_a.jpg",
-          "approved": false,
-          "uploadedAt": "<TS>",
-          "uploadedBy": "u1",
-          "metadata": {
-            "width": 100,
-            "height": 80,
-            "format": "jpeg"
-          },
-          "id": "photo_<ID>",
-          "status": "pending",
-          "supplierId": "S1",
-          "supplierName": "Sup One"
-        }
-      ]
-    ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "db": [],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -2329,6 +2212,13 @@
       "message": "Photo uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-null"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -2425,6 +2315,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-nogallery"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -2487,67 +2384,12 @@
     "cacheInvalidations": 0
   },
   "/upload :: supplier: one of three files fails": {
-    "status": 200,
+    "status": 400,
     "body": {
-      "success": true,
-      "photo": {
-        "url": "/api/photos/opt_a.jpg",
-        "thumbnail": "/api/photos/thumb_a.jpg",
-        "large": "/api/photos/large_a.jpg",
-        "original": "/api/photos/orig_a.jpg",
-        "approved": true,
-        "uploadedAt": "<TS>",
-        "uploadedBy": "u1",
-        "metadata": {
-          "width": 100,
-          "height": 80,
-          "format": "jpeg"
-        }
-      },
-      "message": "Photo uploaded successfully."
+      "error": "Only one file can be uploaded at a time for a supplier. Use the batch upload for several."
     },
-    "db": [
-      [
-        "findOne",
-        "suppliers",
-        {
-          "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": [
-                {
-                  "url": "/api/photos/opt_a.jpg",
-                  "thumbnail": "/api/photos/thumb_a.jpg",
-                  "large": "/api/photos/large_a.jpg",
-                  "original": "/api/photos/orig_a.jpg",
-                  "approved": true,
-                  "uploadedAt": "<TS>",
-                  "uploadedBy": "u1",
-                  "metadata": {
-                    "width": 100,
-                    "height": 80,
-                    "format": "jpeg"
-                  }
-                }
-              ]
-            }
-          }
-        }
-      ]
-    ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "db": [],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -2579,12 +2421,10 @@
   "/upload :: supplier: every file fails": {
     "status": 400,
     "body": {
-      "error": "Invalid file format or size. Please check your file and try again.",
-      "details": "File too small",
-      "errorType": "ValidationError"
+      "error": "Only one file can be uploaded at a time for a supplier. Use the batch upload for several."
     },
     "db": [],
-    "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -2609,19 +2449,6 @@
           "userRole": "supplier",
           "hasStack": false
         }
-      ],
-      [
-        "error",
-        "Photo upload error",
-        {
-          "error": "File too small",
-          "errorName": "ValidationError",
-          "type": "supplier",
-          "id": "S1",
-          "userId": "u1",
-          "fileCount": 2,
-          "hasStack": true
-        }
       ]
     ],
     "cacheInvalidations": 0
@@ -2640,10 +2467,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -2693,10 +2517,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -2746,10 +2567,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -2814,29 +2632,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-foreign"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-foreign"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "admin1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "admin1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -2910,32 +2739,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P1"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P1"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -3009,29 +2846,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-placeholder"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-placeholder"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -3105,29 +2953,38 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-img"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-img"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         }
       ]
@@ -3200,29 +3057,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-nogallery"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-nogallery"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -3261,76 +3129,12 @@
     "cacheInvalidations": 1
   },
   "/upload :: package: three files": {
-    "status": 200,
+    "status": 400,
     "body": {
-      "success": true,
-      "photo": {
-        "url": "/api/photos/opt_a.jpg",
-        "thumbnail": "/api/photos/thumb_a.jpg",
-        "large": "/api/photos/large_a.jpg",
-        "original": "/api/photos/orig_a.jpg",
-        "approved": true,
-        "uploadedAt": "<TS>",
-        "uploadedBy": "u1",
-        "metadata": {
-          "width": 100,
-          "height": 80,
-          "format": "jpeg"
-        }
-      },
-      "message": "Photo uploaded successfully."
+      "error": "Only one file can be uploaded at a time for a package. Use the batch upload for several."
     },
-    "db": [
-      [
-        "findOne",
-        "packages",
-        {
-          "id": "P1"
-        }
-      ],
-      [
-        "findOne",
-        "suppliers",
-        {
-          "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "packages",
-        {
-          "id": "P1"
-        },
-        {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
-                }
-              }
-            ],
-            "image": "/api/photos/opt_a.jpg"
-          }
-        }
-      ]
-    ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "db": [],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -3357,7 +3161,7 @@
         }
       ]
     ],
-    "cacheInvalidations": 1
+    "cacheInvalidations": 0
   },
   "/upload :: package: every file is empty": {
     "status": 200,
@@ -3395,32 +3199,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P1"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P1"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_e1.jpg",
-                "thumbnail": "/api/photos/thumb_e1.jpg",
-                "large": "/api/photos/large_e1.jpg",
-                "original": "/api/photos/orig_e1.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_e1.jpg",
+                  "thumbnail": "/api/photos/thumb_e1.jpg",
+                  "large": "/api/photos/large_e1.jpg",
+                  "original": "/api/photos/orig_e1.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_e1.jpg"
           }
         }
@@ -3465,7 +3277,22 @@
       "details": "File too small",
       "errorType": "ValidationError"
     },
-    "db": [],
+    "db": [
+      [
+        "findOne",
+        "packages",
+        {
+          "id": "P-img"
+        }
+      ],
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ]
+    ],
     "uploads": [["processAndSaveImage", "validation.jpg", "package", 19]],
     "logs": [
       [
@@ -3515,7 +3342,15 @@
       "details": "File too small",
       "errorType": "ValidationError"
     },
-    "db": [],
+    "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ]
+    ],
     "uploads": [["processAndSaveImage", "validation.jpg", "supplier", 19]],
     "logs": [
       [
@@ -3565,7 +3400,15 @@
       "details": "no mongo",
       "errorType": "MongoDBUnavailableError"
     },
-    "db": [],
+    "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ]
+    ],
     "uploads": [["processAndSaveImage", "unavailable.jpg", "supplier", 20]],
     "logs": [
       [
@@ -3615,7 +3458,15 @@
       "details": "disk",
       "errorType": "MongoDBStorageError"
     },
-    "db": [],
+    "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ]
+    ],
     "uploads": [["processAndSaveImage", "storage.jpg", "supplier", 16]],
     "logs": [
       [
@@ -3665,7 +3516,15 @@
       "details": "boom",
       "errorType": "Error"
     },
-    "db": [],
+    "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ]
+    ],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
       [
@@ -3714,7 +3573,15 @@
       "error": "Failed to upload photo",
       "errorType": "Error"
     },
-    "db": [],
+    "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ]
+    ],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
     "logs": [
       [
@@ -3773,10 +3640,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -3834,10 +3698,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -4046,10 +3907,7 @@
       "error": "Invalid type"
     },
     "db": [],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "banner", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -4072,23 +3930,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "S1",
-          "userId": "u1",
           "hasStack": false
         }
       ]
@@ -4120,6 +3961,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -4218,19 +4066,9 @@
         {
           "id": "nope"
         }
-      ],
-      [
-        "findOne",
-        "marketplace_listings",
-        {
-          "id": "nope"
-        }
       ]
     ],
-    "uploads": [
-      ["processAndSaveMarketplaceImage", "a.jpg", "nope", "u1", 0, 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -4255,23 +4093,6 @@
           "userRole": "supplier",
           "hasStack": false
         }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "nope",
-          "userId": "u1",
-          "hasStack": false
-        }
       ]
     ],
     "cacheInvalidations": 0
@@ -4288,19 +4109,9 @@
         {
           "id": "L-other"
         }
-      ],
-      [
-        "findOne",
-        "marketplace_listings",
-        {
-          "id": "L-other"
-        }
       ]
     ],
-    "uploads": [
-      ["processAndSaveMarketplaceImage", "a.jpg", "L-other", "u1", 0, 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -4323,23 +4134,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "L-other",
-          "userId": "u1",
           "hasStack": false
         }
       ]
@@ -5773,6 +5567,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -6442,10 +6243,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -6470,23 +6268,6 @@
           "userRole": "supplier",
           "hasStack": false
         }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "nope",
-          "userId": "u1",
-          "hasStack": false
-        }
       ]
     ],
     "cacheInvalidations": 0
@@ -6505,10 +6286,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -6531,23 +6309,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "S-other",
-          "userId": "u1",
           "hasStack": false
         }
       ]
@@ -6579,6 +6340,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-other"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -6681,10 +6449,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -6707,23 +6472,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "S1",
-          "userId": "u1",
           "hasStack": false
         }
       ]
@@ -6755,6 +6503,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -6866,6 +6621,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -7213,6 +6975,13 @@
       "message": "3 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -7625,6 +7394,13 @@
         }
       ],
       [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-null"
+        }
+      ],
+      [
         "updateOne",
         "suppliers",
         {
@@ -7726,6 +7502,13 @@
       "message": "1 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S-nogallery"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -7856,6 +7639,13 @@
       "message": "2 photo(s) uploaded successfully."
     },
     "db": [
+      [
+        "findOne",
+        "suppliers",
+        {
+          "id": "S1"
+        }
+      ],
       [
         "findOne",
         "suppliers",
@@ -8033,20 +7823,6 @@
         {
           "id": "S1"
         }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
-        }
       ]
     ],
     "uploads": [
@@ -8159,10 +7935,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -8185,23 +7958,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "nope",
-          "userId": "u1",
           "hasStack": false
         }
       ]
@@ -8229,10 +7985,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -8255,23 +8008,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "P-orphan",
-          "userId": "u1",
           "hasStack": false
         }
       ]
@@ -8299,10 +8035,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -8325,23 +8058,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "P-foreign",
-          "userId": "u1",
           "hasStack": false
         }
       ]
@@ -8388,29 +8104,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-foreign"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-foreign"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "admin1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "admin1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -8505,32 +8232,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P1"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P1"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -8625,29 +8360,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-placeholder"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-placeholder"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -8742,29 +8488,38 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-img"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-img"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           }
         }
       ]
@@ -8858,29 +8613,40 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P-nogallery"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P-nogallery"
         },
         {
-          "$set": {
-            "gallery": [
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
                 }
-              }
-            ],
+              ]
+            }
+          },
+          "$set": {
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -9003,60 +8769,68 @@
         }
       ],
       [
+        "findOne",
+        "packages",
+        {
+          "id": "P1"
+        }
+      ],
+      [
         "updateOne",
         "packages",
         {
           "id": "P1"
         },
         {
+          "$push": {
+            "gallery": {
+              "$each": [
+                {
+                  "url": "/api/photos/opt_a.jpg",
+                  "thumbnail": "/api/photos/thumb_a.jpg",
+                  "large": "/api/photos/large_a.jpg",
+                  "original": "/api/photos/orig_a.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
+                },
+                {
+                  "url": "/api/photos/opt_b.jpg",
+                  "thumbnail": "/api/photos/thumb_b.jpg",
+                  "large": "/api/photos/large_b.jpg",
+                  "original": "/api/photos/orig_b.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
+                },
+                {
+                  "url": "/api/photos/opt_c.jpg",
+                  "thumbnail": "/api/photos/thumb_c.jpg",
+                  "large": "/api/photos/large_c.jpg",
+                  "original": "/api/photos/orig_c.jpg",
+                  "approved": true,
+                  "uploadedAt": "<TS>",
+                  "uploadedBy": "u1",
+                  "metadata": {
+                    "width": 100,
+                    "height": 80,
+                    "format": "jpeg"
+                  }
+                }
+              ]
+            }
+          },
           "$set": {
-            "gallery": [
-              {
-                "url": "/pg1"
-              },
-              {
-                "url": "/api/photos/opt_a.jpg",
-                "thumbnail": "/api/photos/thumb_a.jpg",
-                "large": "/api/photos/large_a.jpg",
-                "original": "/api/photos/orig_a.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
-                }
-              },
-              {
-                "url": "/api/photos/opt_b.jpg",
-                "thumbnail": "/api/photos/thumb_b.jpg",
-                "large": "/api/photos/large_b.jpg",
-                "original": "/api/photos/orig_b.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
-                }
-              },
-              {
-                "url": "/api/photos/opt_c.jpg",
-                "thumbnail": "/api/photos/thumb_c.jpg",
-                "large": "/api/photos/large_c.jpg",
-                "original": "/api/photos/orig_c.jpg",
-                "approved": true,
-                "uploadedAt": "<TS>",
-                "uploadedBy": "u1",
-                "metadata": {
-                  "width": 100,
-                  "height": 80,
-                  "format": "jpeg"
-                }
-              }
-            ],
             "image": "/api/photos/opt_a.jpg"
           }
         }
@@ -9150,11 +8924,18 @@
     "cacheInvalidations": 1
   },
   "/upload/batch :: package: every file is empty": {
-    "status": 500,
+    "status": 200,
     "body": {
-      "error": "Failed to upload photo",
-      "details": "Cannot read properties of undefined (reading 'url')",
-      "errorType": "TypeError"
+      "success": true,
+      "uploaded": 0,
+      "photos": [],
+      "errors": [
+        {
+          "filename": "e1.jpg",
+          "error": "Empty file - please try re-uploading this image"
+        }
+      ],
+      "message": "0 photo(s) uploaded successfully."
     },
     "db": [
       [
@@ -9169,6 +8950,13 @@
         "suppliers",
         {
           "id": "S1"
+        }
+      ],
+      [
+        "findOne",
+        "packages",
+        {
+          "id": "P1"
         }
       ]
     ],
@@ -9224,19 +9012,6 @@
           "userId": "u1",
           "hasStack": false
         }
-      ],
-      [
-        "error",
-        "Batch upload error",
-        {
-          "error": "Cannot read properties of undefined (reading 'url')",
-          "errorName": "TypeError",
-          "type": "package",
-          "id": "P1",
-          "userId": "u1",
-          "fileCount": 1,
-          "hasStack": true
-        }
       ]
     ],
     "cacheInvalidations": 0
@@ -9271,15 +9046,10 @@
         }
       ],
       [
-        "updateOne",
+        "findOne",
         "packages",
         {
           "id": "P-img"
-        },
-        {
-          "$set": {
-            "gallery": []
-          }
         }
       ]
     ],
@@ -9342,7 +9112,7 @@
         }
       ]
     ],
-    "cacheInvalidations": 1
+    "cacheInvalidations": 0
   },
   "/upload/batch :: error: validation": {
     "status": 200,
@@ -9364,20 +9134,6 @@
         "suppliers",
         {
           "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
         }
       ]
     ],
@@ -9463,20 +9219,6 @@
         {
           "id": "S1"
         }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
-        }
       ]
     ],
     "uploads": [["processAndSaveImage", "unavailable.jpg", "supplier", 20]],
@@ -9560,20 +9302,6 @@
         "suppliers",
         {
           "id": "S1"
-        }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
         }
       ]
     ],
@@ -9659,20 +9387,6 @@
         {
           "id": "S1"
         }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
-        }
       ]
     ],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
@@ -9757,20 +9471,6 @@
         {
           "id": "S1"
         }
-      ],
-      [
-        "updateOne",
-        "suppliers",
-        {
-          "id": "S1"
-        },
-        {
-          "$push": {
-            "photosGallery": {
-              "$each": []
-            }
-          }
-        }
       ]
     ],
     "uploads": [["processAndSaveImage", "boom.jpg", "supplier", 13]],
@@ -9850,10 +9550,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "supplier", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -9876,23 +9573,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "S1",
-          "userId": "u1",
           "hasStack": false
         }
       ],
@@ -9928,10 +9608,7 @@
         }
       ]
     ],
-    "uploads": [
-      ["processAndSaveImage", "a.jpg", "package", 10],
-      ["getImageMetadata", 10]
-    ],
+    "uploads": [],
     "logs": [
       [
         "info",
@@ -9954,23 +9631,6 @@
           "fileNames": ["a.jpg"],
           "userId": "u1",
           "userRole": "supplier",
-          "hasStack": false
-        }
-      ],
-      [
-        "info",
-        "Processing file in batch upload",
-        {
-          "hasFile": true,
-          "hasOriginalname": true,
-          "originalnameType": "string",
-          "originalnameValue": "a.jpg",
-          "hasBuffer": true,
-          "bufferLength": 10,
-          "mimetype": "image/jpeg",
-          "size": 100,
-          "listingId": "P1",
-          "userId": "u1",
           "hasStack": false
         }
       ],

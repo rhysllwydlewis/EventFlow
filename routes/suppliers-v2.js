@@ -10,7 +10,9 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const { checkPhotoAllowance, photoLimitError } = require('../utils/photoGalleryAllowance');
-const { galleryAppendUpdate, galleryRemoveUpdate } = require('../utils/supplierGalleryUpdate');
+const { galleryRemoveUpdate } = require('../utils/supplierGalleryUpdate');
+const { deleteUnusedStoredCopies } = require('../utils/photoStoredCopies');
+const { saveSupplierPhotos } = require('../utils/supplierPhotoSave');
 const router = express.Router();
 
 /**
@@ -189,7 +191,12 @@ router.get('/:id/photos', applyWriteLimiter, applyAuthRequired, async (req, res)
       success: true,
       count: photos.length,
       photos: photos.map((p, index) => ({
-        id: p.id || `photo_${index}`,
+        // Photos uploaded through POST /api/photos/upload/batch have no id. The delete and
+        // reorder routes address such a photo by its stored URL (`p.id || p.url`), so that is
+        // the id to give out. A position-based id (`photo_<index>`) matched neither route, and
+        // the photos page answered "Photo not found" for every photo uploaded through it.
+        // The position is only a last resort for a record with neither an id nor a URL.
+        id: p.id || p.url || `photo_${index}`,
         url: p.url,
         thumbnail: p.thumbnail || p.url,
         approved: p.approved !== false,
@@ -250,13 +257,21 @@ router.post(
       approved: true,
       uploadedAt: updatedAt,
     };
-    // Append only this photo. Writing back the whole array lost a photo whenever two
-    // uploads overlapped, because each started from the same copy.
-    await dbUnified.updateOne(
-      'suppliers',
-      { id: req.params.id },
-      galleryAppendUpdate(s, photoRecord, { updatedAt })
-    );
+    // Append only this photo (writing back the whole array lost a photo whenever two uploads
+    // overlapped, because each started from the same copy), checking the plan's allowance again
+    // now that the file is processed. If it cannot be saved, delete the images just stored and
+    // say so, rather than answering "ok" for a photo that is not in the gallery.
+    const notSaved = await saveSupplierPhotos({
+      dbUnified,
+      logger,
+      supplierId: s.id,
+      records: [photoRecord],
+      extraSet: { updatedAt },
+    });
+    if (notSaved) {
+      await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [photoRecord] });
+      return res.status(notSaved.failure.status).json(notSaved.failure.body);
+    }
 
     // Bust catalog cache — a new gallery photo affects public listing display
     invalidateCatalogCache();
@@ -383,16 +398,14 @@ router.delete(
         );
       }
 
-      // Delete the physical file from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
-      if (removedPhoto.url) {
-        if (removedPhoto.url.startsWith('/api/photos/')) {
-          await photoUpload.deleteImage(removedPhoto.url);
-        }
-        // Legacy /uploads/ URLs: the file may not exist on disk; just remove the reference (already done above)
-      }
-
       // Bust catalog cache — a removed gallery photo affects public listing display
       invalidateCatalogCache();
+
+      // Delete the stored images behind the photo (an upload stores four: original, thumbnail,
+      // optimised and large), except any that something else still uses. This runs after the
+      // reference was removed above, and never throws. Legacy /uploads/ addresses are not stored
+      // images, so only the reference is removed for those.
+      await deleteUnusedStoredCopies({ dbUnified, photoUpload, records: [removedPhoto] });
 
       res.json({
         success: true,

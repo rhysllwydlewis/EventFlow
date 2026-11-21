@@ -33,6 +33,12 @@ function createApp(existingSupplier) {
   const subscriptionService = require('../../services/subscriptionService');
   const dbUnified = {
     read: jest.fn(async collection => (collection === 'suppliers' ? [existingSupplier] : [])),
+    // The supplier as it is when the photo is saved (the allowance is checked again then)
+    findOne: jest.fn(async (collection, filter) =>
+      collection === 'suppliers' && filter.id === existingSupplier.id ? existingSupplier : null
+    ),
+    // What still refers to an image, when one has to be deleted: nothing does
+    find: jest.fn(async () => []),
     updateOne: jest.fn(async () => true),
   };
   const photoUpload = {
@@ -131,7 +137,8 @@ describe('supplier gallery backend invariants', () => {
       photosGallery: elevenPhotos,
     };
     const { app, subscriptionService } = createApp(existingSupplier);
-    subscriptionService.getPhotoAllowance.mockResolvedValueOnce(-1);
+    // The allowance is looked up before the file is processed and again when it is saved
+    subscriptionService.getPhotoAllowance.mockResolvedValue(-1);
 
     const res = await request(app)
       .post('/api/me/suppliers/sup_4/photos')

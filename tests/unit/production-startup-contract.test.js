@@ -59,6 +59,16 @@ describe('production startup contract', () => {
     expect(dockerfile.indexOf('libcrypto3')).toBeLessThan(dockerfile.indexOf('npm ci'));
   });
 
+  test('the production image upgrades musl-utils, which upgrading musl alone leaves behind', () => {
+    const dockerfile = read('Dockerfile');
+
+    // musl-utils depends on the musl library by name, not by version, so it only moves to the
+    // fixed release (CVE-2026-107891) when the upgrade names it.
+    const upgradeLine = dockerfile.search(/^RUN apk add --no-cache --upgrade[^\n]*\bmusl-utils\b/m);
+    expect(upgradeLine).toBeGreaterThanOrEqual(0);
+    expect(upgradeLine).toBeLessThan(dockerfile.indexOf('npm ci'));
+  });
+
   test('the worker health server cannot contend with the public web port', () => {
     jest.resetModules();
     const { workerHealthPort } = require('../../scripts/start-production');

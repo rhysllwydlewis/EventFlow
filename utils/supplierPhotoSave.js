@@ -1,0 +1,78 @@
+'use strict';
+
+/**
+ * Saving uploaded photos to a supplier's gallery.
+ *
+ * Every route that adds photos to `suppliers.photosGallery` uses this, so they all enforce the
+ * plan's photo allowance the same way and none of them reports a photo as uploaded when it was not
+ * saved.
+ *
+ * The allowance is checked before a file is processed, which takes seconds, and another upload to
+ * the same supplier may have been saved since. So it is checked again here, against the supplier as
+ * it is now, and one upload at a time per supplier, so the second of two overlapping uploads sees
+ * the first one's photos. (Within one server process; see utils/keyedLock.js.)
+ *
+ * The database layer answers `false`, rather than throwing, when a write fails or matches nothing,
+ * so that answer is treated as a failed save too.
+ */
+
+const { checkPhotoAllowance, photoLimitError } = require('./photoGalleryAllowance');
+const { galleryAppendUpdate } = require('./supplierGalleryUpdate');
+const { withLock } = require('./keyedLock');
+
+/**
+ * Add uploaded photos to a supplier's gallery, if the plan still has room for them.
+ *
+ * Never throws: a failure of any kind (including a lookup that throws) is answered, so the caller
+ * can delete the images it stored and tell the supplier it was not saved.
+ *
+ * @param {Object} options
+ * @param {Object} options.dbUnified - The database layer
+ * @param {Object} options.logger - Logger
+ * @param {string} options.supplierId - Supplier id
+ * @param {Object[]} options.records - The photo records to add (at least one)
+ * @param {Object} [options.extraSet] - Further fields to `$set` in the same write
+ * @returns {Promise<{failure: {status: number, body: Object}}|null>} Why nothing was saved (404
+ *   supplier gone, 403 no room left, 500 the save failed), or null when it was saved
+ */
+function saveSupplierPhotos({ dbUnified, logger, supplierId, records, extraSet }) {
+  return withLock(`supplier-gallery:${supplierId}`, async () => {
+    try {
+      // throwOnError: a database failure is a failed save (500), not "no such supplier" (404)
+      const supplier = await dbUnified.findOne(
+        'suppliers',
+        { id: supplierId },
+        { throwOnError: true }
+      );
+      if (!supplier) {
+        return { failure: { status: 404, body: { error: 'Supplier not found' } } };
+      }
+      const allowance = await checkPhotoAllowance(supplier, records.length);
+      if (!allowance.allowed) {
+        return {
+          failure: { status: 403, body: photoLimitError(allowance.limit, allowance.current) },
+        };
+      }
+      const written = await dbUnified.updateOne(
+        'suppliers',
+        { id: supplier.id },
+        galleryAppendUpdate(supplier, records, extraSet)
+      );
+      if (written === false) {
+        throw new Error('the database did not save the photos');
+      }
+      return null;
+    } catch (error) {
+      logger.error('[PHOTOS] could not save uploaded photos to the supplier gallery', {
+        supplierId,
+        count: records.length,
+        error: error.message,
+      });
+      return {
+        failure: { status: 500, body: { error: 'Failed to save photos. Please try again.' } },
+      };
+    }
+  });
+}
+
+module.exports = { saveSupplierPhotos };

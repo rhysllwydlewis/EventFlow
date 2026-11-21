@@ -76,8 +76,25 @@ does not exist for the delete's token, so neither could be relied on to work.
   photos. A tile that does say "Awaiting approval" gets the status filter.
 - **Package photo ids are positions** (`photo_0`, `photo_1`, ...), so the list is reloaded after every
   delete; a package photo is deleted by its address, a profile photo by its id.
+- **A profile photo that was uploaded through this page has no id of its own**, so the profile list
+  gives it its stored address as its id, which is what the delete and reorder routes accept. A
+  position-based id (`photo_<n>`) would be refused with "Photo not found". If the page was opened
+  before a fix like this went live, reload it: the old list still carries the old ids.
+  `tests/integration/supplier-photo-legacy-identity.test.js` covers the list, delete and reorder
+  round trip.
+- **An upload that cannot be saved says so, and leaves nothing behind.** The plan's photo limit is
+  checked again when the photos are saved, because processing takes seconds and another upload may
+  have used the last place; if the profile or package was deleted meanwhile, or the database could
+  not save them, the page gets an error instead of "uploaded", and the images that were stored are
+  deleted. A package gallery keeps photos added by two uploads at the same time.
 - **A slow answer for a gallery that is no longer shown is dropped** (`loadSeq`), so switching the
   picker quickly cannot leave one gallery's photos under another's name.
+- **A delete removes the stored images, not just the tile.** An upload stores four images
+  (original, thumbnail, optimised, large), and deleting the photo deletes all four, except any that
+  another record still uses (`utils/photoStoredCopies.js` lists where to look, including customers' review
+  photos, and what is kept on any doubt; images have no recorded owner, so the protection is by
+  reference). Photos are served publicly by address, so an image left behind could still be read
+  after the supplier was told "This cannot be undone".
 - **After a delete, focus moves to the "Your photos" heading**, because the button that had it is
   gone. Closing the viewer or the delete dialog returns focus to the button that opened it.
 - **An admin who opens a gallery by link** sees no plan limit, because the lookup would return the
