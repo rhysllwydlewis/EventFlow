@@ -357,11 +357,15 @@ router.post('/internal/supplier-bot/suppliers/lookup', verifySupplierBotHmac, as
 const MAX_AUDIT_QUEUE_LIMIT = 50;
 const DEFAULT_AUDIT_QUEUE_LIMIT = 20;
 const MAX_AUDIT_EXCLUDE_IDS = 500;
-const AUDIT_GAP_COUNT = 6; // keep in sync with the gap fields set in supplierQualityGaps()
+// Number of gaps that count toward completenessScore. missingPhone is reported
+// in `gaps` but deliberately NOT counted (see supplierQualityGaps), so this is
+// the number of scored gap fields set in supplierQualityGaps().
+const AUDIT_GAP_COUNT = 5;
 
 // Scores one published unclaimed profile's real data gaps -- missing cover/
-// gallery photos, thin description/tag data, missing phone, and packages
-// whose image resolves to the public placeholder -- against the same fields
+// gallery photos, thin description/tag data, and packages whose image
+// resolves to the public placeholder (a missing phone is reported but not
+// scored; see below) -- against the same fields
 // the public profile and package cards actually render, so a gap reported
 // here is a gap a visitor would actually see, not a false positive off
 // stale acquisition bookkeeping. Resolves cover/gallery/package-fallback
@@ -423,11 +427,16 @@ function supplierQualityGaps(supplier, packages) {
     packagesMissingPhotos,
   };
 
+  // missingPhone is informational: it is still reported so the routine can fill
+  // a phone it happens to find while fixing a real gap, but it does not count
+  // toward the score or put a profile in the queue on its own. Many real
+  // businesses publish no phone, and the never-invent rule means such a gap can
+  // never be closed, so counting it kept ~30 profiles in the queue permanently
+  // and made a backlog that was not fixable look like unfinished work.
   const gapCount =
     Number(gaps.missingCoverImage) +
     Number(gaps.missingGalleryImages) +
     Number(gaps.missingDescription) +
-    Number(gaps.missingPhone) +
     Number(gaps.missingTags) +
     (packagesMissingPhotos.length > 0 ? 1 : 0);
   const completenessScore = Math.round(((AUDIT_GAP_COUNT - gapCount) / AUDIT_GAP_COUNT) * 100);
@@ -470,11 +479,11 @@ router.post(
         dbUnified.read('suppliers'),
         dbUnified.read('packages'),
       ]);
-      const published = (suppliers || []).filter(
-        supplier =>
-          isPublishedUnclaimedSupplierBotProfile(supplier) &&
-          !excludeSupplierIds.has(String(supplier.id))
-      );
+      // Audit every published profile, then split off the ones the caller asked
+      // to skip. The skipped ones must still be counted: the caller parks
+      // profiles it cannot fix, and reporting only the remainder made a
+      // backlog of ~30 look like 2.
+      const published = (suppliers || []).filter(isPublishedUnclaimedSupplierBotProfile);
 
       const packagesBySupplier = new Map();
       for (const pkg of allPackages || []) {
@@ -508,15 +517,29 @@ router.post(
         };
       });
 
-      const needsWork = audited.filter(item => item.completenessScore < 100);
+      const isExcluded = item => excludeSupplierIds.has(String(item.supplierId));
+      const candidates = audited.filter(item => !isExcluded(item));
+      const skipped = audited.filter(isExcluded);
+
+      const needsWork = candidates.filter(item => item.completenessScore < 100);
       const queue = needsWork
         .slice()
         .sort((a, b) => a.completenessScore - b.completenessScore)
         .slice(0, limit);
 
       return res.json({
-        totalPublished: published.length,
+        // totalPublished / totalNeedingWork cover only the profiles that were
+        // not skipped via excludeSupplierIds; `excluded` accounts for the rest,
+        // so published + excluded.published is every published profile.
+        totalPublished: candidates.length,
         totalNeedingWork: needsWork.length,
+        excluded: {
+          published: skipped.length,
+          needingWork: skipped.filter(item => item.completenessScore < 100).length,
+        },
+        // Published profiles with no usable public phone. Informational only:
+        // not counted as a gap (see supplierQualityGaps).
+        totalMissingPhone: audited.filter(item => item.gaps.missingPhone).length,
         queue,
       });
     } catch (error) {

@@ -335,9 +335,16 @@ describe('Supplier Bot unclaimed-profile quality audit queue', () => {
   });
 
   it('treats an unusable phone value (fails public safePhone validation) as missing', async () => {
+    // Thin description gives the profile a scored gap, so it is queued and the
+    // phone state is visible in its gaps.
     const dbUnified = memoryDb({
       suppliers: [
-        publishedUnclaimedSupplier({ id: 'sup_bad_phone', phone: 'N/A', slug: 'bad-phone' }),
+        publishedUnclaimedSupplier({
+          id: 'sup_bad_phone',
+          phone: 'N/A',
+          slug: 'bad-phone',
+          description: 'Too short',
+        }),
       ],
       packages: [
         {
@@ -355,6 +362,73 @@ describe('Supplier Bot unclaimed-profile quality audit queue', () => {
 
     expect(response.body.totalNeedingWork).toBe(1);
     expect(response.body.queue[0].gaps.missingPhone).toBe(true);
+    expect(response.body.totalMissingPhone).toBe(1);
+  });
+
+  it('does not queue a profile whose only gap is a missing phone, but still counts it', async () => {
+    // A business with no public phone cannot be fixed without inventing one,
+    // so it must not sit in the queue (or the totals) as unfinished work.
+    const dbUnified = memoryDb({
+      suppliers: [
+        publishedUnclaimedSupplier({ id: 'sup_no_phone', phone: '', slug: 'no-phone' }),
+        publishedUnclaimedSupplier({ id: 'sup_has_phone', slug: 'has-phone' }),
+      ],
+      packages: [
+        {
+          id: 'pkg_1',
+          supplierId: 'sup_no_phone',
+          title: 'Full Day Coverage',
+          image: 'https://complete-photography.example/package-1.jpg',
+          acquisition: { source: 'supplier_bot' },
+        },
+        {
+          id: 'pkg_2',
+          supplierId: 'sup_has_phone',
+          title: 'Full Day Coverage',
+          image: 'https://complete-photography.example/package-1.jpg',
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    expect(response.status).toBe(200);
+    expect(response.body.totalPublished).toBe(2);
+    expect(response.body.totalNeedingWork).toBe(0);
+    expect(response.body.queue).toEqual([]);
+    expect(response.body.totalMissingPhone).toBe(1);
+  });
+
+  it('keeps reporting the phone gap, without scoring it, on a profile with a real gap', async () => {
+    const dbUnified = memoryDb({
+      suppliers: [
+        publishedUnclaimedSupplier({
+          id: 'sup_both',
+          phone: '',
+          slug: 'both',
+          description: 'Too short',
+        }),
+      ],
+      packages: [
+        {
+          id: 'pkg_1',
+          supplierId: 'sup_both',
+          title: 'Full Day Coverage',
+          image: 'https://complete-photography.example/package-1.jpg',
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app);
+
+    const [entry] = response.body.queue;
+    expect(entry.gaps).toMatchObject({ missingPhone: true, missingDescription: true });
+    // One scored gap out of five; the phone does not count.
+    expect(entry.completenessScore).toBe(80);
   });
 
   it('reads the gallery from canonical images/photosGallery fields, not only acquisition.sourceMedia', async () => {
@@ -461,5 +535,43 @@ describe('Supplier Bot unclaimed-profile quality audit queue', () => {
     expect(response.status).toBe(200);
     expect(response.body.totalPublished).toBe(1);
     expect(response.body.queue.map(item => item.supplierId)).toEqual(['sup_b']);
+  });
+
+  it('accounts for excluded profiles instead of hiding them from the totals', async () => {
+    // Two profiles with real gaps, one complete one. The caller parks one of
+    // the gappy ones; the headline totals cover the rest, and `excluded` says
+    // what was left out so nobody reads "1 needs work" as "1 exists".
+    const dbUnified = memoryDb({
+      suppliers: [
+        publishedUnclaimedSupplier({ id: 'sup_a', slug: 'a', description: 'Too short' }),
+        publishedUnclaimedSupplier({ id: 'sup_b', slug: 'b', description: 'Too short' }),
+        publishedUnclaimedSupplier({ id: 'sup_c', slug: 'c' }),
+      ],
+      packages: [
+        {
+          id: 'pkg_c',
+          supplierId: 'sup_c',
+          title: 'Full Day Coverage',
+          image: 'https://complete-photography.example/package-1.jpg',
+          acquisition: { source: 'supplier_bot' },
+        },
+      ],
+    });
+    const app = createApp(dbUnified);
+
+    const response = await auditQueue(app, { excludeSupplierIds: ['sup_a', 'sup_c'] });
+
+    expect(response.body.totalPublished).toBe(1);
+    expect(response.body.totalNeedingWork).toBe(1);
+    expect(response.body.excluded).toEqual({ published: 2, needingWork: 1 });
+    expect(response.body.queue.map(item => item.supplierId)).toEqual(['sup_b']);
+  });
+
+  it('reports a zero excluded count when nothing is excluded', async () => {
+    const app = createApp(memoryDb({ suppliers: [publishedUnclaimedSupplier()], packages: [] }));
+
+    const response = await auditQueue(app);
+
+    expect(response.body.excluded).toEqual({ published: 0, needingWork: 0 });
   });
 });
