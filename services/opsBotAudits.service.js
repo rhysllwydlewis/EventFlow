@@ -49,7 +49,7 @@ function describeBackend() {
       connected: Boolean(status.connected),
       state: status.state || 'unknown',
     };
-  } catch (_error) {
+  } catch {
     return { type: 'unknown', connected: false, state: 'unknown' };
   }
 }
