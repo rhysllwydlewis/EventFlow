@@ -6,13 +6,7 @@ This is the operational process for GitHub secret-scanning, code-scanning and De
 
 The GitHub **Security** tab is authoritative. Repository documentation must not copy an alert count because counts change continuously.
 
-The scheduled `Security Alert Inventory` workflow produces a sanitised metadata report and maintains one issue named `[security] Active GitHub alert inventory`. It never records a secret value.
-
-## Inventory credential
-
-Create the repository Actions secret `SECURITY_ALERTS_TOKEN` before enabling the scheduled inventory. Prefer a fine-grained personal access token or GitHub App token limited to this repository with **read** access to Code scanning alerts, Secret scanning alerts and Dependabot alerts. The workflow keeps issue creation and closure on the separate default `GITHUB_TOKEN`, so the dedicated alert credential does not need repository contents or issues write access.
-
-If the credential is missing, expired or under-scoped, the inventory is marked incomplete and its tracking issue remains open. An unreadable source is never treated as zero alerts.
+The scheduled `Security Alert Inventory` workflow and its tracking issue were retired. It had never been able to read alerts (GitHub withholds them from the default workflow token and the dedicated `SECURITY_ALERTS_TOKEN` was never created), so it only ever reported an incomplete inventory. Review the Security tab directly as part of the process below.
 
 ## Secret-scanning response
 
@@ -62,4 +56,4 @@ For each genuine alert, record:
 | Owner              | Person responsible                                        |
 | Review date        | Required for accepted risk                                |
 
-The generated workflow artefact supplies metadata for this register. Provider-side rotation and access-log checks cannot be performed by a repository pull request and require an authorised account owner.
+Take the metadata for this register from the Security tab. Provider-side rotation and access-log checks cannot be performed by a repository pull request and require an authorised account owner.

@@ -17,7 +17,7 @@ This file is the repository's concise current-state record. Open GitHub issues a
 ## Security operations
 
 - GitHub secret-scanning, code-scanning and Dependabot counts are dynamic and must not be copied into documentation as fixed totals.
-- The Security Alert Inventory workflow generates a sanitised weekly register and maintains one GitHub issue while alerts remain open.
+- The Security tab is the source of truth for alerts. The Security Alert Inventory workflow was retired because it could never read them; see `docs/security/SECURITY_ALERT_TRIAGE.md`.
 - Provider credentials must be rotated or revoked by an authorised account owner. A pull request cannot perform provider-side rotation.
 - Major framework, database and browser-library upgrades require dedicated migration pull requests.
 
