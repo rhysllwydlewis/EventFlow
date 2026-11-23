@@ -10,6 +10,7 @@ const { getAuditLogs } = require('../middleware/audit');
 const seoInsights = require('../services/seoInsights.service');
 const seoDataStore = require('../services/seoDataStore');
 const emailLog = require('../services/emailLog.service');
+const opsBotAudits = require('../services/opsBotAudits.service');
 const { getFlaggedReviews } = require('../reviews');
 const {
   VERIFICATION_STATES,
@@ -256,6 +257,38 @@ router.get('/partner-abuse/appeals', async (req, res) => {
     return res.json({ ok: true, items: appeals.slice(0, limit), total: appeals.length });
   } catch (error) {
     return handleReadError(res, 'partner abuse appeals', error);
+  }
+});
+
+// --- Read-only data audits (dry-run only; issue #1680) -----------------
+// The audit scripts need a live MongoDB connection, which the Ops Assistant's
+// sandbox cannot open. These run the same audits inside the server and return
+// counts and ids only. They never apply a change, and a report not read from a
+// healthy MongoDB connection is flagged `inconclusive`.
+
+router.get('/audits/orphaned-supplier-data', async (_req, res) => {
+  try {
+    return res.json({ ok: true, ...(await opsBotAudits.auditOrphanedSupplierData()) });
+  } catch (error) {
+    return handleReadError(res, 'orphaned supplier data audit', error);
+  }
+});
+
+router.get('/audits/marketplace-listing-locations', async (req, res) => {
+  try {
+    const report = await opsBotAudits.auditMarketplaceListingLocations({ limit: req.query.limit });
+    return res.json({ ok: true, ...report });
+  } catch (error) {
+    return handleReadError(res, 'marketplace listing location audit', error);
+  }
+});
+
+router.get('/audits/supplier-locations', async (req, res) => {
+  try {
+    const report = await opsBotAudits.auditSupplierLocations({ limit: req.query.limit });
+    return res.json({ ok: true, ...report });
+  } catch (error) {
+    return handleReadError(res, 'supplier location audit', error);
   }
 });
 

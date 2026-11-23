@@ -1,7 +1,8 @@
 # Ops Assistant request signing
 
 The Ops Assistant routine calls the read-only `/internal/ops-bot/*` API. Every
-request is signed with a shared secret. This page is the reference for what is
+request is signed with a shared secret. (The data-audit endpoints are described in
+[OPS_ASSISTANT_AUDITS.md](OPS_ASSISTANT_AUDITS.md).) This page is the reference for what is
 signed, and the checklist for the two failures the routine has reported:
 
 - `401 {"error":"Invalid Ops Assistant signature"}` (issues #1679, #1757)
