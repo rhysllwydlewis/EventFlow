@@ -155,6 +155,34 @@ describe('marketplace listing location audit', () => {
     assertNothingWritten();
   });
 
+  it('says when the list of records needing review is capped, separately from the audit limit', async () => {
+    const many = Array.from({ length: 150 }, (_unused, index) => ({
+      id: `l${index}`,
+      location: '',
+    }));
+    seed({ marketplace_listings: many });
+
+    const report = await audits.auditMarketplaceListingLocations({ limit: 150 });
+
+    // Every record was audited, so the audit itself is not truncated...
+    expect(report.audited).toBe(150);
+    expect(report.truncated).toBe(false);
+    // ...but only the first MAX_REPORTED_ROWS findings are listed, and the
+    // report must not pretend otherwise.
+    expect(report.needsReview).toHaveLength(audits.MAX_REPORTED_ROWS);
+    expect(report.needsReviewTotal).toBe(150);
+    expect(report.needsReviewTruncated).toBe(true);
+  });
+
+  it('reports a complete review list as not truncated', async () => {
+    seed({ marketplace_listings: listings });
+
+    const report = await audits.auditMarketplaceListingLocations();
+
+    expect(report.needsReviewTotal).toBe(2);
+    expect(report.needsReviewTruncated).toBe(false);
+  });
+
   it('bounds the work with a limit and says when the report was truncated', async () => {
     seed({ marketplace_listings: listings });
 

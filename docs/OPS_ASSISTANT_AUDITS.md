@@ -18,6 +18,8 @@ string is part of the signed path.
 
 The two location endpoints take an optional `?limit=N` (default 100, maximum
 500). `truncated: true` means more records exist than were audited.
+`needsReview` lists at most 100 findings; `needsReviewTotal` is the real count
+and `needsReviewTruncated: true` means the list was cut short.
 
 ## Guarantees
 

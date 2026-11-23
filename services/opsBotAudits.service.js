@@ -119,16 +119,21 @@ async function auditOrphanedSupplierData() {
   };
 }
 
-function trimRows(rows, idField) {
-  return rows
-    .filter(row => row.status && row.status !== AUDIT_STATUSES.alreadyMapped)
-    .slice(0, MAX_REPORTED_ROWS)
-    .map(row => ({
+function reviewRows(rows, idField) {
+  const pending = rows.filter(row => row.status && row.status !== AUDIT_STATUSES.alreadyMapped);
+  return {
+    needsReview: pending.slice(0, MAX_REPORTED_ROWS).map(row => ({
       id: row[idField] || null,
       status: row.status,
       confidence: row.confidence || null,
       reason: row.reason ? String(row.reason).slice(0, 200) : null,
-    }));
+    })),
+    // The list is capped, so say how many there really are. Without this a
+    // long list would look complete, which is the false all-clear this API
+    // exists to prevent.
+    needsReviewTotal: pending.length,
+    needsReviewTruncated: pending.length > MAX_REPORTED_ROWS,
+  };
 }
 
 /**
@@ -163,7 +168,7 @@ async function auditMarketplaceListingLocations({ limit } = {}) {
     audited: report.audited,
     truncated: report.audited < report.totalListings,
     counts: report.counts,
-    needsReview: trimRows(report.rows, 'listingId'),
+    ...reviewRows(report.rows, 'listingId'),
   };
 }
 
@@ -199,7 +204,7 @@ async function auditSupplierLocations({ limit } = {}) {
     audited: report.audited,
     truncated: report.audited < report.totalSuppliers,
     counts: report.counts,
-    needsReview: trimRows(report.rows, 'supplierId'),
+    ...reviewRows(report.rows, 'supplierId'),
   };
 }
 
