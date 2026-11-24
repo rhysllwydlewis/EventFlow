@@ -17,6 +17,10 @@
  *  - an image is kept while any other record still refers to it, matched by id, so a reference with
  *    a query string or an absolute address still counts;
  *  - if the lookup for references fails, the image is kept;
+ *  - when the caller says whose gallery the photo was removed from, an image recorded as belonging
+ *    to somebody else is kept, whatever refers to it (images stored before owners were recorded have
+ *    no owner, and are protected by the reference check alone);
+ *  - if the lookup for owners fails, the image is kept;
  *  - nothing here throws, so a failed cleanup never fails the delete the user asked for.
  *
  * Call it AFTER the gallery reference has been removed, so the record being deleted does not count
@@ -64,6 +68,18 @@ const REFERENCE_FIELDS = {
   reviews: ['photos', 'photos.url'],
   // A saved item keeps the image address it was saved with
   shortlists: ['items.imageUrl'],
+  // A photo held for moderation is in no gallery yet, so this record is the only thing that uses
+  // its images (see REFERENCE_CONDITIONS: only while it is pending)
+  photos: ['url', 'thumbnail', 'large', 'original'],
+};
+
+/**
+ * Extra conditions a document must meet before it counts as a use of an image. A `photos` record
+ * is kept after it is approved or rejected, and must not keep its images alive then: an approved
+ * photo is used by the gallery it was added to, and a rejected one by nothing.
+ */
+const REFERENCE_CONDITIONS = {
+  photos: { status: 'pending' },
 };
 
 /**
@@ -141,14 +157,20 @@ function stringsAt(value, path) {
  *
  * @param {string[]} fields - The collection's reference fields
  * @param {string[]} ids - Stored photo ids
+ * @param {Object} [conditions] - Fields the document must also equal (REFERENCE_CONDITIONS)
  * @returns {Object} A filter for `dbUnified.find`
  */
-function referenceFilter(fields, ids) {
+function referenceFilter(fields, ids, conditions = {}) {
   const sources = ids.map(referenceSource);
   return {
+    ...conditions,
     $or: fields.flatMap(field => sources.map(source => ({ [field]: { $regex: source } }))),
   };
 }
+
+/** Whether a document meets every condition in `conditions` (plain equality on top-level fields). */
+const meetsConditions = (document, conditions = {}) =>
+  Object.entries(conditions).every(([field, value]) => document && document[field] === value);
 
 /**
  * Which of these ids some record still refers to.
@@ -168,13 +190,17 @@ async function idsStillReferenced(dbUnified, ids) {
   // The collections are independent, so they are searched together; one failing rejects the lot
   await Promise.all(
     Object.entries(REFERENCE_FIELDS).map(async ([collection, fields]) => {
-      const documents = await dbUnified.find(collection, referenceFilter(fields, ids), {
+      const conditions = REFERENCE_CONDITIONS[collection];
+      const documents = await dbUnified.find(collection, referenceFilter(fields, ids, conditions), {
         throwOnError: true,
       });
       if (!Array.isArray(documents)) {
         throw new Error(`Could not read ${collection} to check what still uses a photo`);
       }
       for (const document of documents) {
+        if (!meetsConditions(document, conditions)) {
+          continue;
+        }
         for (const field of fields) {
           for (const value of stringsAt(document, field.split('.'))) {
             for (const { id, pattern } of patterns) {
@@ -211,17 +237,45 @@ async function referencedIdsOrNull(dbUnified, ids) {
 }
 
 /**
+ * Whose each of these images is, or null when that could not be read, so the caller can keep every
+ * image.
+ *
+ * @param {Object} photoUpload - Photo storage (`getImageOwners`)
+ * @param {string[]} addresses - Stored photo addresses
+ * @returns {Promise<Object<string, string|null>|null>} The owner's user id (or null for an image
+ *   with no recorded owner) by address, or null when the owners are not known
+ */
+async function ownersOrNull(photoUpload, addresses) {
+  try {
+    if (typeof photoUpload.getImageOwners !== 'function') {
+      throw new Error('photo storage cannot say whose an image is');
+    }
+    return await photoUpload.getImageOwners(addresses);
+  } catch (error) {
+    logger.error('Kept stored photo images: could not check whose they are', {
+      error: error.message,
+      count: addresses.length,
+    });
+    return null;
+  }
+}
+
+/**
  * Delete the stored images behind removed gallery records, except any that something still uses.
  *
  * @param {Object} options
  * @param {Object} options.dbUnified - The database layer
- * @param {Object} options.photoUpload - Photo storage (`deleteImage`)
+ * @param {Object} options.photoUpload - Photo storage (`deleteImage`, and `getImageOwners` when
+ *   `ownerUserId` is given)
  * @param {Array<string|Object>} options.records - The gallery records that were removed
+ * @param {string} [options.ownerUserId] - The owner of the gallery the photo was removed from. When
+ *   given, an image recorded as belonging to another user is kept. Leave it out for images this
+ *   request has just stored itself.
  * @returns {Promise<{deleted: string[], kept: string[]}>} The addresses storage was asked to
  *   delete (`photoUpload.deleteImage` does not say whether anything was there), and the addresses
  *   kept because something still uses them or because that could not be checked
  */
-async function deleteUnusedStoredCopies({ dbUnified, photoUpload, records }) {
+async function deleteUnusedStoredCopies({ dbUnified, photoUpload, records, ownerUserId }) {
   const result = { deleted: [], kept: [] };
   try {
     const addresses = [];
@@ -243,8 +297,25 @@ async function deleteUnusedStoredCopies({ dbUnified, photoUpload, records }) {
       return result;
     }
 
+    // Whose the images are, for those nothing refers to, when the caller says whose gallery this is
+    let owners = {};
+    if (ownerUserId) {
+      const unused = addresses.filter(address => !referenced.has(storedPhotoId(address)));
+      owners = unused.length > 0 ? await ownersOrNull(photoUpload, unused) : {};
+      if (owners === null) {
+        // Not known, so nothing is known to be this owner's: keep everything
+        result.kept.push(...addresses);
+        return result;
+      }
+    }
+
     for (const address of addresses) {
       if (referenced.has(storedPhotoId(address))) {
+        result.kept.push(address);
+        continue;
+      }
+      if (owners[address] && owners[address] !== ownerUserId) {
+        logger.warn('Kept a stored photo image: it belongs to another user', { address });
         result.kept.push(address);
         continue;
       }
@@ -263,6 +334,7 @@ async function deleteUnusedStoredCopies({ dbUnified, photoUpload, records }) {
 }
 
 module.exports = {
+  REFERENCE_CONDITIONS,
   REFERENCE_FIELDS,
   deleteUnusedStoredCopies,
   idsStillReferenced,

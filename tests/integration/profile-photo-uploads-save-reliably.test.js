@@ -153,10 +153,13 @@ function setup({ allowance = 2, hold = false, failWrites = [], throwWrites = [] 
 
   return {
     db,
+    photoUpload,
     state,
     catalogCache,
     invalidatePackageCaches,
     release: gate.resolve,
+    supplierBanner: () =>
+      request(app).post('/api/me/suppliers/S1/banner').send({ image: TINY_PNG }),
     supplierPhoto: () => request(app).post('/api/me/suppliers/S1/photos').send({ image: TINY_PNG }),
     packagePhoto: (id = 'P1') =>
       request(app).post(`/api/me/packages/${id}/photos`).send({ image: TINY_PNG }),
@@ -170,6 +173,34 @@ const packageGallery = (ctx, id = 'P1') =>
 
 beforeEach(() => {
   logger.error.mockClear();
+});
+
+describe('the images these routes store record whose they are', () => {
+  const ownerArg = ctx => ctx.photoUpload.processAndSaveImage.mock.calls.map(call => call[3]);
+
+  test('POST /api/me/suppliers/:id/photos', async () => {
+    const ctx = setup();
+
+    await ctx.supplierPhoto().expect(200);
+
+    expect(ownerArg(ctx)).toEqual([{ ownerUserId: 'u1', uploadedBy: 'u1' }]);
+  });
+
+  test('POST /api/me/suppliers/:id/banner', async () => {
+    const ctx = setup();
+
+    await ctx.supplierBanner().expect(200);
+
+    expect(ownerArg(ctx)).toEqual([{ ownerUserId: 'u1', uploadedBy: 'u1' }]);
+  });
+
+  test('POST /api/me/packages/:id/photos', async () => {
+    const ctx = setup();
+
+    await ctx.packagePhoto().expect(200);
+
+    expect(ownerArg(ctx)).toEqual([{ ownerUserId: 'u1', uploadedBy: 'u1' }]);
+  });
 });
 
 describe('POST /api/me/suppliers/:id/photos', () => {

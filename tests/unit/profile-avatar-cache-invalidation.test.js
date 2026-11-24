@@ -94,6 +94,22 @@ describe('profile avatar cache invalidation', () => {
     expect(invalidate).toHaveBeenCalled();
   });
 
+  test('POST /api/profile/avatar records whose the stored avatar is', async () => {
+    const { app, processAndSaveImage } = buildApp({
+      user: { id: 'user_1', email: 'owner@example.com', role: 'customer' },
+      suppliers: [],
+    });
+
+    await request(app).post('/api/profile/avatar').expect(200);
+
+    expect(processAndSaveImage).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'avatar-user_1.jpg',
+      'avatar',
+      { ownerUserId: 'user_1', uploadedBy: 'user_1' }
+    );
+  });
+
   test('DELETE /api/profile/avatar unsets only supplier avatar fields and clears caches', async () => {
     const { app, clearSearchCache, invalidate, updateOne } = buildApp({
       user: {

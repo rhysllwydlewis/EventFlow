@@ -92,8 +92,8 @@ does not exist for the delete's token, so neither could be relied on to work.
 - **A delete removes the stored images, not just the tile.** An upload stores four images
   (original, thumbnail, optimised, large), and deleting the photo deletes all four, except any that
   another record still uses (`utils/photoStoredCopies.js` lists where to look, including customers' review
-  photos, and what is kept on any doubt; images have no recorded owner, so the protection is by
-  reference). Photos are served publicly by address, so an image left behind could still be read
+  photos, and what is kept on any doubt; an image stored from now on also records whose it is,
+  and one that is somebody else's is kept; older images are protected by reference only). Photos are served publicly by address, so an image left behind could still be read
   after the supplier was told "This cannot be undone".
 - **After a delete, focus moves to the "Your photos" heading**, because the button that had it is
   gone. Closing the viewer or the delete dialog returns focus to the button that opened it.

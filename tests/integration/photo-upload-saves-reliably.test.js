@@ -142,7 +142,8 @@ function setup({ data = baseData(), hold = false, failWrites = [], yieldInDb = f
   router.initializeDependencies({
     dbUnified,
     authRequired: (req, _res, next) => {
-      req.user = OWNER;
+      // The signed-in user is the supplier's owner unless a request says it is somebody else
+      req.user = req.headers['x-user'] ? { id: req.headers['x-user'], role: 'admin' } : OWNER;
       next();
     },
     roleRequired: () => pass,
@@ -243,6 +244,50 @@ describe('the plan allowance is enforced when the photos are saved', () => {
     expect(response.status).toBe(200);
     expect(response.body.uploaded).toBe(1);
     expect(gallery(ctx)).toHaveLength(2);
+  });
+});
+
+describe('the images an upload stores record whose they are', () => {
+  // Stored images used to carry no owner, so nothing could tell whose one was. The owner is the
+  // owner of the supplier or package the photo is for, which is not the uploader when an admin
+  // uploads on a supplier's behalf.
+  const ownerArg = ctx => ctx.photoUpload.processAndSaveImage.mock.calls.map(call => call[3]);
+
+  test.each([
+    ['supplier batch', ctx => ctx.batch('type=supplier&id=S1', 'a.jpg')],
+    ['supplier single', ctx => ctx.single('type=supplier&id=S1', 'a.jpg')],
+    ['package batch', ctx => ctx.batch('type=package&id=P1', 'a.jpg')],
+    ['package single', ctx => ctx.single('type=package&id=P1', 'a.jpg')],
+  ])('%s: owner and uploader are recorded on the stored images', async (_name, send) => {
+    mockWorld.allowance = 10;
+    const ctx = setup();
+
+    await send(ctx).expect(200);
+
+    expect(ownerArg(ctx)).toEqual([{ ownerUserId: 'u1', uploadedBy: 'u1' }]);
+  });
+
+  test.each([
+    ['supplier batch', ctx => ctx.batch('type=supplier&id=S1', 'a.jpg')],
+    ['package batch', ctx => ctx.batch('type=package&id=P1', 'a.jpg')],
+    ['supplier single', ctx => ctx.single('type=supplier&id=S1', 'a.jpg')],
+    ['package single', ctx => ctx.single('type=package&id=P1', 'a.jpg')],
+  ])('%s: an admin uploading for the supplier records the supplier owner', async (_name, send) => {
+    mockWorld.allowance = 10;
+    const ctx = setup();
+
+    await send(ctx).set('x-user', 'admin_9').expect(200);
+
+    expect(ownerArg(ctx)).toEqual([{ ownerUserId: 'u1', uploadedBy: 'admin_9' }]);
+  });
+
+  test('every file of a batch records it', async () => {
+    mockWorld.allowance = 10;
+    const ctx = setup();
+
+    await ctx.batch('type=supplier&id=S1', 'a.jpg,b.jpg,c.jpg').expect(200);
+
+    expect(ownerArg(ctx)).toEqual(Array(3).fill({ ownerUserId: 'u1', uploadedBy: 'u1' }));
   });
 });
 

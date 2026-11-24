@@ -189,7 +189,8 @@ router.post(
           const images = await photoUpload.processAndSaveImage(
             file.buffer,
             file.originalname,
-            'supplier'
+            'supplier',
+            { ownerUserId: req.user.id, uploadedBy: req.user.id }
           );
           // Use the optimized (medium) size as the display URL
           urls.push(images.optimized);

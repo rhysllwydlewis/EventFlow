@@ -25,6 +25,8 @@ function createApp(existingSupplier) {
   const photoUpload = {
     deleteImage: jest.fn(async () => true),
     processAndSaveImage: jest.fn(),
+    // No stored image has a recorded owner here, as for every image stored before owners were kept
+    getImageOwners: jest.fn(async addresses => Object.fromEntries(addresses.map(a => [a, null]))),
   };
   const pass = (_req, _res, next) => next();
   const authRequired = (req, _res, next) => {

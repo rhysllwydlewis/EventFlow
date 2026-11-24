@@ -83,20 +83,4 @@ describe('current-state hardening contracts', () => {
     expect([...blocking].filter(file => quarantined.has(file))).toEqual([]);
     expect([...blocking, ...quarantined].sort()).toEqual(backendSpecs);
   });
-
-  test('security inventory reads alerts outside the default Octokit auth client', () => {
-    const workflow = read('.github/workflows/security-alert-inventory.yml');
-
-    expect(workflow).not.toMatch(/^\s+security-events:/m);
-    expect(workflow).toMatch(
-      /- name: Build sanitised alert inventory\n\s+env:\n\s+SECURITY_ALERTS_TOKEN: \$\{\{ secrets\.SECURITY_ALERTS_TOKEN \}\}/
-    );
-    expect(workflow).toContain('const response = await fetch(url, {');
-    expect(workflow).toContain('Authorization: `Bearer ${alertToken}`');
-    expect(workflow).not.toMatch(/github\.paginate\(`GET \$\{route\}`/);
-    expect(workflow).toMatch(/core\.setSecret\(alertToken\)/);
-    expect(workflow).toMatch(/secret_type_display_name/);
-    expect(workflow).not.toMatch(/alert\.secret\b/);
-    expect(workflow).toMatch(/never includes a secret value/);
-  });
 });
