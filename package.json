@@ -108,7 +108,7 @@
     "morgan": "^1.11.0",
     "multer": "^2.3.0",
     "node-schedule": "^2.1.1",
-    "pdfkit": "^0.20.1",
+    "pdfkit": "^0.21.0",
     "postcss": "^8.5.19",
     "postmark": "^4.0.7",
     "qrcode": "^1.5.4",
